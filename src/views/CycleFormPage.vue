@@ -423,14 +423,22 @@ ion-toolbar ion-button i {
 }
 
 /* Vue Datepicker стили */
+:deep(.dp__input_wrap) {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
 :deep(.dp__input) {
   background: rgba(255, 255, 255, 0.05) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   border-radius: 12px !important;
   color: var(--ion-text-color) !important;
-  padding: 12px 16px !important;
+  padding: 12px 40px 12px 40px !important;
   height: 48px !important;
   font-size: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 :deep(.dp__input::placeholder) {
@@ -444,6 +452,24 @@ ion-toolbar ion-button i {
 
 .datepicker-error :deep(.dp__input) {
   border-color: var(--ion-color-danger) !important;
+}
+
+/* Иконки */
+:deep(.dp__input_icon) {
+  position: absolute !important;
+  left: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+:deep(.dp__input_clear) {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 2 !important;
 }
 
 :deep(.dp__menu) {
