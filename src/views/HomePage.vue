@@ -802,12 +802,6 @@ onMounted(() => {
   pointer-events: none;
 }
 
-.grid-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3), 
-              0 4px 12px rgba(99, 102, 241, 0.1);
-}
-
 .grid-icon {
   font-size: 2rem;
   color: var(--ion-color-primary);
@@ -1188,11 +1182,6 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 2px solid transparent;
-}
-
-.exercise-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .exercise-card.exercise-selected {

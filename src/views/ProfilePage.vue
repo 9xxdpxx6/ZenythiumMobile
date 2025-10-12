@@ -247,10 +247,6 @@ onMounted(() => {
   justify-content: center;
 }
 
-.modern-button:hover:not(:disabled) {
-  background: var(--ion-color-primary-shade);
-  transform: translateY(-1px);
-}
 
 .modern-button:disabled {
   opacity: 0.6;
@@ -261,9 +257,6 @@ onMounted(() => {
   background: var(--ion-color-danger);
 }
 
-.logout-button:hover:not(:disabled) {
-  background: var(--ion-color-danger-shade);
-}
 
 .modern-button i {
   font-size: 14px;

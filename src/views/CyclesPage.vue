@@ -3,6 +3,11 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-title>Циклы</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="createCycle" class="add-button">
+            <i class="fas fa-plus"></i>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -41,18 +46,18 @@
                 <p><strong>Планов:</strong> {{ cycle.plans_count || 0 }}</p>
                 <p><strong>Тренировок:</strong> {{ cycle.workouts_count || 0 }}</p>
                 <p><strong>Начало:</strong> {{ formatDate(cycle.started_at) }}</p>
-                <p v-if="cycle.finished_at"><strong>Завершение:</strong> {{ formatDate(cycle.finished_at) }}</p>
+                <p v-if="cycle.status === 'completed' && cycle.finished_at"><strong>Завершение:</strong> {{ formatDate(cycle.finished_at) }}</p>
               </div>
 
-              <div class="cycle-progress" v-if="cycle.progress">
+              <div class="cycle-progress">
                 <div class="progress-label">
                   <span>Прогресс</span>
-                  <span>{{ Math.round(cycle.progress) }}%</span>
+                  <span>{{ Math.round(cycle.progress || 0) }}%</span>
                 </div>
                 <div class="progress-bar">
                   <div 
                     class="progress-fill" 
-                    :style="{ width: cycle.progress + '%' }"
+                    :style="{ width: (cycle.progress || 0) + '%' }"
                   ></div>
                 </div>
               </div>
@@ -89,6 +94,9 @@ import {
   IonSpinner,
   IonRefresher,
   IonRefresherContent,
+  IonButtons,
+  IonButton,
+  toastController,
 } from '@ionic/vue';
 import apiClient from '@/services/api';
 import { ApiError } from '@/types/api';
@@ -114,34 +122,48 @@ const fetchCycles = async () => {
   error.value = null;
   
   try {
-    // Пока что используем моковые данные, так как API может не иметь эндпоинта для циклов
-    // В реальном приложении здесь был бы запрос к API
-    const mockCycles: Cycle[] = [
-      {
-        id: 1,
-        name: 'Базовый цикл силы',
-        status: 'active',
-        plans_count: 3,
-        workouts_count: 12,
-        started_at: '2024-01-01T00:00:00Z',
-        progress: 65
-      },
-      {
-        id: 2,
-        name: 'Цикл на выносливость',
-        status: 'completed',
-        plans_count: 2,
-        workouts_count: 8,
-        started_at: '2023-11-01T00:00:00Z',
-        finished_at: '2023-12-31T00:00:00Z',
-        progress: 100
+    // Запрашиваем циклы с сортировкой по дате создания (новые сначала)
+    const response = await apiClient.get('/api/v1/cycles', {
+      params: {
+        sort_by: 'created_at',
+        sort_order: 'desc'
       }
-    ];
+    });
+    const cyclesData = response.data.data || [];
     
-    cycles.value = mockCycles;
+    // Transform API data to match our interface
+    cycles.value = cyclesData.map((cycle: any) => {
+      // Простая логика статуса: если есть end_date - завершен, иначе - активен
+      let status: 'active' | 'completed' = 'active';
+      if (cycle.end_date) {
+        status = 'completed';
+      }
+      
+      return {
+        id: cycle.id,
+        name: cycle.name,
+        status,
+        plans_count: cycle.plans_count || 0,
+        workouts_count: cycle.completed_workouts_count || 0,
+        started_at: cycle.start_date || cycle.created_at,
+        finished_at: cycle.end_date,
+        progress: cycle.progress_percentage || 0,
+      };
+    });
   } catch (err) {
     console.error('Cycles fetch error:', err);
-    error.value = (err as ApiError).message;
+    error.value = (err as ApiError).message || 'Не удалось загрузить циклы';
+    
+    // Show error toast
+    const toast = await toastController.create({
+      message: error.value,
+      duration: 3000,
+      color: 'danger',
+    });
+    await toast.present();
+    
+    // Fallback to empty array if API fails
+    cycles.value = [];
   } finally {
     loading.value = false;
   }
@@ -153,13 +175,13 @@ const handleRefresh = async (event: CustomEvent) => {
 };
 
 const handleCycleClick = (cycle: Cycle) => {
-  // В реальном приложении здесь была бы навигация к деталям цикла
-  console.log('Cycle clicked:', cycle);
+  // Переход к редактированию цикла
+  router.push(`/cycle/${cycle.id}`);
 };
 
 const createCycle = () => {
-  // В реальном приложении здесь была бы навигация к созданию цикла
-  console.log('Create cycle');
+  // Переход к созданию нового цикла
+  router.push('/cycle/new');
 };
 
 const formatDate = (dateString: string) => {
@@ -197,15 +219,13 @@ onMounted(() => {
   transition: transform 0.2s ease;
 }
 
-.cycle-card:hover {
-  transform: translateY(-2px);
-}
 
 .cycle-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 16px;
+  gap: 12px;
 }
 
 .cycle-header h3 {
@@ -213,6 +233,8 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   color: var(--ion-text-color);
+  flex: 1;
+  line-height: 1.3;
 }
 
 .cycle-status {
@@ -220,6 +242,8 @@ onMounted(() => {
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .status-active {
@@ -323,10 +347,6 @@ onMounted(() => {
   justify-content: center;
 }
 
-.modern-button:hover {
-  background: var(--ion-color-primary-shade);
-  transform: translateY(-1px);
-}
 
 .modern-button i {
   font-size: 14px;
@@ -341,5 +361,33 @@ onMounted(() => {
 .empty-state p {
   margin: 0 0 24px 0;
   font-size: 1rem;
+}
+
+/* Кнопка добавления в заголовке */
+.add-button {
+  --background: transparent !important;
+  --background-hover: transparent !important;
+  --background-focused: transparent !important;
+  --background-activated: transparent !important;
+  --border-width: 0 !important;
+  --border-style: none !important;
+  --border-color: transparent !important;
+  --color: var(--ion-color-primary) !important;
+  --color-hover: var(--ion-color-primary-shade) !important;
+  --color-focused: var(--ion-color-primary) !important;
+  --color-activated: var(--ion-color-primary-shade) !important;
+  --box-shadow: none !important;
+  --padding-start: 8px !important;
+  --padding-end: 8px !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 8px !important;
+  margin: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.add-button i {
+  font-size: 20px !important;
+  color: var(--ion-color-primary) !important;
 }
 </style>

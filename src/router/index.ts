@@ -58,6 +58,13 @@ const routes: Array<RouteRecordRaw> = [
       }
     ]
   },
+  // Cycle management routes
+  {
+    path: '/cycle/:id',
+    name: 'CycleForm',
+    component: () => import('@/views/CycleFormPage.vue'),
+    meta: { requiresAuth: true }
+  },
   // Workout flow routes
   {
     path: '/select-plan',

@@ -207,9 +207,6 @@ onMounted(() => {
   flex-direction: column;
 }
 
-.plan-card:hover {
-  transform: translateY(-2px);
-}
 
 .plan-header {
   display: flex;
@@ -307,10 +304,6 @@ onMounted(() => {
   justify-content: center;
 }
 
-.modern-button:hover {
-  background: var(--ion-color-primary-shade);
-  transform: translateY(-1px);
-}
 
 .modern-button i {
   font-size: 12px;
