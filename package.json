@@ -20,6 +20,7 @@
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",
+    "@vuepic/vue-datepicker": "^11.0.2",
     "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "ionicons": "^7.0.0",

@@ -20,6 +20,27 @@
         <h1 class="page-title">Циклы тренировок</h1>
         <p class="page-subtitle">Управляйте своими тренировочными циклами</p>
 
+        <!-- Поле поиска -->
+        <div class="search-container">
+          <div class="search-input-wrapper">
+            <i class="fas fa-search search-icon"></i>
+            <ion-input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Поиск циклов..."
+              class="search-input"
+              @ionInput="handleSearchInput"
+            ></ion-input>
+            <button 
+              v-if="searchQuery" 
+              @click="clearSearch" 
+              class="clear-search-button"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
         <div v-if="loading" class="loading-state">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Загрузка циклов...</p>
@@ -96,6 +117,7 @@ import {
   IonRefresherContent,
   IonButtons,
   IonButton,
+  IonInput,
   toastController,
 } from '@ionic/vue';
 import apiClient from '@/services/api';
@@ -116,19 +138,27 @@ const router = useRouter();
 const cycles = ref<Cycle[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const searchQuery = ref('');
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
 
-const fetchCycles = async () => {
+const fetchCycles = async (searchTerm: string = '') => {
   loading.value = true;
   error.value = null;
   
   try {
     // Запрашиваем циклы с сортировкой по дате создания (новые сначала)
-    const response = await apiClient.get('/api/v1/cycles', {
-      params: {
-        sort_by: 'created_at',
-        sort_order: 'desc'
-      }
-    });
+    const params: any = {
+      sort_by: 'created_at',
+      sort_order: 'desc'
+    };
+    
+    // Добавляем параметр поиска если есть
+    if (searchTerm.trim()) {
+      params.name = searchTerm.trim();
+      params.search = searchTerm.trim();
+    }
+    
+    const response = await apiClient.get('/api/v1/cycles', { params });
     const cyclesData = response.data.data || [];
     
     // Transform API data to match our interface
@@ -170,8 +200,31 @@ const fetchCycles = async () => {
 };
 
 const handleRefresh = async (event: CustomEvent) => {
-  await fetchCycles();
+  await fetchCycles(searchQuery.value);
   event.detail.complete();
+};
+
+const handleSearchInput = (event: CustomEvent) => {
+  const value = (event.target as HTMLInputElement).value;
+  searchQuery.value = value;
+  
+  // Очищаем предыдущий таймаут
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  
+  // Устанавливаем новый таймаут для дебаунса (300ms)
+  searchTimeout.value = setTimeout(() => {
+    fetchCycles(value);
+  }, 300);
+};
+
+const clearSearch = () => {
+  searchQuery.value = '';
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  fetchCycles('');
 };
 
 const handleCycleClick = (cycle: Cycle) => {
@@ -205,6 +258,84 @@ onMounted(() => {
   margin: 0 !important;
   padding-top: 4px !important;
   padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+}
+
+/* Поле поиска */
+.search-container {
+  margin: 16px 16px 20px 16px;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 16px;
+  height: 48px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: var(--ion-color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+.search-icon {
+  color: var(--ion-color-medium);
+  font-size: 16px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
+  --background: transparent !important;
+  --color: var(--ion-text-color) !important;
+  --placeholder-color: var(--ion-color-medium) !important;
+  --border-width: 0 !important;
+  --border-style: none !important;
+  --border-color: transparent !important;
+  --highlight-color: transparent !important;
+  --highlight-color-focused: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 16px;
+}
+
+.search-input::part(native) {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.search-input::part(underline) {
+  display: none !important;
+}
+
+.clear-search-button {
+  background: none;
+  border: none;
+  color: var(--ion-color-medium);
+  font-size: 16px;
+  padding: 8px;
+  margin-left: 8px;
+  cursor: pointer;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  transition: all 0.2s ease;
+}
+
+.clear-search-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ion-text-color);
 }
 
 .cycles-list {

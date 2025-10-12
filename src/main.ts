@@ -38,13 +38,18 @@ import './theme/modern-dark.css';
 /* Font Awesome */
 import '@fortawesome/fontawesome-free/css/all.css';
 
+/* Vue Datepicker */
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
+
 /* Import CustomInput component */
 import CustomInput from './components/CustomInput.vue';
 
 const app = createApp(App)
   .use(IonicVue)
   .use(router)
-  .component('CustomInput', CustomInput);
+  .component('CustomInput', CustomInput)
+  .component('VueDatePicker', VueDatePicker);
 
 router.isReady().then(() => {
   app.mount('#app');

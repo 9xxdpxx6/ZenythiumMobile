@@ -23,58 +23,70 @@
 
         <form v-else @submit.prevent="handleSubmit" class="cycle-form">
           <div class="form-group">
-            <label for="name">Название цикла *</label>
-            <ion-input
-              id="name"
+            <CustomInput
               v-model="formData.name"
+              label="Название цикла *"
               type="text"
               placeholder="Например: Набор массы"
-              :class="{ 'input-error': errors.name }"
+              :error="!!errors.name"
+              :error-message="errors.name"
               required
-            ></ion-input>
-            <span v-if="errors.name" class="error-message">{{ errors.name }}</span>
+            />
           </div>
 
           <div class="form-group">
-            <label for="weeks">Количество недель *</label>
-            <ion-input
-              id="weeks"
-              v-model.number="formData.weeks"
+            <CustomInput
+              v-model="formData.weeks"
+              label="Количество недель *"
               type="number"
               placeholder="Например: 6"
-              min="1"
-              max="52"
-              :class="{ 'input-error': errors.weeks }"
+              :error="!!errors.weeks"
+              :error-message="errors.weeks"
               required
-            ></ion-input>
-            <span v-if="errors.weeks" class="error-message">{{ errors.weeks }}</span>
+            />
           </div>
 
           <div class="form-group">
-            <label for="start_date">Дата начала (необязательно)</label>
-            <ion-input
-              id="start_date"
+            <label class="form-label">Дата начала (необязательно)</label>
+            <VueDatePicker
               v-model="formData.start_date"
-              type="date"
-              :class="{ 'input-error': errors.start_date }"
-            ></ion-input>
+              :class="{ 'datepicker-error': errors.start_date }"
+              format="dd.MM.yyyy"
+              placeholder="Выберите дату начала"
+              :enable-time-picker="false"
+              auto-apply
+              :dark="true"
+            />
             <span v-if="errors.start_date" class="error-message">{{ errors.start_date }}</span>
           </div>
 
           <div class="form-group">
-            <label for="end_date">Дата окончания (необязательно)</label>
-            <ion-input
-              id="end_date"
+            <label class="form-label">Дата окончания (необязательно)</label>
+            <VueDatePicker
               v-model="formData.end_date"
-              type="date"
-              :class="{ 'input-error': errors.end_date }"
-              :min="formData.start_date"
-            ></ion-input>
+              :class="{ 'datepicker-error': errors.end_date }"
+              format="dd.MM.yyyy"
+              placeholder="Выберите дату окончания"
+              :enable-time-picker="false"
+              auto-apply
+              :dark="true"
+              :min-date="formData.start_date"
+            />
             <span v-if="errors.end_date" class="error-message">{{ errors.end_date }}</span>
             <span class="field-hint">Если указана дата начала, дата окончания должна быть позже</span>
           </div>
 
           <div class="form-actions">
+            <button
+              type="button"
+              class="modern-button secondary-button"
+              @click="handleBack"
+              :disabled="submitting"
+            >
+              <i class="fas fa-times"></i>
+              Отмена
+            </button>
+
             <button
               type="submit"
               class="modern-button primary-button"
@@ -85,16 +97,6 @@
                 <i :class="isEditMode ? 'fas fa-save' : 'fas fa-plus'"></i>
                 {{ isEditMode ? 'Сохранить' : 'Создать цикл' }}
               </span>
-            </button>
-
-            <button
-              type="button"
-              class="modern-button secondary-button"
-              @click="handleBack"
-              :disabled="submitting"
-            >
-              <i class="fas fa-times"></i>
-              Отмена
             </button>
           </div>
         </form>
@@ -114,18 +116,18 @@ import {
   IonContent,
   IonButtons,
   IonButton,
-  IonInput,
   IonSpinner,
   toastController,
 } from '@ionic/vue';
+import CustomInput from '@/components/CustomInput.vue';
 import apiClient from '@/services/api';
 import { ApiError } from '@/types/api';
 
 interface CycleFormData {
   name: string;
-  weeks: number | null;
-  start_date: string;
-  end_date: string;
+  weeks: string;
+  start_date: Date | null;
+  end_date: Date | null;
 }
 
 interface ValidationErrors {
@@ -147,9 +149,9 @@ const errors = ref<ValidationErrors>({});
 
 const formData = ref<CycleFormData>({
   name: '',
-  weeks: null,
-  start_date: '',
-  end_date: '',
+  weeks: '',
+  start_date: null,
+  end_date: null,
 });
 
 const fetchCycleData = async () => {
@@ -162,9 +164,9 @@ const fetchCycleData = async () => {
 
     formData.value = {
       name: cycle.name || '',
-      weeks: cycle.weeks || null,
-      start_date: cycle.start_date ? cycle.start_date.split('T')[0] : '',
-      end_date: cycle.end_date ? cycle.end_date.split('T')[0] : '',
+      weeks: cycle.weeks ? cycle.weeks.toString() : '',
+      start_date: cycle.start_date ? new Date(cycle.start_date) : null,
+      end_date: cycle.end_date ? new Date(cycle.end_date) : null,
     };
   } catch (err) {
     console.error('Failed to fetch cycle:', err);
@@ -192,19 +194,22 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (!formData.value.weeks || formData.value.weeks < 1) {
+  if (!formData.value.weeks || formData.value.weeks.trim().length === 0) {
     errors.value.weeks = 'Укажите количество недель (минимум 1)';
     isValid = false;
-  } else if (formData.value.weeks > 52) {
-    errors.value.weeks = 'Максимальное количество недель: 52';
-    isValid = false;
+  } else {
+    const weeksNum = parseInt(formData.value.weeks);
+    if (isNaN(weeksNum) || weeksNum < 1) {
+      errors.value.weeks = 'Укажите количество недель (минимум 1)';
+      isValid = false;
+    } else if (weeksNum > 52) {
+      errors.value.weeks = 'Максимальное количество недель: 52';
+      isValid = false;
+    }
   }
 
   if (formData.value.start_date && formData.value.end_date) {
-    const startDate = new Date(formData.value.start_date);
-    const endDate = new Date(formData.value.end_date);
-    
-    if (endDate <= startDate) {
+    if (formData.value.end_date <= formData.value.start_date) {
       errors.value.end_date = 'Дата окончания должна быть позже даты начала';
       isValid = false;
     }
@@ -230,15 +235,15 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: formData.value.name.trim(),
-      weeks: formData.value.weeks,
+      weeks: parseInt(formData.value.weeks),
     };
 
     if (formData.value.start_date) {
-      payload.start_date = formData.value.start_date;
+      payload.start_date = formData.value.start_date.toISOString().split('T')[0];
     }
 
     if (formData.value.end_date) {
-      payload.end_date = formData.value.end_date;
+      payload.end_date = formData.value.end_date.toISOString().split('T')[0];
     }
 
     if (isEditMode.value) {
@@ -293,7 +298,7 @@ onMounted(() => {
 <style scoped>
 .page-content {
   padding: 16px !important;
-  padding-bottom: 80px !important;
+  padding-bottom: 120px !important;
   max-width: 600px;
   margin: 0 auto;
 }
@@ -330,56 +335,19 @@ onMounted(() => {
 .cycle-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.form-group label {
+.form-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--ion-text-color);
-}
-
-.form-group ion-input {
-  --padding-start: 16px !important;
-  --padding-end: 16px !important;
-  --border-width: 0 !important;
-  --border-style: none !important;
-  --border-color: transparent !important;
-  --background: rgba(255, 255, 255, 0.05) !important;
-  --color: var(--ion-text-color) !important;
-  --placeholder-color: var(--ion-color-medium) !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-  height: 48px !important;
-}
-
-.form-group ion-input::part(native) {
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 12px !important;
-  background: transparent !important;
-  height: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-.form-group ion-input:focus-within {
-  border-color: var(--ion-color-primary) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-}
-
-.form-group ion-input.input-error {
-  border-color: var(--ion-color-danger) !important;
 }
 
 .error-message {
@@ -395,10 +363,17 @@ onMounted(() => {
 }
 
 .form-actions {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--ion-background-color);
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
-  margin-top: 24px;
+  z-index: 1000;
 }
 
 .modern-button {
@@ -445,6 +420,70 @@ onMounted(() => {
 ion-toolbar ion-button i {
   font-size: 20px;
   color: var(--ion-color-primary);
+}
+
+/* Vue Datepicker стили */
+:deep(.dp__input) {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  color: var(--ion-text-color) !important;
+  padding: 12px 16px !important;
+  height: 48px !important;
+  font-size: 16px !important;
+}
+
+:deep(.dp__input::placeholder) {
+  color: var(--ion-color-medium) !important;
+}
+
+:deep(.dp__input:focus) {
+  border-color: var(--ion-color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+.datepicker-error :deep(.dp__input) {
+  border-color: var(--ion-color-danger) !important;
+}
+
+:deep(.dp__menu) {
+  background: var(--ion-background-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+}
+
+:deep(.dp__calendar_header) {
+  background: var(--ion-background-color) !important;
+}
+
+:deep(.dp__calendar_header_item) {
+  color: var(--ion-text-color) !important;
+}
+
+:deep(.dp__calendar_item) {
+  color: var(--ion-text-color) !important;
+}
+
+:deep(.dp__calendar_item:hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+:deep(.dp__date_hover) {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+:deep(.dp__date_selected) {
+  background: var(--ion-color-primary) !important;
+  color: white !important;
+}
+
+/* Кастомные отступы для CustomInput в форме цикла */
+.cycle-form .custom-input-wrapper {
+  margin: 0 !important;
+}
+
+.cycle-form .custom-input-label {
+  margin-bottom: 6px !important;
 }
 </style>
 

@@ -430,8 +430,9 @@ ion-spinner {
 
 /* Register page specific positioning */
 .register-page {
-  justify-content: center !important;
+  justify-content: flex-start !important;
   padding: 24px !important;
+  padding-top: 40px !important;
 }
 
 .auth-form {
