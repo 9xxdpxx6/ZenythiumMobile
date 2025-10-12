@@ -1,0 +1,501 @@
+/* Modern Flat Design with Rounded Corners - Dark Theme */
+
+:root {
+  /* Dark theme colors */
+  --ion-color-primary: #6366f1;
+  --ion-color-primary-rgb: 99, 102, 241;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #5755d4;
+  --ion-color-primary-tint: #7376f3;
+
+  --ion-color-secondary: #8b5cf6;
+  --ion-color-secondary-rgb: 139, 92, 246;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #7a51d8;
+  --ion-color-secondary-tint: #976df7;
+
+  --ion-color-tertiary: #06b6d4;
+  --ion-color-tertiary-rgb: 6, 182, 212;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #05a0ba;
+  --ion-color-tertiary-tint: #1fbdd8;
+
+  --ion-color-success: #10b981;
+  --ion-color-success-rgb: 16, 185, 129;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #0ea472;
+  --ion-color-success-tint: #28c08f;
+
+  --ion-color-warning: #f59e0b;
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #ffffff;
+  --ion-color-warning-contrast-rgb: 255, 255, 255;
+  --ion-color-warning-shade: #d88b09;
+  --ion-color-warning-tint: #f6a825;
+
+  --ion-color-danger: #ef4444;
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+
+  --ion-color-dark: #1f2937;
+  --ion-color-dark-rgb: 31, 41, 55;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #1b242f;
+  --ion-color-dark-tint: #353e4b;
+
+  --ion-color-medium: #6b7280;
+  --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e646e;
+  --ion-color-medium-tint: #7a7f8a;
+
+  --ion-color-light: #f9fafb;
+  --ion-color-light-rgb: 249, 250, 251;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #dbdcdd;
+  --ion-color-light-tint: #fafbfc;
+
+  /* Dark theme backgrounds */
+  --ion-background-color: #111827;
+  --ion-background-color-rgb: 17, 24, 39;
+  --ion-text-color: #f9fafb;
+  --ion-text-color-rgb: 249, 250, 251;
+
+  /* Card backgrounds */
+  --ion-card-background: #1f2937;
+  --ion-item-background: #1f2937;
+  --ion-toolbar-background: #1f2937;
+  --ion-tab-bar-background: #1f2937;
+
+  /* Border radius for modern flat design */
+  --ion-border-radius: 12px;
+  --ion-card-border-radius: 16px;
+  --ion-button-border-radius: 12px;
+  --ion-item-border-radius: 12px;
+}
+
+/* Global styles for modern flat design */
+ion-app {
+  --background: var(--ion-background-color);
+}
+
+/* Cards with rounded corners */
+ion-card {
+  border-radius: var(--ion-card-border-radius) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  margin: 16px !important;
+  background: var(--ion-card-background) !important;
+}
+
+ion-card-header {
+  padding: 20px 20px 16px 20px !important;
+}
+
+ion-card-content {
+  padding: 0 20px 20px 20px !important;
+}
+
+/* Content padding fixes - proper spacing for header */
+ion-content {
+  --padding-start: 16px !important;
+  --padding-end: 16px !important;
+  --padding-top: 16px !important;
+  --padding-bottom: 16px !important;
+}
+
+/* Page-specific content styling */
+ion-content .page-content {
+  padding: 16px !important;
+  margin: 0 !important;
+}
+
+/* Remove default Ionic padding but keep small top padding for header */
+ion-content {
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 0 !important;
+}
+
+/* Remove padding from all Ionic components */
+ion-card {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+ion-button {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
+}
+
+/* Override modern-card class */
+.modern-card {
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 8px;
+}
+
+/* Page titles and headers */
+.page-title {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: var(--ion-text-color) !important;
+  margin: 0 0 6px 0 !important;
+  padding-left: 16px !important;
+}
+
+.page-subtitle {
+  font-size: 13px !important;
+  color: var(--ion-color-medium) !important;
+  margin: 0 0 12px 0 !important;
+  padding-left: 16px !important;
+}
+
+/* Tab bar styling */
+ion-tab-button i {
+  font-size: 2rem !important;
+}
+
+ion-tab-bar {
+  --height: 80px !important;
+}
+
+ion-tab-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workouts-page .page-title {
+  margin-bottom: 20px !important;
+}
+
+.workout-card {
+  margin-bottom: 16px !important;
+  border-radius: 12px !important;
+}
+
+/* Buttons with rounded corners - matching input radius */
+ion-button {
+  --border-radius: 12px !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+  height: 48px !important;
+  font-size: 16px !important;
+}
+
+ion-button::part(native) {
+  border-radius: 12px !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+ion-button.button-large {
+  height: 56px !important;
+  font-size: 16px !important;
+}
+
+ion-button.button-large::part(native) {
+  height: 100% !important;
+}
+
+/* Items with rounded corners */
+ion-item {
+  border-radius: var(--ion-item-border-radius) !important;
+  margin: 8px 0 !important;
+  --background: var(--ion-item-background) !important;
+  --border-radius: var(--ion-item-border-radius) !important;
+  --padding-start: 16px !important;
+  --padding-end: 16px !important;
+}
+
+ion-item-divider {
+  border-radius: var(--ion-item-border-radius) !important;
+  margin: 8px 0 !important;
+}
+
+/* Lists with proper spacing */
+ion-list {
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+ion-list-header {
+  padding: 16px 20px 8px 20px !important;
+  font-weight: 600 !important;
+  font-size: 18px !important;
+}
+
+/* Toolbar styling */
+ion-toolbar {
+  --background: var(--ion-toolbar-background) !important;
+  --color: var(--ion-text-color) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+ion-header ion-toolbar {
+  border-radius: 0 0 16px 16px !important;
+}
+
+/* Tab bar styling - centered alignment */
+ion-tab-bar {
+  --background: var(--ion-tab-bar-background) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 16px 16px 0 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  min-height: 60px !important;
+}
+
+ion-tab-button {
+  border-radius: 12px !important;
+  margin: 0 4px !important;
+  flex: 1 !important;
+  max-width: 80px !important;
+  min-width: 60px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 6px 4px !important;
+  background: transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+ion-tab-button ion-icon {
+  font-size: 24px !important;
+  margin: 0 !important;
+  color: var(--ion-color-medium) !important;
+  transition: color 0.2s ease !important;
+}
+
+ion-tab-button ion-label {
+  display: none !important;
+}
+
+ion-tab-button.tab-selected {
+  background: rgba(99, 102, 241, 0.15) !important;
+  border: 1px solid rgba(99, 102, 241, 0.3) !important;
+}
+
+ion-tab-button.tab-selected ion-icon {
+  color: var(--ion-color-primary) !important;
+}
+
+/* Clean input styling - unified structure */
+.form-group ion-input {
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
+  --border-width: 0 !important;
+  --border-style: none !important;
+  --border-color: transparent !important;
+  --background: rgba(255, 255, 255, 0.05) !important;
+  --color: var(--ion-text-color) !important;
+  --placeholder-color: var(--ion-color-medium) !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  height: 48px !important;
+}
+
+.form-group ion-input::part(native) {
+  padding: 12px 16px !important;
+  border: none !important;
+  border-radius: 12px !important;
+  background: transparent !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.form-group ion-input input {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  outline: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  font-size: 16px !important;
+}
+
+.form-group ion-input:focus-within {
+  border-color: var(--ion-color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+}
+
+.form-group ion-input:focus-within::part(native) {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Chip styling */
+ion-chip {
+  border-radius: 20px !important;
+  font-weight: 500 !important;
+}
+
+/* Avatar styling */
+ion-avatar {
+  border-radius: 50% !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Toast styling */
+ion-toast {
+  --background: var(--ion-card-background) !important;
+  --color: var(--ion-text-color) !important;
+  border-radius: var(--ion-border-radius) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Loading spinner */
+ion-spinner {
+  --color: var(--ion-color-primary) !important;
+}
+
+/* Custom utility classes */
+.modern-card {
+  background: var(--ion-card-background) !important;
+  border-radius: var(--ion-card-border-radius) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  padding: 20px !important;
+  margin: 16px !important;
+}
+
+.modern-button {
+  --border-radius: 12px !important;
+  border-radius: 12px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
+  height: 48px !important;
+  font-size: 16px !important;
+}
+
+.modern-button::part(native) {
+  border-radius: 12px !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.modern-input {
+  --background: rgba(255, 255, 255, 0.05) !important;
+  --color: var(--ion-text-color) !important;
+  --placeholder-color: var(--ion-color-medium) !important;
+  border-radius: var(--ion-border-radius) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 12px 16px !important;
+}
+
+/* Page-specific styles */
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100vh;
+  padding: 60px 24px 24px 24px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+/* Disable scrolling for auth pages */
+.auth-page ion-content {
+  --overflow: hidden !important;
+}
+
+/* Register page specific positioning */
+.register-page {
+  justify-content: center !important;
+  padding: 24px !important;
+}
+
+.auth-form {
+  background: var(--ion-card-background);
+  border-radius: var(--ion-card-border-radius);
+  padding: 32px 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.auth-title {
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+}
+
+.auth-subtitle {
+  text-align: center;
+  color: var(--ion-color-medium);
+  margin-bottom: 32px;
+  font-size: 1rem;
+}
+
+.auth-form ion-item {
+  margin: 16px 0;
+  --background: transparent;
+  --border-radius: 12px;
+  --padding-start: 0;
+  --padding-end: 0;
+  --inner-padding-end: 0;
+}
+
+.form-group {
+  margin: 16px 0;
+}
+
+.form-group ion-label {
+  color: var(--ion-text-color);
+  font-weight: 500;
+  margin-bottom: 8px;
+  display: block;
+}
+
+.auth-button {
+  margin-top: 24px;
+  height: 48px;
+  font-size: 16px;
+  font-weight: 600;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.auth-link {
+  text-align: center;
+  margin-top: 24px;
+}
+
+.auth-link p {
+  color: var(--ion-color-medium);
+  margin-bottom: 8px;
+}
+
+.auth-link ion-button {
+  --color: var(--ion-color-primary);
+  font-weight: 600;
+}

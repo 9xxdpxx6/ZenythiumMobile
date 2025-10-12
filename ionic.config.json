@@ -1,0 +1,7 @@
+{
+  "name": "ionic-vue-fitness-app",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
