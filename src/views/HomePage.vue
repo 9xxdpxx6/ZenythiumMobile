@@ -94,7 +94,7 @@
                       <span class="weight-date">{{ getCurrentWeightDate() }}</span>
                     </div>
                     <div class="weight-change" v-if="getWeightChange()">
-                      <span :class="getWeightChangeClass()">
+                      <span :class="getWeightChangeClassForChart()">
                         {{ getWeightChange() }}
                       </span>
                     </div>
@@ -114,9 +114,6 @@
             <div class="chart-container modern-card">
               <div class="chart-header">
                 <h3>Прогресс по упражнениям</h3>
-                <ion-button fill="clear" size="small" @click="showExerciseSelector">
-                  <i class="fas fa-cog" :class="{ 'refresh-spinning': isRefreshingExercises }"></i>
-                </ion-button>
               </div>
               <div class="chart-content">
                 <div v-if="selectedExercises.length > 0" class="exercise-progress">
@@ -125,24 +122,63 @@
                     :key="exercise.id"
                     class="exercise-item"
                   >
-                    <div class="exercise-info">
-                      <h4>{{ exercise.name }}</h4>
-                      <p>Последний результат: {{ exercise.lastResult }}</p>
-                    </div>
-                    <div class="progress-bar">
-                      <div 
-                        class="progress-fill" 
-                        :style="{ width: exercise.progress + '%' }"
-                      ></div>
+                    <div class="exercise-content">
+                      <div class="exercise-header">
+                        <div class="exercise-title-row">
+                          <h4>{{ exercise.name }}</h4>
+                          <div v-if="exercise.weightChange" class="weight-change-badge">
+                            <span :class="getWeightChangeClass(exercise.weightChange)">
+                              {{ getWeightChangeText(exercise.weightChange) }}
+                            </span>
+                          </div>
+                        </div>
+                        <div class="exercise-category">{{ exercise.category }}</div>
+                      </div>
+                      
+                      <div class="exercise-stats">
+                        <div class="stat-item highlight">
+                          <div class="stat-icon">🏆</div>
+                          <div class="stat-content">
+                            <div class="stat-value">{{ exercise.bestWeight }} кг</div>
+                            <div class="stat-label">Лучший результат</div>
+                          </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                          <div class="stat-icon">📅</div>
+                          <div class="stat-content">
+                            <div class="stat-value">{{ formatDate(exercise.lastPerformed || '') }}</div>
+                            <div class="stat-label">Последняя тренировка</div>
+                          </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                          <div class="stat-icon">⚡</div>
+                          <div class="stat-content">
+                            <div class="stat-value">{{ exercise.totalSets }}</div>
+                            <div class="stat-label">Всего подходов</div>
+                          </div>
+                        </div>
+                        
+                        <div class="stat-item">
+                          <div class="stat-icon">📊</div>
+                          <div class="stat-content">
+                            <div class="stat-value">{{ exercise.avgWeight.toFixed(1) }} кг</div>
+                            <div class="stat-label">Средний вес</div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div v-else class="no-data">
                   <i class="fas fa-dumbbell chart-icon"></i>
-                  <p>Выберите упражнения для отслеживания</p>
-                  <ion-button fill="outline" size="small" @click="showExerciseSelector">
-                    Выбрать упражнения
-                  </ion-button>
+                  <p>Нет данных о тренировках</p>
+                  <p v-if="!hasWorkoutData" class="no-workout-data">
+                    <small>Для отображения прогресса необходимо выполнить тренировки с упражнениями</small>
+                    <br>
+                    <small>Нажмите "Начать тренировку" для создания первой тренировки</small>
+                  </p>
                 </div>
               </div>
             </div>
@@ -156,80 +192,6 @@
         </div>
       </div>
 
-      <!-- Exercise Selector Modal -->
-      <ion-modal :is-open="showExerciseModal" @did-dismiss="showExerciseModal = false">
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Выберите упражнения</ion-title>
-            <ion-buttons slot="end">
-              <ion-button fill="clear" @click="showExerciseModal = false">
-                <i class="fas fa-times"></i>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content>
-          <div class="exercise-selector">
-            <div class="modal-header">
-              <h2>Отслеживание прогресса</h2>
-              <p>Выберите упражнения для отображения на главной странице</p>
-            </div>
-            
-            <!-- Search Bar -->
-            <div class="search-container">
-              <div class="search-input-wrapper">
-                <i class="fas fa-search search-icon"></i>
-                <ion-input
-                  v-model="searchQuery"
-                  placeholder="Поиск упражнений..."
-                  class="search-input"
-                ></ion-input>
-                <ion-button 
-                  v-if="searchQuery" 
-                  fill="clear" 
-                  size="small"
-                  @click="searchQuery = ''"
-                  class="clear-search"
-                >
-                  <i class="fas fa-times"></i>
-                </ion-button>
-              </div>
-            </div>
-            
-            <div class="exercises-list">
-              <div 
-                v-for="exercise in filteredExercises" 
-                :key="exercise.id"
-                class="exercise-card"
-                :class="{ 'exercise-selected': isExerciseSelected(exercise.id) }"
-                @click="toggleExercise(exercise)"
-              >
-                <div class="exercise-checkbox">
-                  <ion-checkbox 
-                    :checked="isExerciseSelected(exercise.id)"
-                    @click.stop
-                  ></ion-checkbox>
-                </div>
-                <div class="exercise-info">
-                  <h3>{{ exercise.name }}</h3>
-                  <p class="exercise-category">{{ exercise.muscle_group || exercise.category }}</p>
-                  <p v-if="exercise.description" class="exercise-description">{{ exercise.description }}</p>
-                </div>
-                <div class="exercise-icon">
-                  <i class="fas fa-dumbbell"></i>
-                </div>
-              </div>
-              
-              <!-- No results message -->
-              <div v-if="filteredExercises.length === 0" class="no-results">
-                <i class="fas fa-search"></i>
-                <p>Упражнения не найдены</p>
-                <small>Попробуйте изменить поисковый запрос</small>
-              </div>
-            </div>
-          </div>
-        </ion-content>
-      </ion-modal>
     </ion-content>
   </ion-page>
 </template>
@@ -246,10 +208,6 @@ import {
   IonButton,
   IonIcon,
   IonSpinner,
-  IonModal,
-  IonButtons,
-  IonCheckbox,
-  IonInput,
 } from '@ionic/vue';
 // Font Awesome icons - no imports needed, using CSS classes
 import apiClient from '@/services/api';
@@ -275,41 +233,27 @@ let weightChart: Chart | null = null;
 // Refresh animation state
 const isRefreshingChart = ref(false);
 const isCompletingChart = ref(false);
-const isRefreshingExercises = ref(false);
 
 // Exercise progress tracking
-const showExerciseModal = ref(false);
 const selectedExercises = ref<Array<{
   id: number;
   name: string;
   category: string;
   lastResult: string;
-  progress: number;
+  weightChange: {
+    value: number;
+    percentage: number;
+    isPositive: boolean;
+    isNegative: boolean;
+    isStable: boolean;
+  } | null;
+  bestWeight: number;
+  totalSets: number;
+  totalVolume: number;
+  avgWeight: number;
+  lastPerformed?: string;
 }>>([]);
 
-// Search functionality
-const searchQuery = ref('');
-const filteredExercises = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return availableExercises.value;
-  }
-  
-  const query = searchQuery.value.toLowerCase();
-  return availableExercises.value.filter(exercise => 
-    exercise.name.toLowerCase().includes(query) ||
-    (exercise.muscle_group || exercise.category).toLowerCase().includes(query) ||
-    (exercise.description && exercise.description.toLowerCase().includes(query))
-  );
-});
-
-// Available exercises for selection
-const availableExercises = ref<Array<{
-  id: number;
-  name: string;
-  category: string;
-  muscle_group?: string;
-  description?: string;
-}>>([]);
 
 const weekWorkouts = computed(() => {
   const now = new Date();
@@ -344,59 +288,75 @@ const recentWorkouts = computed(() => {
     .slice(0, 5);
 });
 
-// Exercise selection methods
-const isExerciseSelected = (exerciseId: number) => {
-  return selectedExercises.value.some(ex => ex.id === exerciseId);
-};
+const hasWorkoutData = computed(() => {
+  return workouts.value.length > 0;
+});
 
-const toggleExercise = (exercise: {id: number, name: string, category: string, muscle_group?: string}) => {
-  const existingIndex = selectedExercises.value.findIndex(ex => ex.id === exercise.id);
-  
-  if (existingIndex >= 0) {
-    selectedExercises.value.splice(existingIndex, 1);
-  } else {
-    // Add new exercise with mock progress data
-    selectedExercises.value.push({
-      id: exercise.id,
-      name: exercise.name,
-      category: exercise.muscle_group || exercise.category,
-      lastResult: Math.floor(Math.random() * 50) + 10 + ' кг',
-      progress: Math.floor(Math.random() * 100)
+
+// Функция для получения реального прогресса упражнений из API статистики
+const fetchExerciseProgress = async () => {
+  try {
+    const response = await apiClient.get('/api/v1/user/exercise-statistics');
+    const statsData = response.data.data;
+    
+    if (!statsData || !statsData.top_exercises) {
+      return [];
+    }
+    
+    // Преобразуем данные из API в формат для отображения
+    const exerciseProgress = statsData.top_exercises.map((exercise: any) => {
+      // Находим соответствующий прогресс из exercise_progress
+      const progressData = statsData.exercise_progress?.find((progress: any) => 
+        progress.exercise_name === exercise.exercise_name
+      );
+      
+      // Рассчитываем изменение веса
+      const weightChange = calculateWeightChange(progressData);
+      
+      // Форматируем последний результат
+      const lastResult = exercise.last_performed 
+        ? `${exercise.avg_weight?.toFixed(1) || 0} кг (${exercise.last_performed})`
+        : 'Нет данных';
+      
+      return {
+        id: Math.random(), // Временный ID, так как в API нет ID упражнения
+        name: exercise.exercise_name,
+        category: exercise.muscle_group || 'Неизвестно',
+        lastResult,
+        weightChange,
+        bestWeight: exercise.max_weight || 0,
+        totalSets: exercise.total_sets || 0,
+        totalVolume: exercise.total_volume || 0,
+        avgWeight: exercise.avg_weight || 0,
+        lastPerformed: exercise.last_performed
+      };
     });
+    
+    return exerciseProgress;
+  } catch (error) {
+    console.error('❌ Error fetching exercise progress:', error);
+    return [];
+  }
+};
+
+// Функция для расчета изменения веса из exercise_progress
+const calculateWeightChange = (progressData: any) => {
+  if (!progressData || !progressData.weight_progression || progressData.weight_progression.length < 2) {
+    return null; // Нет данных для сравнения
   }
   
-  // Auto-save to localStorage immediately
-  localStorage.setItem('selectedExercises', JSON.stringify(selectedExercises.value));
-};
-
-const fetchUserExercises = async () => {
-  try {
-    const response = await apiClient.get('/api/v1/exercises');
-    availableExercises.value = response.data.data || response.data || [];
-  } catch (err) {
-    console.error('Exercises fetch error:', err);
-    // Fallback to mock data if API fails
-    availableExercises.value = [
-      { id: 1, name: 'Жим лежа', category: 'Грудь', muscle_group: 'Грудь' },
-      { id: 2, name: 'Приседания', category: 'Ноги', muscle_group: 'Ноги' },
-      { id: 3, name: 'Становая тяга', category: 'Спина', muscle_group: 'Спина' },
-      { id: 4, name: 'Подтягивания', category: 'Спина', muscle_group: 'Спина' },
-      { id: 5, name: 'Отжимания', category: 'Грудь', muscle_group: 'Грудь' },
-      { id: 6, name: 'Планка', category: 'Кор', muscle_group: 'Кор' },
-      { id: 7, name: 'Бег', category: 'Кардио', muscle_group: 'Кардио' },
-      { id: 8, name: 'Велосипед', category: 'Кардио', muscle_group: 'Кардио' },
-    ];
-  }
-};
-
-const showExerciseSelector = async () => {
-  isRefreshingExercises.value = true;
-  try {
-    await fetchUserExercises();
-    showExerciseModal.value = true;
-  } finally {
-    isRefreshingExercises.value = false;
-  }
+  const progression = progressData.weight_progression;
+  const firstWeight = progression[0].max_weight;
+  const lastWeight = progression[progression.length - 1].max_weight;
+  const change = lastWeight - firstWeight;
+  
+  return {
+    value: change,
+    percentage: firstWeight > 0 ? ((change / firstWeight) * 100) : 0,
+    isPositive: change > 0,
+    isNegative: change < 0,
+    isStable: change === 0
+  };
 };
 
 // Weight chart methods
@@ -550,7 +510,7 @@ const getWeightChange = () => {
   return `${sign}${change.toFixed(1)} кг`;
 };
 
-const getWeightChangeClass = () => {
+const getWeightChangeClassForChart = () => {
   const monthlyData = getMonthlyWeightData();
   if (monthlyData.length < 2) return '';
   
@@ -622,23 +582,9 @@ const fetchData = async () => {
       console.error('Metrics fetch error:', metricsError);
     }
     
-    // Load selected exercises from localStorage
-    const savedExercises = localStorage.getItem('selectedExercises');
-    if (savedExercises) {
-      selectedExercises.value = JSON.parse(savedExercises);
-    } else {
-      // Select 3 random exercises on first load
-      const shuffled = [...availableExercises.value].sort(() => 0.5 - Math.random());
-      const randomExercises = shuffled.slice(0, 3).map(exercise => ({
-        id: exercise.id,
-        name: exercise.name,
-        category: exercise.category,
-        lastResult: Math.floor(Math.random() * 50) + 10 + ' кг',
-        progress: Math.floor(Math.random() * 100)
-      }));
-      selectedExercises.value = randomExercises;
-      localStorage.setItem('selectedExercises', JSON.stringify(randomExercises));
-    }
+    // Загружаем реальный прогресс упражнений из API статистики
+    const exerciseProgressData = await fetchExerciseProgress();
+    selectedExercises.value = exerciseProgressData;
   } catch (err) {
     console.error('Data fetch error:', err);
     error.value = (err as ApiError).message;
@@ -664,6 +610,22 @@ const formatTime = (seconds: number) => {
     return `${hours}ч ${minutes}м`;
   }
   return `${minutes}м`;
+};
+
+// Функции для форматирования изменения веса
+const getWeightChangeText = (weightChange: any) => {
+  if (!weightChange) return '';
+  
+  const sign = weightChange.isPositive ? '+' : '';
+  return `${sign}${weightChange.value.toFixed(1)} кг`;
+};
+
+const getWeightChangeClass = (weightChange: any) => {
+  if (!weightChange) return '';
+  
+  if (weightChange.isPositive) return 'weight-increase';
+  if (weightChange.isNegative) return 'weight-decrease';
+  return 'weight-stable';
 };
 
 onMounted(() => {
@@ -956,16 +918,28 @@ onMounted(() => {
   font-weight: 600;
 }
 
+.weight-change span {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
 .weight-increase {
-  color: var(--ion-color-warning);
+  color: #10b981;
+  border-color: #10b981;
 }
 
 .weight-decrease {
-  color: var(--ion-color-success);
+  color: #f59e0b;
+  border-color: #f59e0b;
 }
 
 .weight-stable {
-  color: var(--ion-color-medium);
+  color: #6b7280;
+  border-color: #6b7280;
 }
 
 /* Refresh animation */
@@ -1058,222 +1032,142 @@ onMounted(() => {
   gap: 20px;
 }
 
+/* Exercise Progress - Mobile Design */
 .exercise-item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.exercise-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.exercise-info p {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
-.progress-bar {
-  width: 100%;
-  height: 6px;
-  background-color: var(--ion-color-light);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: var(--ion-color-primary);
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-/* Exercise Selector Modal */
-.exercise-selector {
-  padding: 16px;
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  text-align: center;
-  margin-bottom: 24px;
-  padding: 16px 0;
-}
-
-.modal-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.modal-header p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-/* Search Container */
-.search-container {
-  margin-bottom: 20px;
-}
-
-.search-input-wrapper {
   position: relative;
-  display: flex;
-  align-items: center;
   background: var(--ion-color-step-50);
   border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 0 16px;
-  transition: border-color 0.2s ease;
 }
 
-.search-input-wrapper:focus-within {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+.exercise-content {
+  margin-top: 0;
 }
 
-.search-icon {
-  color: var(--ion-color-medium);
-  font-size: 16px;
-  margin-right: 12px;
-  flex-shrink: 0;
+.exercise-header {
+  margin-bottom: 12px;
 }
 
-.search-input {
-  flex: 1;
-  --padding-start: 0;
-  --padding-end: 0;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  --background: transparent;
-  --color: var(--ion-text-color);
-  --placeholder-color: var(--ion-color-medium);
-  font-size: 16px;
-}
-
-.clear-search {
-  --color: var(--ion-color-medium);
-  margin-left: 8px;
-  flex-shrink: 0;
-}
-
-.exercises-list {
-  flex: 1;
+.exercise-title-row {
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 12px;
+  margin-bottom: 4px;
 }
 
-.exercise-card {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background: var(--ion-color-step-50);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 2px solid transparent;
-}
-
-.exercise-card.exercise-selected {
-  border-color: var(--ion-color-primary);
-  background: rgba(99, 102, 241, 0.1);
-}
-
-.exercise-checkbox {
-  margin-right: 16px;
-  flex-shrink: 0;
-}
-
-.exercise-info {
-  flex: 1;
-  margin-right: 12px;
-}
-
-.exercise-info h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+.exercise-title-row h4 {
+  margin: 0;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ion-text-color);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+  word-wrap: break-word;
+  hyphens: auto;
 }
 
 .exercise-category {
-  margin: 0 0 4px 0;
-  font-size: 13px;
+  font-size: 11px;
   color: var(--ion-color-primary);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.exercise-description {
-  margin: 0;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  line-height: 1.3;
-}
-
-.exercise-icon {
+/* Weight change badge in flex container */
+.weight-change-badge {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(99, 102, 241, 0.1);
+  margin-right: 0;
+}
+
+.weight-change-badge span {
+  display: inline-block;
+  padding: 3px 6px;
   border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  min-width: 40px;
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
-.exercise-icon i {
-  font-size: 18px;
-  color: var(--ion-color-primary);
+.exercise-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
-.exercise-selected .exercise-icon {
-  background: var(--ion-color-primary);
-}
-
-.exercise-selected .exercise-icon i {
-  color: white;
-}
-
-/* No results message */
-.no-results {
+.stat-item {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.stat-item.highlight {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.stat-icon {
+  font-size: 16px;
+  width: 24px;
+  height: 24px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  color: var(--ion-color-medium);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
-.no-results i {
-  font-size: 3rem;
-  margin-bottom: 16px;
-  color: var(--ion-color-primary);
-  opacity: 0.5;
+.stat-content {
+  flex: 1;
+  min-width: 0;
 }
 
-.no-results p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 500;
+.stat-value {
+  font-size: 12px;
+  font-weight: 600;
   color: var(--ion-text-color);
+  margin-bottom: 1px;
+  line-height: 1.2;
 }
 
-.no-results small {
-  margin: 0;
-  font-size: 14px;
+.stat-label {
+  font-size: 10px;
   color: var(--ion-color-medium);
+  font-weight: 500;
+  line-height: 1.2;
 }
+
+/* Weight change colors */
+.weight-increase {
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.weight-decrease {
+  color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.weight-stable {
+  color: #6b7280;
+  border-color: #6b7280;
+}
+
+
+
 
 /* Loading State */
 .loading-state {

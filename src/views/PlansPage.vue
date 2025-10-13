@@ -31,9 +31,9 @@
               <div class="plan-header">
                 <h3>{{ plan.name }}</h3>
                 <div
-                  :class="['plan-difficulty', getPlanDifficultyClass(plan.difficulty)]"
+                  :class="['plan-difficulty', getPlanDifficultyClass(plan.difficulty || 'general')]"
                 >
-                  {{ getDifficultyText(plan.difficulty) }}
+                  {{ getDifficultyText(plan.difficulty || 'general') }}
                 </div>
               </div>
               

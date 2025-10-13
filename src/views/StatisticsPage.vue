@@ -32,13 +32,13 @@
             </div>
 
             <div class="stat-card modern-card">
-              <h3>Текущий вес</h3>
-              <div class="stat-value">{{ statistics.current_weight }} кг</div>
+              <h3>Активные циклы</h3>
+              <div class="stat-value">{{ statistics.active_cycles_count }}</div>
             </div>
 
             <div class="stat-card modern-card">
-              <h3>Частота тренировок</h3>
-              <div class="stat-value">{{ statistics.training_frequency }} в неделю</div>
+              <h3>Частота тренировок (4 недели)</h3>
+              <div class="stat-value">{{ statistics.training_frequency_4_weeks }} в неделю</div>
             </div>
 
             <div class="stat-card modern-card">

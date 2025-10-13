@@ -77,6 +77,33 @@ export interface Plan {
   created_at: string;
   updated_at: string;
   exercises?: Exercise[];
+  difficulty?: string;
+  duration?: number;
+  exercises_count?: number;
+  category?: string;
+}
+
+// Cycle related types
+export interface Cycle {
+  id: number;
+  name: string;
+  weeks: number;
+  start_date: string | null;
+  end_date: string | null;
+  progress_percentage: number;
+  completed_workouts_count: number;
+  plans_count: number;
+  created_at: string;
+  updated_at: string;
+  plans?: CyclePlan[];
+}
+
+export interface CyclePlan {
+  id: number;
+  cycle_id: number;
+  plan_id: number;
+  order: number;
+  plan: Plan;
 }
 
 export interface Exercise {

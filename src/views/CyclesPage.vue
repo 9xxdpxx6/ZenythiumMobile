@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -140,6 +140,7 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const lastFetchTime = ref<number>(0);
 
 const fetchCycles = async (searchTerm: string = '') => {
   loading.value = true;
@@ -196,6 +197,7 @@ const fetchCycles = async (searchTerm: string = '') => {
     cycles.value = [];
   } finally {
     loading.value = false;
+    lastFetchTime.value = Date.now();
   }
 };
 
@@ -237,6 +239,12 @@ const createCycle = () => {
   router.push('/cycle/new');
 };
 
+// Функция для принудительного обновления данных
+const forceRefresh = () => {
+  lastFetchTime.value = 0; // Сбрасываем время последнего обновления
+  fetchCycles(searchQuery.value);
+};
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('ru-RU', {
@@ -246,8 +254,27 @@ const formatDate = (dateString: string) => {
   });
 };
 
+// Обработчик события обновления циклов
+const handleCyclesUpdated = () => {
+  forceRefresh();
+};
+
 onMounted(() => {
   fetchCycles();
+  window.addEventListener('cycles-updated', handleCyclesUpdated);
+});
+
+onActivated(() => {
+  // Обновляем данные только если прошло больше 5 секунд с последнего обновления
+  // или если это первое открытие страницы
+  const timeSinceLastFetch = Date.now() - lastFetchTime.value;
+  if (timeSinceLastFetch > 5000 || lastFetchTime.value === 0) {
+    fetchCycles(searchQuery.value);
+  }
+});
+
+onUnmounted(() => {
+  window.removeEventListener('cycles-updated', handleCyclesUpdated);
 });
 </script>
 
