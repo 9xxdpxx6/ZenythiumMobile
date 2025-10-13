@@ -73,14 +73,16 @@ export interface FinishWorkoutResponse {
 export interface Plan {
   id: number;
   name: string;
-  description: string | null;
+  order: number;
+  is_active: boolean;
+  exercise_count: number;
+  cycle?: {
+    id: number;
+    name: string;
+  };
+  exercises?: Exercise[];
   created_at: string;
   updated_at: string;
-  exercises?: Exercise[];
-  difficulty?: string;
-  duration?: number;
-  exercises_count?: number;
-  category?: string;
 }
 
 // Cycle related types

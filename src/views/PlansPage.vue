@@ -30,29 +30,12 @@
             >
               <div class="plan-header">
                 <h3>{{ plan.name }}</h3>
-                <div
-                  :class="['plan-difficulty', getPlanDifficultyClass(plan.difficulty || 'general')]"
-                >
-                  {{ getDifficultyText(plan.difficulty || 'general') }}
-                </div>
               </div>
               
-              <div class="plan-description">
-                <p>{{ plan.description || 'Описание отсутствует' }}</p>
-              </div>
-
               <div class="plan-stats">
                 <div class="stat">
                   <i class="fas fa-dumbbell"></i>
-                  <span>{{ plan.exercises_count || 0 }} упражнений</span>
-                </div>
-                <div class="stat">
-                  <i class="fas fa-clock"></i>
-                  <span>{{ plan.duration || 0 }} мин</span>
-                </div>
-                <div class="stat">
-                  <i class="fas fa-users"></i>
-                  <span>{{ plan.category || 'Общий' }}</span>
+                  <span>{{ plan.exercise_count || 0 }} упражнений</span>
                 </div>
               </div>
 
@@ -106,7 +89,9 @@ const fetchPlans = async () => {
   
   try {
     const response = await apiClient.get('/api/v1/plans');
-    plans.value = response.data.data || response.data || [];
+    const allPlans = response.data.data || response.data || [];
+    // Фильтруем только активные планы
+    plans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
   } catch (err) {
     console.error('Plans fetch error:', err);
     error.value = (err as ApiError).message;
@@ -140,44 +125,6 @@ const startWorkout = async (plan: Plan) => {
   }
 };
 
-const getPlanDifficultyClass = (difficulty: string) => {
-  switch (difficulty) {
-    case 'beginner':
-      return 'difficulty-beginner';
-    case 'intermediate':
-      return 'difficulty-intermediate';
-    case 'advanced':
-      return 'difficulty-advanced';
-    default:
-      return 'difficulty-general';
-  }
-};
-
-const getPlanColor = (difficulty: string) => {
-  switch (difficulty) {
-    case 'beginner':
-      return 'success';
-    case 'intermediate':
-      return 'warning';
-    case 'advanced':
-      return 'danger';
-    default:
-      return 'medium';
-  }
-};
-
-const getDifficultyText = (difficulty: string) => {
-  switch (difficulty) {
-    case 'beginner':
-      return 'Начинающий';
-    case 'intermediate':
-      return 'Средний';
-    case 'advanced':
-      return 'Продвинутый';
-    default:
-      return 'Общий';
-  }
-};
 
 onMounted(() => {
   fetchPlans();
@@ -224,48 +171,6 @@ onMounted(() => {
   margin-right: 12px;
 }
 
-.plan-difficulty {
-  padding: 3px 10px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.difficulty-beginner {
-  background: rgba(16, 185, 129, 0.2);
-  color: var(--ion-color-success);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.difficulty-intermediate {
-  background: rgba(245, 158, 11, 0.2);
-  color: var(--ion-color-warning);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-}
-
-.difficulty-advanced {
-  background: rgba(239, 68, 68, 0.2);
-  color: var(--ion-color-danger);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-}
-
-.difficulty-general {
-  background: rgba(107, 114, 128, 0.2);
-  color: var(--ion-color-medium);
-  border: 1px solid rgba(107, 114, 128, 0.3);
-}
-
-.plan-description {
-  margin-bottom: 16px;
-}
-
-.plan-description p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
 
 .plan-stats {
   display: flex;

@@ -105,47 +105,58 @@
             </div>
 
             <div v-else class="plans-list">
+              <div class="global-plan-hint">
+                <i class="fas fa-info-circle"></i>
+                <span>Долгое нажатие на план для удаления</span>
+              </div>
+              
               <draggable
                 v-model="cyclePlans"
                 @end="onPlanDragEnd"
+                @start="onPlanDragStart"
+                @move="onPlanMove"
                 item-key="id"
                 handle=".drag-handle"
                 class="draggable-list"
+                :animation="0"
+                :ghost-class="''"
+                :chosen-class="'sortable-chosen'"
+                :drag-class="'sortable-drag'"
+                :force-fallback="false"
+                :fallback-tolerance="0"
+                :delay="0"
+                :delay-on-touch-start="false"
+                :touch-start-threshold="10"
+                :swap-threshold="0.65"
+                :invert-swap="false"
+                :direction="'vertical'"
+                :disabled="false"
+                :scroll="false"
+                :group="false"
+                :pull="false"
+                :put="false"
               >
                 <template #item="{ element: cyclePlan, index }">
-                  <div class="plan-item">
+                  <div 
+                    class="plan-item"
+                    @longpress="showDeleteConfirmation(index)"
+                    @touchstart="handleTouchStart"
+                    @touchend="handleTouchEnd"
+                    @touchmove="handleTouchMove"
+                  >
                     <div class="drag-handle">
                       <ion-icon :icon="reorderFourOutline"></ion-icon>
                     </div>
                     
                     <div class="plan-info">
                       <h4>{{ cyclePlan.plan.name }}</h4>
-                      <p v-if="cyclePlan.plan.description">{{ cyclePlan.plan.description }}</p>
                       <div class="plan-meta">
-                        <ion-chip
-                          :class="['plan-difficulty', getPlanDifficultyClass(cyclePlan.plan.difficulty || 'general')]"
-                          size="small"
-                        >
-                          {{ getDifficultyText(cyclePlan.plan.difficulty || 'general') }}
-                        </ion-chip>
-                        <span v-if="cyclePlan.plan.exercises_count" class="plan-stats">
+                        <span class="plan-stats">
                           <i class="fas fa-dumbbell"></i>
-                          {{ cyclePlan.plan.exercises_count }} упражнений
-                        </span>
-                        <span v-if="cyclePlan.plan.duration" class="plan-stats">
-                          <i class="fas fa-clock"></i>
-                          {{ cyclePlan.plan.duration }} мин
+                          {{ cyclePlan.plan.exercise_count }} упражнений
                         </span>
                       </div>
                     </div>
-                    
-                    <button
-                      type="button"
-                      class="remove-plan-button"
-                      @click="removePlanFromCycle(index)"
-                    >
-                      <ion-icon :icon="removeOutline"></ion-icon>
-                    </button>
                   </div>
                 </template>
               </draggable>
@@ -223,29 +234,57 @@
               </ion-card-header>
               
               <ion-card-content>
-                <p v-if="plan.description">{{ plan.description }}</p>
-                
                 <div class="plan-meta">
-                  <ion-chip
-                    :class="['plan-difficulty', getPlanDifficultyClass(plan.difficulty || 'general')]"
-                    size="small"
-                  >
-                    {{ getDifficultyText(plan.difficulty || 'general') }}
-                  </ion-chip>
-                  
                   <div class="plan-stats">
-                    <span v-if="plan.exercises_count">
+                    <span>
                       <i class="fas fa-dumbbell"></i>
-                      {{ plan.exercises_count }} упражнений
-                    </span>
-                    <span v-if="plan.duration">
-                      <i class="fas fa-clock"></i>
-                      {{ plan.duration }} мин
+                      {{ plan.exercise_count }} упражнений
                     </span>
                   </div>
                 </div>
               </ion-card-content>
             </ion-card>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
+
+    <!-- Delete Confirmation Dialog -->
+    <ion-modal :is-open="isDeleteDialogOpen" @did-dismiss="cancelDeletePlan">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Подтверждение удаления</ion-title>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content>
+        <div class="delete-dialog-content">
+          <div class="delete-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          
+          <h2>Удалить план?</h2>
+          <p>Вы уверены, что хотите удалить план <strong>"{{ planToDeleteName }}"</strong> из цикла?</p>
+          <p class="warning-text">Это действие нельзя отменить.</p>
+          
+          <div class="dialog-actions">
+            <button
+              type="button"
+              class="dialog-button cancel-button"
+              @click="cancelDeletePlan"
+            >
+              <i class="fas fa-times"></i>
+              Отмена
+            </button>
+            
+            <button
+              type="button"
+              class="dialog-button delete-button"
+              @click="confirmDeletePlan"
+            >
+              <i class="fas fa-trash"></i>
+              Удалить
+            </button>
           </div>
         </div>
       </ion-content>
@@ -277,6 +316,7 @@ import {
   IonModal,
   IonSearchbar,
   toastController,
+  alertController,
 } from '@ionic/vue';
 import { addOutline, removeOutline, reorderFourOutline, closeOutline } from 'ionicons/icons';
 import CustomInput from '@/components/CustomInput.vue';
@@ -306,6 +346,23 @@ const route = useRoute();
 const cycleId = computed(() => route.params.id as string);
 const isEditMode = computed(() => cycleId.value && cycleId.value !== 'new');
 
+// Computed property to detect unsaved changes
+const hasUnsavedChanges = computed(() => {
+  if (!originalFormData.value) return false;
+  
+  // Check form data changes
+  const formChanged = 
+    formData.value.name !== originalFormData.value.name ||
+    formData.value.weeks !== originalFormData.value.weeks ||
+    formData.value.start_date?.getTime() !== originalFormData.value.start_date?.getTime() ||
+    formData.value.end_date?.getTime() !== originalFormData.value.end_date?.getTime();
+  
+  // Check plans changes
+  const plansChanged = JSON.stringify(cyclePlans.value) !== JSON.stringify(originalCyclePlans.value);
+  
+  return formChanged || plansChanged;
+});
+
 // Функция для получения первой ошибки из массива
 const getFirstError = (error: string | string[] | undefined): string => {
   if (!error) return '';
@@ -325,6 +382,15 @@ const availablePlans = ref<Plan[]>([]);
 const planSearchQuery = ref('');
 const isPlanModalOpen = ref(false);
 const loadingPlans = ref(false);
+
+// Delete confirmation dialog
+const isDeleteDialogOpen = ref(false);
+const planToDelete = ref<number | null>(null);
+const planToDeleteName = ref('');
+
+// Original state tracking for unsaved changes detection
+const originalFormData = ref<CycleFormData | null>(null);
+const originalCyclePlans = ref<CyclePlan[]>([]);
 
 const formData = ref<CycleFormData>({
   name: '',
@@ -350,6 +416,14 @@ const fetchCycleData = async () => {
       end_date: cycle.end_date ? new Date(cycle.end_date) : null,
     };
 
+    // Save original form data for change detection
+    originalFormData.value = {
+      name: cycle.name || '',
+      weeks: cycle.weeks ? cycle.weeks.toString() : '',
+      start_date: cycle.start_date ? new Date(cycle.start_date) : null,
+      end_date: cycle.end_date ? new Date(cycle.end_date) : null,
+    };
+
     // Load cycle plans if they exist
     if (cycle.plans && Array.isArray(cycle.plans)) {
       cyclePlans.value = cycle.plans.map((plan: any, index: number) => ({
@@ -360,15 +434,21 @@ const fetchCycleData = async () => {
         plan: {
           id: plan.plan?.id || plan.id,
           name: plan.plan?.name || plan.name,
-          description: plan.plan?.description || plan.description,
-          difficulty: plan.plan?.difficulty || plan.difficulty,
-          duration: plan.plan?.duration || plan.duration,
-          exercises_count: plan.plan?.exercises_count || plan.exercises_count,
-          category: plan.plan?.category || plan.category,
+          order: plan.plan?.order || plan.order || index + 1,
+          is_active: plan.plan?.is_active !== undefined ? plan.plan.is_active : true,
+          exercise_count: plan.plan?.exercise_count || plan.exercise_count || 0,
+          cycle: plan.plan?.cycle || plan.cycle,
+          exercises: plan.plan?.exercises || plan.exercises,
           created_at: plan.plan?.created_at || plan.created_at,
           updated_at: plan.plan?.updated_at || plan.updated_at,
         }
       }));
+      
+      // Save original plans for change detection
+      originalCyclePlans.value = JSON.parse(JSON.stringify(cyclePlans.value));
+    } else {
+      cyclePlans.value = [];
+      originalCyclePlans.value = [];
     }
 
     console.log('Обработанные данные формы:', formData.value);
@@ -474,6 +554,10 @@ const handleSubmit = async () => {
     // Уведомляем CyclesPage о необходимости обновления данных
     window.dispatchEvent(new CustomEvent('cycles-updated'));
     
+    // Update original state after successful save
+    originalFormData.value = JSON.parse(JSON.stringify(formData.value));
+    originalCyclePlans.value = JSON.parse(JSON.stringify(cyclePlans.value));
+    
     // Если это режим редактирования, также обновляем данные текущего цикла
     if (isEditMode.value) {
       await fetchCycleData();
@@ -507,7 +591,13 @@ const handleSubmit = async () => {
   }
 };
 
-const handleBack = () => {
+const handleBack = async () => {
+  if (hasUnsavedChanges.value) {
+    const shouldLeave = await showUnsavedChangesWarning();
+    if (!shouldLeave) {
+      return; // Stay on the page
+    }
+  }
   router.back();
 };
 
@@ -516,7 +606,9 @@ const fetchAvailablePlans = async () => {
   loadingPlans.value = true;
   try {
     const response = await apiClient.get('/api/v1/plans');
-    availablePlans.value = response.data.data || response.data || [];
+    const allPlans = response.data.data || response.data || [];
+    // Фильтруем только активные планы
+    availablePlans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
   } catch (err) {
     console.error('Failed to fetch plans:', err);
     const toast = await toastController.create({
@@ -565,11 +657,95 @@ const removePlanFromCycle = (index: number) => {
   });
 };
 
+// Delete confirmation functions
+const showDeleteConfirmation = (index: number) => {
+  const plan = cyclePlans.value[index];
+  planToDelete.value = index;
+  planToDeleteName.value = plan.plan.name;
+  isDeleteDialogOpen.value = true;
+};
+
+const confirmDeletePlan = () => {
+  if (planToDelete.value !== null) {
+    cyclePlans.value.splice(planToDelete.value, 1);
+    // Update order for remaining plans
+    cyclePlans.value.forEach((cp, idx) => {
+      cp.order = idx + 1;
+    });
+  }
+  isDeleteDialogOpen.value = false;
+  planToDelete.value = null;
+  planToDeleteName.value = '';
+};
+
+const cancelDeletePlan = () => {
+  isDeleteDialogOpen.value = false;
+  planToDelete.value = null;
+  planToDeleteName.value = '';
+};
+
+// Long press handlers
+let touchStartTime = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+let longPressTimer: NodeJS.Timeout | null = null;
+
+const handleTouchStart = (event: TouchEvent) => {
+  touchStartTime = Date.now();
+  touchStartX = event.touches[0].clientX;
+  touchStartY = event.touches[0].clientY;
+  
+  longPressTimer = setTimeout(() => {
+    // Long press detected
+    const target = event.target as HTMLElement;
+    const planItem = target.closest('.plan-item');
+    if (planItem) {
+      const index = Array.from(planItem.parentElement?.children || []).indexOf(planItem);
+      showDeleteConfirmation(index);
+    }
+  }, 800); // 800ms for long press
+};
+
+const handleTouchEnd = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+};
+
+const handleTouchMove = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+};
+
+const onPlanMove = (evt: any) => {
+  // Prevent default move behavior to ensure smooth animation
+  return true;
+};
+
+const onPlanDragStart = () => {
+  // Add sorting class to enable smooth transitions
+  const draggableList = document.querySelector('.draggable-list');
+  if (draggableList) {
+    draggableList.classList.add('sorting');
+  }
+};
+
 const onPlanDragEnd = () => {
   // Update order after drag and drop
   cyclePlans.value.forEach((cp, idx) => {
     cp.order = idx + 1;
   });
+  
+  // Remove sorting class after animation completes with longer delay
+  setTimeout(() => {
+    const draggableList = document.querySelector('.draggable-list');
+    if (draggableList) {
+      draggableList.classList.remove('sorting');
+    }
+  }, 500); // Increased delay for smoother animation
 };
 
 const openPlanModal = async () => {
@@ -579,35 +755,47 @@ const openPlanModal = async () => {
   isPlanModalOpen.value = true;
 };
 
-const getPlanDifficultyClass = (difficulty: string) => {
-  switch (difficulty) {
-    case 'beginner':
-      return 'difficulty-beginner';
-    case 'intermediate':
-      return 'difficulty-intermediate';
-    case 'advanced':
-      return 'difficulty-advanced';
-    default:
-      return 'difficulty-general';
-  }
+// Initialize original state for new cycles
+const initializeOriginalState = () => {
+  originalFormData.value = {
+    name: '',
+    weeks: '',
+    start_date: null,
+    end_date: null,
+  };
+  originalCyclePlans.value = [];
 };
 
-const getDifficultyText = (difficulty: string) => {
-  switch (difficulty) {
-    case 'beginner':
-      return 'Начинающий';
-    case 'intermediate':
-      return 'Средний';
-    case 'advanced':
-      return 'Продвинутый';
-    default:
-      return 'Общий';
-  }
+// Function to show unsaved changes warning
+const showUnsavedChangesWarning = async (): Promise<boolean> => {
+  const alert = await alertController.create({
+    header: 'Несохраненные изменения',
+    message: 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?',
+    buttons: [
+      {
+        text: 'Остаться',
+        role: 'cancel',
+        handler: () => false
+      },
+      {
+        text: 'Покинуть',
+        role: 'destructive',
+        handler: () => true
+      }
+    ]
+  });
+
+  await alert.present();
+  const { role } = await alert.onDidDismiss();
+  return role === 'destructive';
 };
+
 
 onMounted(() => {
   if (isEditMode.value) {
     fetchCycleData();
+  } else {
+    initializeOriginalState();
   }
 });
 </script>
@@ -897,6 +1085,8 @@ ion-toolbar ion-button i {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transform: translateZ(0); /* Force hardware acceleration */
+  will-change: transform;
 }
 
 .plan-item {
@@ -907,13 +1097,94 @@ ion-toolbar ion-button i {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: grab;
+  position: relative;
+  will-change: transform, opacity, box-shadow;
+  backface-visibility: hidden;
+  perspective: 1000px;
+  contain: layout style paint;
 }
 
 .plan-item:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+/* Drag and drop animations - simplified */
+.plan-item.sortable-chosen {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.plan-item.sortable-drag {
+  opacity: 0.8;
+  transform: scale(1.05);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  z-index: 1001;
+  transition: all 0.2s ease;
+}
+
+/* Hide ALL intermediate drag elements */
+.sortable-ghost,
+.sortable-placeholder,
+.sortable-fallback,
+.sortable-clone,
+.draggable-list .sortable-ghost,
+.draggable-list .sortable-placeholder,
+.draggable-list .sortable-fallback,
+.draggable-list .sortable-clone {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Smooth movement for all items during drag */
+.plan-item:not(.sortable-chosen):not(.sortable-drag) {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Additional rules to hide any drag-related elements */
+*[class*="sortable-ghost"],
+*[class*="sortable-placeholder"],
+*[class*="sortable-fallback"],
+*[class*="sortable-clone"],
+*[class*="ghost"],
+*[class*="placeholder"],
+*[class*="fallback"],
+*[class*="clone"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Ensure no elements overlap during drag */
+.draggable-list.sorting .plan-item {
+  position: relative;
+  z-index: auto;
+}
+
+.draggable-list.sorting .plan-item.sortable-chosen,
+.draggable-list.sorting .plan-item.sortable-drag {
+  z-index: 1000;
+}
+
+/* Enhanced smooth movement */
+/* Removed duplicate .draggable-list styles - merged above */
+
+/* Prevent layout shifts during drag */
+/* Removed duplicate .plan-item styles - merged above */
 
 .drag-handle {
   display: flex;
@@ -924,16 +1195,31 @@ ion-toolbar ion-button i {
   color: var(--ion-color-medium);
   cursor: grab;
   border-radius: 6px;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .drag-handle:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--ion-color-primary);
+  transform: scale(1.1);
 }
 
 .drag-handle:active {
   cursor: grabbing;
+  transform: scale(0.95);
+}
+
+/* Enhanced drag handle animations during drag */
+.plan-item.sortable-chosen .drag-handle {
+  color: var(--ion-color-primary);
+  background: rgba(99, 102, 241, 0.2);
+  transform: scale(1.1);
+}
+
+.plan-item.sortable-drag .drag-handle {
+  color: var(--ion-color-primary);
+  background: rgba(99, 102, 241, 0.3);
+  transform: scale(1.15);
 }
 
 .plan-info {
@@ -992,31 +1278,24 @@ ion-toolbar ion-button i {
   background: rgba(239, 68, 68, 0.2);
 }
 
-/* Plan Difficulty Classes */
-.plan-difficulty {
-  font-size: 11px !important;
-  font-weight: 500 !important;
+.global-plan-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
-.difficulty-beginner {
-  --background: rgba(16, 185, 129, 0.2);
-  --color: var(--ion-color-success);
+.global-plan-hint i {
+  font-size: 14px;
+  color: var(--ion-color-primary);
 }
 
-.difficulty-intermediate {
-  --background: rgba(245, 158, 11, 0.2);
-  --color: var(--ion-color-warning);
-}
-
-.difficulty-advanced {
-  --background: rgba(239, 68, 68, 0.2);
-  --color: var(--ion-color-danger);
-}
-
-.difficulty-general {
-  --background: rgba(107, 114, 128, 0.2);
-  --color: var(--ion-color-medium);
-}
 
 /* Modal Styles */
 .modal-content {
@@ -1081,6 +1360,130 @@ ion-toolbar ion-button i {
 .modal-content .plan-stats i {
   margin-right: 4px;
   color: var(--ion-color-primary);
+}
+
+/* Delete Confirmation Dialog Styles */
+.delete-dialog-content {
+  padding: 24px;
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.delete-icon {
+  margin-bottom: 20px;
+}
+
+.delete-icon i {
+  font-size: 4rem;
+  color: var(--ion-color-warning);
+}
+
+.delete-dialog-content h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.delete-dialog-content p {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: var(--ion-color-medium);
+  line-height: 1.5;
+}
+
+.warning-text {
+  color: var(--ion-color-warning) !important;
+  font-weight: 500;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.dialog-button {
+  flex: 1;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.cancel-button {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ion-text-color);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cancel-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.delete-button {
+  background: var(--ion-color-danger);
+  color: white;
+}
+
+.delete-button:hover {
+  background: var(--ion-color-danger-shade);
+}
+
+.dialog-button i {
+  font-size: 16px;
+}
+
+/* Additional smooth animations for plan items */
+/* Removed duplicate .plan-item styles - merged above */
+
+.plan-item:not(.sortable-chosen):not(.sortable-drag) {
+  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth reordering animation */
+.plan-item.reordering {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced visual feedback during drag */
+.plan-item.sortable-chosen .plan-info {
+  opacity: 0.8;
+}
+
+.plan-item.sortable-drag .plan-info {
+  opacity: 0.6;
+}
+
+/* Force smooth animations on mobile */
+@media (max-width: 768px) {
+  .plan-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  
+  .draggable-list.sorting .plan-item {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
 }
 </style>
 

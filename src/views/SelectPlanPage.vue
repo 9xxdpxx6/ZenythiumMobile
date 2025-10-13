@@ -26,9 +26,11 @@
             >
               <ion-label>
                 <h2>{{ plan.name }}</h2>
-                <p v-if="plan.description">{{ plan.description }}</p>
                 <p v-if="plan.exercises">
                   Упражнений: {{ plan.exercises.length }}
+                </p>
+                <p v-else>
+                  Упражнений: {{ plan.exercise_count }}
                 </p>
               </ion-label>
               <ion-radio :value="plan.id" slot="start"></ion-radio>
@@ -102,7 +104,9 @@ const fetchPlans = async () => {
   
   try {
     const response = await apiClient.get<Plan[]>('/api/v1/plans');
-    plans.value = response.data;
+    const allPlans = response.data;
+    // Фильтруем только активные планы
+    plans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
   } catch (err) {
     error.value = (err as ApiError).message;
   } finally {
