@@ -52,7 +52,7 @@
             <div class="stat-card modern-card">
               <div class="stat-top">
                 <div class="stat-value">{{ weekWorkouts }}</div>
-                <i class="fas fa-dumbbell stat-icon"></i>
+                <i class="fas fa-chart-line stat-icon"></i>
               </div>
               <div class="stat-content">
                 <h3>Тренировок за неделю</h3>
@@ -61,11 +61,31 @@
 
             <div class="stat-card modern-card">
               <div class="stat-top">
-                <div class="stat-value">{{ formatTime(totalTime) }}</div>
+                <div class="stat-value">{{ formatTimeCompact(avgTimePerMonth) }}</div>
                 <i class="fas fa-clock stat-icon"></i>
               </div>
               <div class="stat-content">
-                <h3>Время тренировок</h3>
+                <h3>Среднее время тренировки</h3>
+              </div>
+            </div>
+
+            <div class="stat-card modern-card">
+              <div class="stat-top">
+                <div class="stat-value">{{ trainingStreak }}</div>
+                <i class="fas fa-fire stat-icon"></i>
+              </div>
+              <div class="stat-content">
+                <h3>Серия тренировок</h3>
+              </div>
+            </div>
+
+            <div class="stat-card modern-card">
+              <div class="stat-top">
+                <div class="stat-value">{{ mostTrainedMuscleGroup }}</div>
+                <i class="fas fa-dumbbell stat-icon"></i>
+              </div>
+              <div class="stat-content">
+                <h3>Самая качаемая группа</h3>
               </div>
             </div>
           </div>
@@ -113,7 +133,7 @@
             <!-- Exercise Progress Chart -->
             <div class="chart-container modern-card">
               <div class="chart-header">
-                <h3>Прогресс по упражнениям</h3>
+                <h3>Часто выполняемые упражнения</h3>
               </div>
               <div class="chart-content">
                 <div v-if="selectedExercises.length > 0" class="exercise-progress">
@@ -137,33 +157,33 @@
                       
                       <div class="exercise-stats">
                         <div class="stat-item highlight">
-                          <div class="stat-icon">🏆</div>
+                          <div class="stat-item-icon">🏆</div>
                           <div class="stat-content">
-                            <div class="stat-value">{{ exercise.bestWeight }} кг</div>
+                            <div class="stat-item-value">{{ exercise.bestWeight }} кг</div>
                             <div class="stat-label">Лучший результат</div>
                           </div>
                         </div>
                         
                         <div class="stat-item">
-                          <div class="stat-icon">📅</div>
+                          <div class="stat-item-icon">📅</div>
                           <div class="stat-content">
-                            <div class="stat-value">{{ formatDate(exercise.lastPerformed || '') }}</div>
+                            <div class="stat-item-value">{{ formatDate(exercise.lastPerformed || '') }}</div>
                             <div class="stat-label">Последняя тренировка</div>
                           </div>
                         </div>
                         
                         <div class="stat-item">
-                          <div class="stat-icon">⚡</div>
+                          <div class="stat-item-icon">⚡</div>
                           <div class="stat-content">
-                            <div class="stat-value">{{ exercise.totalSets }}</div>
+                            <div class="stat-item-value">{{ exercise.totalSets }}</div>
                             <div class="stat-label">Всего подходов</div>
                           </div>
                         </div>
                         
                         <div class="stat-item">
-                          <div class="stat-icon">📊</div>
+                          <div class="stat-item-icon">📊</div>
                           <div class="stat-content">
-                            <div class="stat-value">{{ exercise.avgWeight.toFixed(1) }} кг</div>
+                            <div class="stat-item-value">{{ exercise.avgWeight.toFixed(1) }} кг</div>
                             <div class="stat-label">Средний вес</div>
                           </div>
                         </div>
@@ -179,6 +199,67 @@
                     <br>
                     <small>Нажмите "Начать тренировку" для создания первой тренировки</small>
                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Statistics Section -->
+        <div class="additional-statistics-section">
+          <h2>Дополнительные показатели</h2>
+          
+          <!-- Additional Stats Grid -->
+          <div class="additional-stats-grid">
+            <!-- Общий объем тренировок -->
+            <div class="additional-stat-card modern-card">
+              <div class="additional-stat-header">
+                <i class="fas fa-chart-bar additional-stat-icon"></i>
+                <h3>Общий объем тренировок</h3>
+              </div>
+              <div class="additional-stat-value">{{ formatVolume(totalVolume) }}</div>
+            </div>
+
+            <!-- Активные циклы -->
+            <div class="additional-stat-card modern-card">
+              <div class="additional-stat-header">
+                <i class="fas fa-sync-alt additional-stat-icon"></i>
+                <h3>Активные циклы</h3>
+              </div>
+              <div class="additional-stat-value">{{ activeCycles }}</div>
+            </div>
+
+            <!-- Мотивационные показатели -->
+            <div class="additional-stat-card modern-card" v-if="bestPersonalRecord">
+              <div class="additional-stat-header">
+                <i class="fas fa-trophy additional-stat-icon"></i>
+                <h3>Лучший рекорд</h3>
+              </div>
+              <div class="additional-stat-content">
+                <div class="record-exercise">{{ bestPersonalRecord.exercise_name }}</div>
+                <div class="record-weight">{{ bestPersonalRecord.max_weight }} кг</div>
+                <div class="record-date">{{ formatDate(bestPersonalRecord.achieved_date) }}</div>
+              </div>
+            </div>
+
+            <!-- Анализ баланса мышц -->
+            <div class="additional-stat-card modern-card" v-if="balanceAnalysis">
+              <div class="additional-stat-header">
+                <i class="fas fa-balance-scale additional-stat-icon"></i>
+                <h3>Анализ баланса</h3>
+              </div>
+              <div class="additional-stat-content">
+                <div class="balance-item">
+                  <span class="balance-label">Больше всего:</span>
+                  <span class="balance-value">{{ balanceAnalysis.most_trained }}</span>
+                </div>
+                <div class="balance-item">
+                  <span class="balance-label">Меньше всего:</span>
+                  <span class="balance-value">{{ balanceAnalysis.least_trained }}</span>
+                </div>
+                <div class="balance-score">
+                  <span class="balance-label">Баланс:</span>
+                  <span class="balance-value">{{ balanceAnalysis.balance_score?.toFixed(1) || 'N/A' }}</span>
                 </div>
               </div>
             </div>
@@ -220,6 +301,9 @@ Chart.register(...registerables);
 const router = useRouter();
 const workouts = ref<Workout[]>([]);
 const statistics = ref<Statistics | null>(null);
+const timeAnalytics = ref<any>(null);
+const muscleGroupStats = ref<any>(null);
+const personalRecords = ref<any>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -278,8 +362,96 @@ const getStartOfWeek = (date: Date) => {
   return startOfWeek;
 };
 
-const totalTime = computed(() => {
-  return statistics.value?.total_training_time || 0;
+const avgTimePerMonth = computed(() => {
+  if (!timeAnalytics.value?.monthly_trends || timeAnalytics.value.monthly_trends.length === 0) {
+    return 0;
+  }
+  
+  // Получаем текущий месяц
+  const currentMonth = new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  
+  // Ищем данные за текущий месяц
+  const currentMonthData = timeAnalytics.value.monthly_trends.find((month: any) => 
+    month.month === currentMonth
+  );
+  
+  if (currentMonthData && currentMonthData.avg_duration) {
+    return currentMonthData.avg_duration * 60; // Конвертируем минуты в секунды
+  }
+  
+  // Если нет данных за текущий месяц, берем среднее из всех месяцев
+  const totalDuration = timeAnalytics.value.monthly_trends.reduce((sum: number, month: any) => {
+    return sum + (month.avg_duration || 0);
+  }, 0);
+  
+  const avgDuration = timeAnalytics.value.monthly_trends.length > 0 
+    ? totalDuration / timeAnalytics.value.monthly_trends.length 
+    : 0;
+    
+  return avgDuration * 60; // Конвертируем минуты в секунды
+});
+
+// Серия тренировок
+const trainingStreak = computed(() => {
+  return statistics.value?.training_streak_days || 0;
+});
+
+// Самая качаемая мышечная группа
+const mostTrainedMuscleGroup = computed(() => {
+  if (!muscleGroupStats.value?.muscle_groups || muscleGroupStats.value.muscle_groups.length === 0) {
+    // Если нет данных о мышечных группах, попробуем получить из статистики упражнений
+    if (selectedExercises.value.length > 0) {
+      const exerciseCategories = selectedExercises.value.map(ex => ex.category);
+      const categoryCounts = exerciseCategories.reduce((acc, category) => {
+        acc[category] = (acc[category] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostFrequent = Object.entries(categoryCounts)
+        .sort(([,a], [,b]) => b - a)[0];
+      
+      return mostFrequent ? mostFrequent[0] : 'Нет данных';
+    }
+    return 'Нет данных';
+  }
+  
+  const sortedGroups = muscleGroupStats.value.muscle_groups.sort((a: any, b: any) => 
+    (b.total_volume || 0) - (a.total_volume || 0)
+  );
+  
+  return sortedGroups[0]?.muscle_group_name || 'Нет данных';
+});
+
+// Общий объем тренировок
+const totalVolume = computed(() => {
+  return statistics.value?.total_volume || 0;
+});
+
+// Активные циклы
+const activeCycles = computed(() => {
+  return statistics.value?.active_cycles_count || 0;
+});
+
+// Лучший личный рекорд
+const bestPersonalRecord = computed(() => {
+  if (!personalRecords.value?.personal_records || personalRecords.value.personal_records.length === 0) {
+    return null;
+  }
+  
+  const sortedRecords = personalRecords.value.personal_records.sort((a: any, b: any) => 
+    (b.max_weight || 0) - (a.max_weight || 0)
+  );
+  
+  return sortedRecords[0] || null;
+});
+
+// Анализ баланса мышц
+const balanceAnalysis = computed(() => {
+  if (!muscleGroupStats.value?.balance_analysis) {
+    return null;
+  }
+  
+  return muscleGroupStats.value.balance_analysis;
 });
 
 const recentWorkouts = computed(() => {
@@ -557,8 +729,34 @@ const fetchData = async () => {
     try {
       const statsResponse = await apiClient.get<StatisticsResponse>('/api/v1/user/statistics');
       statistics.value = statsResponse.data.data;
+      console.log('Statistics loaded:', statistics.value);
     } catch (statsError) {
       console.error('Statistics fetch error:', statsError);
+    }
+    
+    // Загружаем временную аналитику для среднего времени тренировки
+    try {
+      const timeAnalyticsResponse = await apiClient.get('/api/v1/user/time-analytics');
+      timeAnalytics.value = timeAnalyticsResponse.data.data;
+    } catch (timeAnalyticsError) {
+      console.error('Time analytics fetch error:', timeAnalyticsError);
+    }
+    
+    // Загружаем статистику мышечных групп
+    try {
+      const muscleGroupResponse = await apiClient.get('/api/v1/user/muscle-group-statistics');
+      muscleGroupStats.value = muscleGroupResponse.data.data;
+      console.log('Muscle group stats loaded:', muscleGroupStats.value);
+    } catch (muscleGroupError) {
+      console.error('Muscle group statistics fetch error:', muscleGroupError);
+    }
+    
+    // Загружаем личные рекорды
+    try {
+      const recordsResponse = await apiClient.get('/api/v1/user/records');
+      personalRecords.value = recordsResponse.data.data;
+    } catch (recordsError) {
+      console.error('Personal records fetch error:', recordsError);
     }
     
     // Загружаем метрики (вес)
@@ -612,6 +810,27 @@ const formatTime = (seconds: number) => {
   return `${minutes}м`;
 };
 
+const formatTimeCompact = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  
+  if (hours > 0) {
+    // Если есть часы, показываем только часы и минуты без лишних пробелов
+    return `${hours}ч${minutes > 0 ? ` ${minutes}м` : ''}`;
+  }
+  return `${minutes}м`;
+};
+
+// Форматирование объема тренировок
+const formatVolume = (volume: number) => {
+  if (volume >= 1000000) {
+    return `${(volume / 1000000).toFixed(1)}М кг`;
+  } else if (volume >= 1000) {
+    return `${(volume / 1000).toFixed(1)}К кг`;
+  }
+  return `${volume} кг`;
+};
+
 // Функции для форматирования изменения веса
 const getWeightChangeText = (weightChange: any) => {
   if (!weightChange) return '';
@@ -639,7 +858,7 @@ onMounted(() => {
   padding: 16px !important;
   margin: 0 !important;
   padding-top: 12px !important;
-  padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+  padding-bottom: 120px !important; /* Add more space for tab bar and scrolling */
 }
 
 /* Main Header */
@@ -680,36 +899,39 @@ onMounted(() => {
   margin: 0 !important;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Градиенты для разных плиток */
 .grid-item:nth-child(1) .grid-card {
   background: linear-gradient(135deg, 
-    rgba(30, 30, 35, 0.9) 0%, 
-    rgba(45, 45, 55, 0.8) 50%, 
-    rgba(25, 25, 30, 0.9) 100%);
+    rgba(30, 50, 80, 0.9) 0%, 
+    rgba(50, 70, 100, 0.8) 50%, 
+    rgba(20, 40, 70, 0.9) 100%);
+  border: 2px solid rgba(59, 130, 246, 0.6);
 }
 
 .grid-item:nth-child(2) .grid-card {
   background: linear-gradient(135deg, 
-    rgba(35, 30, 40, 0.9) 0%, 
-    rgba(50, 45, 60, 0.8) 50%, 
-    rgba(30, 25, 35, 0.9) 100%);
+    rgba(80, 30, 100, 0.9) 0%, 
+    rgba(100, 50, 120, 0.8) 50%, 
+    rgba(60, 20, 80, 0.9) 100%);
+  border: 2px solid rgba(168, 85, 247, 0.6);
 }
 
 .grid-item:nth-child(3) .grid-card {
   background: linear-gradient(135deg, 
-    rgba(30, 35, 40, 0.9) 0%, 
-    rgba(45, 50, 55, 0.8) 50%, 
-    rgba(25, 30, 35, 0.9) 100%);
+    rgba(30, 60, 40, 0.9) 0%, 
+    rgba(50, 80, 60, 0.8) 50%, 
+    rgba(20, 50, 30, 0.9) 100%);
+  border: 2px solid rgba(34, 197, 94, 0.6);
 }
 
 .grid-item:nth-child(4) .grid-card {
   background: linear-gradient(135deg, 
-    rgba(40, 30, 35, 0.9) 0%, 
-    rgba(55, 45, 50, 0.8) 50%, 
-    rgba(35, 25, 30, 0.9) 100%);
+    rgba(80, 70, 30, 0.9) 0%, 
+    rgba(100, 90, 50, 0.8) 50%, 
+    rgba(60, 50, 20, 0.9) 100%);
+  border: 2px solid rgba(245, 158, 11, 0.6);
 }
 
 /* Статичные пузыри */
@@ -742,9 +964,9 @@ onMounted(() => {
 }
 
 .grid-item:nth-child(4) .grid-card::before {
-  background: radial-gradient(circle at 35% 15%, rgba(245, 101, 101, 0.15) 0%, transparent 50%),
-              radial-gradient(circle at 65% 85%, rgba(239, 68, 68, 0.12) 0%, transparent 50%),
-              radial-gradient(circle at 15% 65%, rgba(220, 38, 38, 0.08) 0%, transparent 40%);
+  background: radial-gradient(circle at 35% 15%, rgba(245, 158, 11, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 65% 85%, rgba(234, 179, 8, 0.12) 0%, transparent 50%),
+              radial-gradient(circle at 15% 65%, rgba(217, 119, 6, 0.08) 0%, transparent 40%);
 }
 
 /* Статичные световые эффекты */
@@ -802,11 +1024,114 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+/* Additional Statistics Section */
+.additional-statistics-section {
+  margin-bottom: 32px;
+}
+
+.additional-statistics-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  margin: 0 0 24px 10px;
+}
+
+.additional-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.additional-stat-card {
+  padding: 16px !important;
+  background: var(--ion-color-step-50);
+  border-radius: 12px;
+  margin: 0 !important;
+  min-height: 100px;
+}
+
+.additional-stat-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.additional-stat-icon {
+  font-size: 1.2rem;
+  color: var(--ion-color-primary);
+}
+
+.additional-stat-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.additional-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ion-text-color);
+  margin: 0;
+}
+
+.additional-stat-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.record-exercise {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.record-weight {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--ion-color-primary);
+}
+
+.record-date {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.balance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.balance-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ion-color-step-200);
+}
+
+.balance-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.balance-value {
+  font-size: 12px;
+  color: var(--ion-text-color);
+  font-weight: 600;
+}
+
 .stat-card {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 20px 24px !important;
+  padding: 18px !important;
   text-align: center;
   background: var(--ion-color-step-50);
   border-radius: 12px;
@@ -822,10 +1147,29 @@ onMounted(() => {
 }
 
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--ion-text-color);
   margin: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Цветные значения для карточек статистики */
+.stat-card:nth-child(1) .stat-value {
+  color: #10b981; /* Зеленый */
+}
+
+.stat-card:nth-child(2) .stat-value {
+  color: #8b5cf6; /* Фиолетовый */
+}
+
+.stat-card:nth-child(3) .stat-value {
+  color: #f59e0b; /* Оранжевый */
+}
+
+.stat-card:nth-child(4) .stat-value {
+  color: #3b82f6; /* Синий */
 }
 
 .stat-content h3 {
@@ -840,6 +1184,23 @@ onMounted(() => {
 .stat-icon {
   font-size: 1.5rem;
   color: var(--ion-color-primary);
+}
+
+/* Цветные иконки для карточек статистики */
+.stat-card:nth-child(1) .stat-icon {
+  color: #10b981; /* Зеленый */
+}
+
+.stat-card:nth-child(2) .stat-icon {
+  color: #8b5cf6; /* Фиолетовый */
+}
+
+.stat-card:nth-child(3) .stat-icon {
+  color: #f59e0b; /* Оранжевый */
+}
+
+.stat-card:nth-child(4) .stat-icon {
+  color: #3b82f6; /* Синий */
 }
 
 /* Charts Section - Increased spacing */
@@ -868,14 +1229,9 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: var(--ion-text-color);
+  padding-left: 18px;
 }
 
-/* Weight chart styles */
-.weight-chart-container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 .chart-container-wrapper {
   position: relative;
@@ -975,31 +1331,10 @@ onMounted(() => {
   min-height: 70px;
 }
 
-.chart-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 70px;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
 .chart-icon {
   margin-bottom: 6px;
   font-size: 2rem;
   color: var(--ion-color-primary);
-}
-
-.chart-placeholder p {
-  margin: 0 0 4px 0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.chart-placeholder small {
-  font-size: 12px;
-  color: var(--ion-color-medium);
 }
 
 .no-data {
@@ -1118,7 +1453,7 @@ onMounted(() => {
   background: rgba(255, 255, 255, 0.05);
 }
 
-.stat-icon {
+.stat-item-icon {
   font-size: 16px;
   width: 24px;
   height: 24px;
@@ -1135,7 +1470,7 @@ onMounted(() => {
   min-width: 0;
 }
 
-.stat-value {
+.stat-item-value {
   font-size: 12px;
   font-weight: 600;
   color: var(--ion-text-color);
@@ -1149,25 +1484,6 @@ onMounted(() => {
   font-weight: 500;
   line-height: 1.2;
 }
-
-/* Weight change colors */
-.weight-increase {
-  color: #10b981;
-  border-color: #10b981;
-}
-
-.weight-decrease {
-  color: #f59e0b;
-  border-color: #f59e0b;
-}
-
-.weight-stable {
-  color: #6b7280;
-  border-color: #6b7280;
-}
-
-
-
 
 /* Loading State */
 .loading-state {
