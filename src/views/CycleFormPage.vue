@@ -183,7 +183,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   IonPage,
@@ -538,6 +538,9 @@ const addPlanToCycle = (plan: Plan) => {
   cyclePlans.value.push(newCyclePlan);
   isPlanModalOpen.value = false;
   
+  // Обновляем список доступных планов, чтобы исключить только что добавленный
+  fetchAvailablePlans();
+  
   // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
@@ -572,6 +575,9 @@ const confirmDeletePlan = () => {
   isDeleteDialogOpen.value = false;
   planToDelete.value = null;
   planToDeleteName.value = '';
+  
+  // Обновляем список доступных планов, чтобы вернуть удаленный план в список
+  fetchAvailablePlans();
   
   // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
@@ -713,6 +719,11 @@ onMounted(() => {
     const currentDate = new Date();
     formData.value.name = generateCycleName(currentDate, 6);
   }
+});
+
+// Сброс фильтра доступных планов при выходе со страницы
+onUnmounted(() => {
+  availablePlans.value = [];
 });
 
 // Автоматическое обновление названия при изменении даты начала или количества недель
