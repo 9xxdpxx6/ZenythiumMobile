@@ -105,11 +105,6 @@
             </div>
 
             <div v-else class="plans-list">
-              <div class="global-plan-hint">
-                <i class="fas fa-info-circle"></i>
-                <span>Долгое нажатие на план для удаления</span>
-              </div>
-              
               <draggable
                 v-model="cyclePlans"
                 @end="onPlanDragEnd"
@@ -160,6 +155,10 @@
                   </div>
                 </template>
               </draggable>
+              
+              <div class="plan-hint-text">
+                Долгое нажатие на план для удаления
+              </div>
             </div>
           </div>
 
@@ -407,8 +406,6 @@ const fetchCycleData = async () => {
     const response = await apiClient.get(`/api/v1/cycles/${cycleId.value}`);
     const cycle = response.data.data;
 
-    console.log('Загруженные данные цикла:', cycle);
-
     formData.value = {
       name: cycle.name || '',
       weeks: cycle.weeks ? cycle.weeks.toString() : '',
@@ -451,8 +448,6 @@ const fetchCycleData = async () => {
       originalCyclePlans.value = [];
     }
 
-    console.log('Обработанные данные формы:', formData.value);
-    console.log('Загруженные планы цикла:', cyclePlans.value);
   } catch (err) {
     console.error('Failed to fetch cycle:', err);
     const toast = await toastController.create({
@@ -524,14 +519,9 @@ const handleSubmit = async () => {
       // Всегда отправляем даты, даже если они null (для очистки)
       start_date: formData.value.start_date ? formData.value.start_date.toISOString().split('T')[0] : null,
       end_date: formData.value.end_date ? formData.value.end_date.toISOString().split('T')[0] : null,
-      // Отправляем данные о планах
-      plans: cyclePlans.value.map(cp => ({
-        plan_id: cp.plan_id,
-        order: cp.order
-      }))
+      // Отправляем массив ID планов в порядке их расположения
+      plan_ids: cyclePlans.value.map(cp => cp.plan_id)
     };
-
-    console.log('Отправляемые данные:', payload);
 
     if (isEditMode.value) {
       await apiClient.put(`/api/v1/cycles/${cycleId.value}`, payload);
@@ -640,7 +630,7 @@ const addPlanToCycle = (plan: Plan) => {
     id: 0, // Will be assigned by server
     cycle_id: parseInt(cycleId.value) || 0,
     plan_id: plan.id,
-    order: cyclePlans.value.length + 1,
+    order: cyclePlans.value.length + 1, // Порядок определяется позицией в массиве, но оставляем для совместимости
     plan: plan
   };
   
@@ -651,10 +641,7 @@ const addPlanToCycle = (plan: Plan) => {
 
 const removePlanFromCycle = (index: number) => {
   cyclePlans.value.splice(index, 1);
-  // Update order for remaining plans
-  cyclePlans.value.forEach((cp, idx) => {
-    cp.order = idx + 1;
-  });
+  // Порядок планов определяется их позицией в массиве, не нужно обновлять поле order
 };
 
 // Delete confirmation functions
@@ -668,10 +655,7 @@ const showDeleteConfirmation = (index: number) => {
 const confirmDeletePlan = () => {
   if (planToDelete.value !== null) {
     cyclePlans.value.splice(planToDelete.value, 1);
-    // Update order for remaining plans
-    cyclePlans.value.forEach((cp, idx) => {
-      cp.order = idx + 1;
-    });
+    // Порядок планов определяется их позицией в массиве, не нужно обновлять поле order
   }
   isDeleteDialogOpen.value = false;
   planToDelete.value = null;
@@ -734,10 +718,9 @@ const onPlanDragStart = () => {
 };
 
 const onPlanDragEnd = () => {
-  // Update order after drag and drop
-  cyclePlans.value.forEach((cp, idx) => {
-    cp.order = idx + 1;
-  });
+  // Порядок планов определяется их позицией в массиве cyclePlans
+  // Не нужно обновлять поле order, так как API использует порядок элементов в plan_ids
+  // Просто обновляем порядок в массиве cyclePlans
   
   // Remove sorting class after animation completes with longer delay
   setTimeout(() => {
@@ -847,6 +830,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 0;
 }
 
 .form-label {
@@ -1278,22 +1262,12 @@ ion-toolbar ion-button i {
   background: rgba(239, 68, 68, 0.2);
 }
 
-.global-plan-hint {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
+.plan-hint-text {
+  font-size: 11px;
   color: var(--ion-color-medium);
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  margin-bottom: 12px;
-}
-
-.global-plan-hint i {
-  font-size: 14px;
-  color: var(--ion-color-primary);
+  text-align: center;
+  margin-top: 8px;
+  opacity: 0.7;
 }
 
 

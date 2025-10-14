@@ -147,11 +147,8 @@ const fetchCycles = async (searchTerm: string = '') => {
   error.value = null;
   
   try {
-    // Запрашиваем циклы с сортировкой по дате создания (новые сначала)
-    const params: any = {
-      sort_by: 'created_at',
-      sort_order: 'desc'
-    };
+    // Запрашиваем циклы 
+    const params: any = {};
     
     // Добавляем параметр поиска если есть
     if (searchTerm.trim()) {
