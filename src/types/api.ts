@@ -112,6 +112,7 @@ export interface Exercise {
   id: number;
   plan_id: number;
   name: string;
+  order: number;
   description: string | null;
   created_at: string;
   updated_at: string;

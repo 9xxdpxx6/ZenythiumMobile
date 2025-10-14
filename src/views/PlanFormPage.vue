@@ -35,43 +35,27 @@
           </div>
 
           <div class="form-group">
-            <label class="form-label">Описание плана (необязательно)</label>
-            <textarea
-              v-model="formData.description"
-              class="form-textarea"
-              placeholder="Опишите особенности плана тренировок..."
-              rows="4"
-            ></textarea>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Тип плана</label>
-            <select v-model="formData.type" class="form-select">
-              <option value="strength">Силовые тренировки</option>
-              <option value="cardio">Кардио</option>
-              <option value="mixed">Смешанный</option>
-              <option value="flexibility">Гибкость</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Уровень сложности</label>
-            <select v-model="formData.difficulty" class="form-select">
-              <option value="beginner">Начинающий</option>
-              <option value="intermediate">Средний</option>
-              <option value="advanced">Продвинутый</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Продолжительность (минуты)</label>
             <CustomInput
-              v-model="formData.duration"
+              v-model="formData.order"
+              label="Порядок *"
               type="number"
-              placeholder="Например: 60"
-              :error="!!errors.duration"
-              :error-message="getFirstError(errors.duration)"
+              placeholder="Например: 1"
+              :error="!!errors.order"
+              :error-message="getFirstError(errors.order)"
+              required
             />
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">
+              <input
+                type="checkbox"
+                v-model="formData.is_active"
+                class="form-checkbox"
+              />
+              Активный план
+            </label>
+            <span class="field-hint">Активные планы доступны для выбора при создании тренировок</span>
           </div>
 
           <!-- Exercises Management Section -->
@@ -200,10 +184,8 @@ import { ApiError } from '@/types/api';
 
 interface PlanFormData {
   name: string;
-  description: string;
-  type: string;
-  difficulty: string;
-  duration: string;
+  order: number;
+  is_active: boolean;
 }
 
 interface Exercise {
@@ -217,7 +199,7 @@ interface Exercise {
 
 interface ValidationErrors {
   name?: string | string[];
-  duration?: string | string[];
+  order?: string | string[];
 }
 
 const router = useRouter();
@@ -238,10 +220,8 @@ const isDeleteDialogOpen = ref(false);
 
 const formData = ref<PlanFormData>({
   name: '',
-  description: '',
-  type: 'strength',
-  difficulty: 'beginner',
-  duration: '',
+  order: 1,
+  is_active: true,
 });
 
 // Функция для получения первой ошибки из массива
@@ -265,12 +245,9 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (formData.value.duration && formData.value.duration.trim().length > 0) {
-    const durationNum = parseInt(formData.value.duration);
-    if (isNaN(durationNum) || durationNum < 1) {
-      errors.value.duration = 'Продолжительность должна быть положительным числом';
-      isValid = false;
-    }
+  if (formData.value.order < 1) {
+    errors.value.order = 'Порядок должен быть положительным числом';
+    isValid = false;
   }
 
   return isValid;
@@ -293,11 +270,8 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: formData.value.name.trim(),
-      description: formData.value.description.trim(),
-      type: formData.value.type,
-      difficulty: formData.value.difficulty,
-      duration: formData.value.duration ? parseInt(formData.value.duration) : null,
-      exercises: exercises.value,
+      order: formData.value.order,
+      is_active: formData.value.is_active,
     };
 
     if (isEditMode.value) {
@@ -400,10 +374,47 @@ const cancelDeletePlan = () => {
   isDeleteDialogOpen.value = false;
 };
 
+const fetchPlanData = async () => {
+  if (!isEditMode.value) return;
+
+  loading.value = true;
+  try {
+    const response = await apiClient.get(`/api/v1/plans/${planId.value}`);
+    const plan = response.data;
+    
+    formData.value = {
+      name: plan.name,
+      order: plan.order,
+      is_active: plan.is_active,
+    };
+    
+    if (plan.exercises) {
+      exercises.value = plan.exercises.map((ex: any) => ({
+        id: ex.id,
+        name: ex.name,
+        order: ex.order,
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to fetch plan:', err);
+    const apiError = err as ApiError;
+    
+    const toast = await toastController.create({
+      message: apiError.message || 'Не удалось загрузить данные плана',
+      duration: 3000,
+      color: 'danger',
+    });
+    await toast.present();
+    
+    router.back();
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
   if (isEditMode.value) {
-    // TODO: Load plan data for editing
-    console.log('Load plan data for editing');
+    fetchPlanData();
   }
 });
 </script>
@@ -458,10 +469,24 @@ onMounted(() => {
   margin-bottom: 0;
 }
 
+.form-checkbox {
+  margin-right: 8px;
+  transform: scale(1.2);
+}
+
+.field-hint {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 4px;
+  display: block;
+}
+
 .form-label {
   font-size: 14px;
   font-weight: 600;
   color: var(--ion-text-color);
+  display: flex;
+  align-items: center;
 }
 
 .form-textarea {

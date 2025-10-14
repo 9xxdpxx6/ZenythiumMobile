@@ -3,6 +3,11 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-title>Планы</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="createNewPlan" class="add-button">
+            <i class="fas fa-plus"></i>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -39,15 +44,15 @@
                 </div>
               </div>
 
-                <div class="plan-actions">
-                  <button
-                    @click.stop="startWorkout(plan)"
-                    class="modern-button"
-                  >
-                    <i class="fas fa-play"></i>
-                    Начать
-                  </button>
+              <div class="exercises-list" v-if="plan.exercises && plan.exercises.length > 0">
+                <div 
+                  v-for="exercise in getSortedExercises(plan.exercises)" 
+                  :key="exercise.id"
+                  class="exercise-item"
+                >
+                  {{ exercise.order }}. {{ exercise.name }}
                 </div>
+              </div>
             </div>
           </div>
         </div>
@@ -56,6 +61,13 @@
           <i class="fas fa-list empty-icon"></i>
           <h2>Нет планов</h2>
           <p>Планы тренировок будут доступны в ближайшее время</p>
+          <button
+            @click="createNewPlan"
+            class="modern-button"
+          >
+            <i class="fas fa-plus"></i>
+            Создать план
+          </button>
         </div>
       </div>
     </ion-content>
@@ -74,9 +86,11 @@ import {
   IonSpinner,
   IonRefresher,
   IonRefresherContent,
+  IonButtons,
+  IonButton,
 } from '@ionic/vue';
 import apiClient from '@/services/api';
-import { Plan, ApiError } from '@/types/api';
+import { Plan, ApiError, Exercise } from '@/types/api';
 
 const router = useRouter();
 const plans = ref<Plan[]>([]);
@@ -106,25 +120,16 @@ const handleRefresh = async (event: CustomEvent) => {
 };
 
 const handlePlanClick = (plan: Plan) => {
-  // В реальном приложении здесь была бы навигация к деталям плана
-  console.log('Plan clicked:', plan);
+  router.push(`/plan/${plan.id}`);
 };
 
-const startWorkout = async (plan: Plan) => {
-  try {
-    const response = await apiClient.post('/api/v1/workouts/start', {
-      plan_id: plan.id
-    });
-    
-    if (response.data && response.data.id) {
-      router.push(`/workout/${response.data.id}`);
-    }
-  } catch (err) {
-    console.error('Start workout error:', err);
-    error.value = (err as ApiError).message;
-  }
+const getSortedExercises = (exercises: Exercise[]) => {
+  return exercises.sort((a, b) => a.order - b.order);
 };
 
+const createNewPlan = () => {
+  router.push('/plan/new');
+};
 
 onMounted(() => {
   fetchPlans();
@@ -138,6 +143,55 @@ onMounted(() => {
   margin: 0 !important;
   padding-top: 4px !important;
   padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+}
+
+/* Кнопка добавления в заголовке */
+.add-button {
+  --background: transparent !important;
+  --background-hover: transparent !important;
+  --background-focused: transparent !important;
+  --background-activated: transparent !important;
+  --border-width: 0 !important;
+  --border-style: none !important;
+  --border-color: transparent !important;
+  --color: var(--ion-color-primary) !important;
+  --color-hover: var(--ion-color-primary-shade) !important;
+  --color-focused: var(--ion-color-primary) !important;
+  --color-activated: var(--ion-color-primary-shade) !important;
+  --box-shadow: none !important;
+  --padding-start: 8px !important;
+  --padding-end: 8px !important;
+  --padding-top: 8px !important;
+  --padding-bottom: 8px !important;
+  margin: 0 !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.add-button i {
+  font-size: 20px !important;
+  color: var(--ion-color-primary) !important;
+}
+
+.modern-button {
+  background: var(--ion-color-primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modern-button:hover {
+  background: var(--ion-color-primary-shade);
 }
 
 .plans-grid {
@@ -190,6 +244,18 @@ onMounted(() => {
   font-size: 14px;
   margin-right: 4px;
   color: var(--ion-color-primary);
+}
+
+.exercises-list {
+  margin-top: 12px;
+}
+
+.exercise-item {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+  padding: 2px 0;
+  line-height: 1.3;
 }
 
 .modern-button {
