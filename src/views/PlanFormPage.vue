@@ -184,7 +184,7 @@ import { ApiError } from '@/types/api';
 
 interface PlanFormData {
   name: string;
-  order: number;
+  order: string;
   is_active: boolean;
 }
 
@@ -220,7 +220,7 @@ const isDeleteDialogOpen = ref(false);
 
 const formData = ref<PlanFormData>({
   name: '',
-  order: 1,
+  order: '1',
   is_active: true,
 });
 
@@ -245,9 +245,12 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (formData.value.order < 1) {
-    errors.value.order = 'Порядок должен быть положительным числом';
-    isValid = false;
+  if (formData.value.order && formData.value.order.trim().length > 0) {
+    const orderNum = parseInt(formData.value.order);
+    if (isNaN(orderNum) || orderNum < 1) {
+      errors.value.order = 'Порядок должен быть положительным числом';
+      isValid = false;
+    }
   }
 
   return isValid;
@@ -270,7 +273,7 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: formData.value.name.trim(),
-      order: formData.value.order,
+      order: parseInt(formData.value.order),
       is_active: formData.value.is_active,
     };
 
@@ -292,6 +295,10 @@ const handleSubmit = async () => {
       await toast.present();
     }
 
+    // Убираем фокус перед навигацией
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     router.back();
   } catch (err) {
     console.error('Failed to save plan:', err);
@@ -320,6 +327,10 @@ const handleSubmit = async () => {
 };
 
 const handleBack = () => {
+  // Убираем фокус с текущего элемента перед навигацией
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
   router.back();
 };
 
@@ -353,6 +364,10 @@ const confirmDeletePlan = async () => {
     });
     await toast.present();
     
+    // Убираем фокус перед навигацией
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     router.back();
   } catch (err) {
     console.error('Failed to delete plan:', err);
@@ -383,17 +398,19 @@ const fetchPlanData = async () => {
     const plan = response.data;
     
     formData.value = {
-      name: plan.name,
-      order: plan.order,
-      is_active: plan.is_active,
+      name: plan.name || '',
+      order: (plan.order || 1).toString(),
+      is_active: plan.is_active !== undefined ? plan.is_active : true,
     };
     
-    if (plan.exercises) {
+    if (plan.exercises && Array.isArray(plan.exercises)) {
       exercises.value = plan.exercises.map((ex: any) => ({
         id: ex.id,
-        name: ex.name,
-        order: ex.order,
+        name: ex.name || '',
+        order: ex.order || 1,
       }));
+    } else {
+      exercises.value = [];
     }
   } catch (err) {
     console.error('Failed to fetch plan:', err);
@@ -406,6 +423,10 @@ const fetchPlanData = async () => {
     });
     await toast.present();
     
+    // Убираем фокус перед навигацией
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     router.back();
   } finally {
     loading.value = false;

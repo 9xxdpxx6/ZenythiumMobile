@@ -120,6 +120,10 @@ const handleRefresh = async (event: CustomEvent) => {
 };
 
 const handlePlanClick = (plan: Plan) => {
+  // Убираем фокус с текущего элемента перед навигацией
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
   router.push(`/plan/${plan.id}`);
 };
 
@@ -128,6 +132,10 @@ const getSortedExercises = (exercises: Exercise[]) => {
 };
 
 const createNewPlan = () => {
+  // Убираем фокус с текущего элемента перед навигацией
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
   router.push('/plan/new');
 };
 
