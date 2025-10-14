@@ -51,7 +51,7 @@
       </div>
 
       <div v-else class="empty-state">
-        <ion-icon :icon="documentOutline" size="large"></ion-icon>
+        <i class="fas fa-file-alt" style="font-size: 3rem;"></i>
         <h2>Нет доступных планов</h2>
         <p>Обратитесь к администратору</p>
       </div>
@@ -85,9 +85,7 @@ import {
   IonButton,
   IonSpinner,
   IonToast,
-  IonIcon,
 } from '@ionic/vue';
-import { documentOutline } from 'ionicons/icons';
 import apiClient from '@/services/api';
 import { Plan, StartWorkoutResponse, ApiError } from '@/types/api';
 
@@ -166,7 +164,7 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.empty-state ion-icon {
+.empty-state i {
   font-size: 4rem;
   margin-bottom: 1rem;
 }

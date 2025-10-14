@@ -122,7 +122,7 @@
                 </div>
                 <div v-else class="no-data">
                   <i class="fas fa-weight chart-icon"></i>
-                  <p>Нет данных о весе</p>
+                  <p>Нет веса</p>
                   <ion-button fill="outline" size="small" @click="addWeightEntry">
                     Добавить вес
                   </ion-button>
@@ -193,7 +193,7 @@
                 </div>
                 <div v-else class="no-data">
                   <i class="fas fa-dumbbell chart-icon"></i>
-                  <p>Нет данных о тренировках</p>
+                  <p>Нет тренировок</p>
                   <p v-if="!hasWorkoutData" class="no-workout-data">
                     <small>Для отображения прогресса необходимо выполнить тренировки с упражнениями</small>
                     <br>
@@ -287,7 +287,6 @@ import {
   IonTitle,
   IonContent,
   IonButton,
-  IonIcon,
   IonSpinner,
 } from '@ionic/vue';
 // Font Awesome icons - no imports needed, using CSS classes
@@ -410,16 +409,16 @@ const mostTrainedMuscleGroup = computed(() => {
       const mostFrequent = Object.entries(categoryCounts)
         .sort(([,a], [,b]) => b - a)[0];
       
-      return mostFrequent ? mostFrequent[0] : 'Нет данных';
+      return mostFrequent ? mostFrequent[0] : '—';
     }
-    return 'Нет данных';
+    return '—';
   }
   
   const sortedGroups = muscleGroupStats.value.muscle_groups.sort((a: any, b: any) => 
     (b.total_volume || 0) - (a.total_volume || 0)
   );
   
-  return sortedGroups[0]?.muscle_group_name || 'Нет данных';
+  return sortedGroups[0]?.muscle_group_name || '—';
 });
 
 // Общий объем тренировок

@@ -65,6 +65,13 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/CycleFormPage.vue'),
     meta: { requiresAuth: true }
   },
+  // Plan management routes
+  {
+    path: '/plan/:id',
+    name: 'PlanForm',
+    component: () => import('@/views/PlanFormPage.vue'),
+    meta: { requiresAuth: true }
+  },
   // Workout flow routes
   {
     path: '/select-plan',

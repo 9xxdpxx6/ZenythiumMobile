@@ -51,7 +51,7 @@
         </div>
 
         <div v-else class="empty-state">
-          <ion-icon :icon="statsChartOutline" size="large"></ion-icon>
+          <i class="fas fa-chart-bar" style="font-size: 3rem;"></i>
           <h2>Статистика недоступна</h2>
           <p>Начните тренировки для просмотра статистики</p>
         </div>
@@ -84,11 +84,9 @@ import {
   IonCol,
   IonSpinner,
   IonToast,
-  IonIcon,
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
-import { statsChartOutline } from 'ionicons/icons';
 import apiClient from '@/services/api';
 import { Statistics, ApiError } from '@/types/api';
 
@@ -176,7 +174,7 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.empty-state ion-icon {
+.empty-state i {
   font-size: 4rem;
   margin-bottom: 1rem;
 }

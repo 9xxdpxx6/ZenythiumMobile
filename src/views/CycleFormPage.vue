@@ -93,73 +93,17 @@
                 class="add-plan-button"
                 @click="openPlanModal"
               >
-                <ion-icon :icon="addOutline"></ion-icon>
+                <i class="fas fa-plus"></i>
                 Добавить план
               </button>
             </div>
             
-            <div v-if="cyclePlans.length === 0" class="empty-plans-state">
-              <i class="fas fa-list"></i>
-              <p>Планы не добавлены</p>
-              <span class="hint">Добавьте планы тренировок для создания цикла</span>
-            </div>
-
-            <div v-else class="plans-list">
-              <draggable
-                v-model="cyclePlans"
-                @end="onPlanDragEnd"
-                @start="onPlanDragStart"
-                @move="onPlanMove"
-                item-key="id"
-                handle=".drag-handle"
-                class="draggable-list"
-                :animation="0"
-                :ghost-class="''"
-                :chosen-class="'sortable-chosen'"
-                :drag-class="'sortable-drag'"
-                :force-fallback="false"
-                :fallback-tolerance="0"
-                :delay="0"
-                :delay-on-touch-start="false"
-                :touch-start-threshold="10"
-                :swap-threshold="0.65"
-                :invert-swap="false"
-                :direction="'vertical'"
-                :disabled="false"
-                :scroll="false"
-                :group="false"
-                :pull="false"
-                :put="false"
-              >
-                <template #item="{ element: cyclePlan, index }">
-                  <div 
-                    class="plan-item"
-                    @longpress="showDeleteConfirmation(index)"
-                    @touchstart="handleTouchStart"
-                    @touchend="handleTouchEnd"
-                    @touchmove="handleTouchMove"
-                  >
-                    <div class="drag-handle">
-                      <ion-icon :icon="reorderFourOutline"></ion-icon>
-                    </div>
-                    
-                    <div class="plan-info">
-                      <h4>{{ cyclePlan.plan.name }}</h4>
-                      <div class="plan-meta">
-                        <span class="plan-stats">
-                          <i class="fas fa-dumbbell"></i>
-                          {{ cyclePlan.plan.exercise_count }} упражнений
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </template>
-              </draggable>
-              
-              <div class="plan-hint-text">
-                Долгое нажатие на план для удаления
-              </div>
-            </div>
+            <PlansList
+              :plans="cyclePlans"
+              :is-edit-mode="!!isEditMode"
+              @plan-reorder="handlePlanReorder"
+              @plan-delete="showDeleteConfirmation"
+            />
           </div>
 
           <div class="form-actions">
@@ -185,114 +129,61 @@
               </span>
             </button>
           </div>
+
+          <!-- Delete Cycle Button - только в режиме редактирования -->
+          <div v-if="isEditMode" class="delete-cycle-section">
+            <button
+              type="button"
+              class="delete-cycle-button"
+              @click="showDeleteCycleConfirmation"
+              :disabled="submitting"
+            >
+              <i class="fas fa-trash"></i>
+              Удалить цикл
+            </button>
+          </div>
         </form>
       </div>
     </ion-content>
 
     <!-- Plan Selection Modal -->
-    <ion-modal :is-open="isPlanModalOpen" @did-dismiss="isPlanModalOpen = false">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Выберите план</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="isPlanModalOpen = false">
-              <ion-icon :icon="closeOutline"></ion-icon>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      
-      <ion-content>
-        <div class="modal-content">
-          <ion-searchbar
-            v-model="planSearchQuery"
-            placeholder="Поиск планов..."
-            :debounce="300"
-          ></ion-searchbar>
-          
-          <div v-if="loadingPlans" class="loading-state">
-            <ion-spinner name="crescent"></ion-spinner>
-            <p>Загрузка планов...</p>
-          </div>
-          
-          <div v-else-if="filteredPlans.length === 0" class="empty-state">
-            <i class="fas fa-search"></i>
-            <h3>Планы не найдены</h3>
-            <p>{{ planSearchQuery ? 'Попробуйте изменить поисковый запрос' : 'Все доступные планы уже добавлены' }}</p>
-          </div>
-          
-          <div v-else class="plans-grid">
-            <ion-card
-              v-for="plan in filteredPlans"
-              :key="plan.id"
-              class="plan-card"
-              @click="addPlanToCycle(plan)"
-            >
-              <ion-card-header>
-                <ion-card-title>{{ plan.name }}</ion-card-title>
-              </ion-card-header>
-              
-              <ion-card-content>
-                <div class="plan-meta">
-                  <div class="plan-stats">
-                    <span>
-                      <i class="fas fa-dumbbell"></i>
-                      {{ plan.exercise_count }} упражнений
-                    </span>
-                  </div>
-                </div>
-              </ion-card-content>
-            </ion-card>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <PlanSelectionModal
+      :is-open="isPlanModalOpen"
+      :available-plans="availablePlans"
+      :loading-plans="loadingPlans"
+      @close="isPlanModalOpen = false"
+      @select-plan="addPlanToCycle"
+      @create-new-plan="createNewPlan"
+      @search="handlePlanSearch"
+    />
 
     <!-- Delete Confirmation Dialog -->
-    <ion-modal :is-open="isDeleteDialogOpen" @did-dismiss="cancelDeletePlan">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Подтверждение удаления</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      
-      <ion-content>
-        <div class="delete-dialog-content">
-          <div class="delete-icon">
-            <i class="fas fa-exclamation-triangle"></i>
-          </div>
-          
-          <h2>Удалить план?</h2>
-          <p>Вы уверены, что хотите удалить план <strong>"{{ planToDeleteName }}"</strong> из цикла?</p>
-          <p class="warning-text">Это действие нельзя отменить.</p>
-          
-          <div class="dialog-actions">
-            <button
-              type="button"
-              class="dialog-button cancel-button"
-              @click="cancelDeletePlan"
-            >
-              <i class="fas fa-times"></i>
-              Отмена
-            </button>
-            
-            <button
-              type="button"
-              class="dialog-button delete-button"
-              @click="confirmDeletePlan"
-            >
-              <i class="fas fa-trash"></i>
-              Удалить
-            </button>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
+    <DeleteConfirmationModal
+      :is-open="isDeleteDialogOpen"
+      title="Подтверждение удаления"
+      message="Вы уверены, что хотите удалить план"
+      :item-name="planToDeleteName"
+      warning-text="Это действие нельзя отменить."
+      @confirm="confirmDeletePlan"
+      @cancel="cancelDeletePlan"
+    />
+
+    <!-- Delete Cycle Confirmation Dialog -->
+    <DeleteConfirmationModal
+      :is-open="isDeleteCycleDialogOpen"
+      title="Подтверждение удаления"
+      message="Вы уверены, что хотите удалить цикл"
+      :item-name="formData.name"
+      warning-text="Это действие нельзя отменить. Будут удалены все связанные планы и тренировки."
+      :is-deleting="submitting"
+      @confirm="confirmDeleteCycle"
+      @cancel="cancelDeleteCycle"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   IonPage,
@@ -310,34 +201,21 @@ import {
   IonList,
   IonItem,
   IonLabel,
-  IonIcon,
   IonChip,
   IonModal,
   IonSearchbar,
   toastController,
   alertController,
 } from '@ionic/vue';
-import { addOutline, removeOutline, reorderFourOutline, closeOutline } from 'ionicons/icons';
 import CustomInput from '@/components/CustomInput.vue';
+import PlansList from '@/components/PlansList.vue';
+import PlanSelectionModal from '@/components/PlanSelectionModal.vue';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import draggable from 'vuedraggable';
 import apiClient from '@/services/api';
 import { ApiError, Plan, CyclePlan } from '@/types/api';
-
-interface CycleFormData {
-  name: string;
-  weeks: string;
-  start_date: Date | null;
-  end_date: Date | null;
-}
-
-interface ValidationErrors {
-  name?: string | string[];
-  weeks?: string | string[];
-  start_date?: string | string[];
-  end_date?: string | string[];
-}
+import { useCycleFormValidation, type CycleFormData, type ValidationErrors } from '@/composables/useCycleFormValidation';
 
 const router = useRouter();
 const route = useRoute();
@@ -362,13 +240,28 @@ const hasUnsavedChanges = computed(() => {
   return formChanged || plansChanged;
 });
 
-// Функция для получения первой ошибки из массива
-const getFirstError = (error: string | string[] | undefined): string => {
-  if (!error) return '';
-  if (Array.isArray(error)) {
-    return error[0] || '';
+// Используем composable для валидации
+const { validateForm, getFirstError } = useCycleFormValidation();
+
+// Функция для генерации названия цикла на основе даты начала и количества недель
+const generateCycleName = (startDate: Date, weeks: number): string => {
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + (weeks * 7));
+  
+  const startMonth = startDate.toLocaleDateString('ru-RU', { month: 'long' });
+  const endMonth = endDate.toLocaleDateString('ru-RU', { month: 'long' });
+  
+  const startYear = startDate.getFullYear();
+  const endYear = endDate.getFullYear();
+  
+  if (startYear === endYear) {
+    if (startMonth === endMonth) {
+      return `${startMonth} ${startYear}`;
+    }
+    return `${startMonth}-${endMonth} ${startYear}`;
+  } else {
+    return `${startMonth}-${endMonth} ${startYear}-${endYear}`;
   }
-  return error;
 };
 
 const loading = ref(false);
@@ -378,7 +271,6 @@ const errors = ref<ValidationErrors>({});
 // Plan management
 const cyclePlans = ref<CyclePlan[]>([]);
 const availablePlans = ref<Plan[]>([]);
-const planSearchQuery = ref('');
 const isPlanModalOpen = ref(false);
 const loadingPlans = ref(false);
 
@@ -387,14 +279,17 @@ const isDeleteDialogOpen = ref(false);
 const planToDelete = ref<number | null>(null);
 const planToDeleteName = ref('');
 
+// Delete cycle confirmation dialog
+const isDeleteCycleDialogOpen = ref(false);
+
 // Original state tracking for unsaved changes detection
 const originalFormData = ref<CycleFormData | null>(null);
 const originalCyclePlans = ref<CyclePlan[]>([]);
 
 const formData = ref<CycleFormData>({
   name: '',
-  weeks: '',
-  start_date: null,
+  weeks: '6', // Устанавливаем 6 недель по умолчанию
+  start_date: new Date(), // Устанавливаем текущую дату по умолчанию
   end_date: null,
 });
 
@@ -462,44 +357,14 @@ const fetchCycleData = async () => {
   }
 };
 
-const validateForm = (): boolean => {
-  errors.value = {};
-  let isValid = true;
-
-  if (!formData.value.name || formData.value.name.trim().length === 0) {
-    errors.value.name = 'Название цикла обязательно';
-    isValid = false;
-  } else if (formData.value.name.trim().length < 3) {
-    errors.value.name = 'Название должно содержать минимум 3 символа';
-    isValid = false;
-  }
-
-  if (!formData.value.weeks || formData.value.weeks.trim().length === 0) {
-    errors.value.weeks = 'Укажите количество недель (минимум 1)';
-    isValid = false;
-  } else {
-    const weeksNum = parseInt(formData.value.weeks);
-    if (isNaN(weeksNum) || weeksNum < 1) {
-      errors.value.weeks = 'Укажите количество недель (минимум 1)';
-      isValid = false;
-    } else if (weeksNum > 52) {
-      errors.value.weeks = 'Максимальное количество недель: 52';
-      isValid = false;
-    }
-  }
-
-  if (formData.value.start_date && formData.value.end_date) {
-    if (formData.value.end_date <= formData.value.start_date) {
-      errors.value.end_date = 'Дата окончания должна быть позже даты начала';
-      isValid = false;
-    }
-  }
-
+const validateFormData = (): boolean => {
+  const { isValid, errors: validationErrors } = validateForm(formData.value);
+  errors.value = validationErrors;
   return isValid;
 };
 
 const handleSubmit = async () => {
-  if (!validateForm()) {
+  if (!validateFormData()) {
     const toast = await toastController.create({
       message: 'Пожалуйста, исправьте ошибки в форме',
       duration: 2000,
@@ -592,13 +457,22 @@ const handleBack = async () => {
 };
 
 // Plan management functions
-const fetchAvailablePlans = async () => {
+const fetchAvailablePlans = async (searchTerm: string = '') => {
   loadingPlans.value = true;
   try {
-    const response = await apiClient.get('/api/v1/plans');
+    const params: any = {
+      is_active: true,    // Только активные планы
+      standalone: true,   // Только планы без цикла (свободные)
+    };
+    
+    // Добавляем поиск если есть
+    if (searchTerm.trim()) {
+      params.search = searchTerm.trim();
+    }
+    
+    const response = await apiClient.get('/api/v1/plans', { params });
     const allPlans = response.data.data || response.data || [];
-    // Фильтруем только активные планы
-    availablePlans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
+    availablePlans.value = allPlans;
   } catch (err) {
     console.error('Failed to fetch plans:', err);
     const toast = await toastController.create({
@@ -613,17 +487,34 @@ const fetchAvailablePlans = async () => {
 };
 
 const filteredPlans = computed(() => {
-  if (!planSearchQuery.value.trim()) {
-    return availablePlans.value.filter(plan => 
-      !cyclePlans.value.some(cp => cp.plan_id === plan.id)
-    );
-  }
-  
-  return availablePlans.value.filter(plan => 
-    !cyclePlans.value.some(cp => cp.plan_id === plan.id) &&
-    plan.name.toLowerCase().includes(planSearchQuery.value.toLowerCase())
-  );
+  // Фильтрация теперь происходит на сервере, возвращаем все доступные планы
+  return availablePlans.value;
 });
+
+// Plan search functions
+const handlePlanSearch = (value: string) => {
+  // Выполняем поиск на сервере
+  fetchAvailablePlans(value);
+};
+
+const clearPlanSearch = () => {
+  // Загружаем все доступные планы без поиска
+  fetchAvailablePlans('');
+};
+
+const createNewPlan = async () => {
+  // Закрываем модал выбора планов
+  isPlanModalOpen.value = false;
+  
+  // Ждем завершения закрытия модального окна
+  await nextTick();
+  
+  // Добавляем дополнительную задержку для полного закрытия модального окна
+  // Это предотвращает проблемы с aria-hidden и фокусом
+  setTimeout(() => {
+    router.push('/plan/new');
+  }, 300);
+};
 
 const addPlanToCycle = (plan: Plan) => {
   const newCyclePlan: CyclePlan = {
@@ -636,7 +527,18 @@ const addPlanToCycle = (plan: Plan) => {
   
   cyclePlans.value.push(newCyclePlan);
   isPlanModalOpen.value = false;
-  planSearchQuery.value = '';
+  
+  // Возвращаем фокус на предыдущий элемент после закрытия модала
+  setTimeout(() => {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement.blur) {
+      activeElement.blur();
+    }
+  }, 100);
+};
+
+const handlePlanReorder = (reorderedPlans: CyclePlan[]) => {
+  cyclePlans.value = reorderedPlans;
 };
 
 const removePlanFromCycle = (index: number) => {
@@ -660,90 +562,108 @@ const confirmDeletePlan = () => {
   isDeleteDialogOpen.value = false;
   planToDelete.value = null;
   planToDeleteName.value = '';
+  
+  // Возвращаем фокус на предыдущий элемент после закрытия модала
+  setTimeout(() => {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement.blur) {
+      activeElement.blur();
+    }
+  }, 100);
 };
 
 const cancelDeletePlan = () => {
   isDeleteDialogOpen.value = false;
   planToDelete.value = null;
   planToDeleteName.value = '';
-};
-
-// Long press handlers
-let touchStartTime = 0;
-let touchStartX = 0;
-let touchStartY = 0;
-let longPressTimer: NodeJS.Timeout | null = null;
-
-const handleTouchStart = (event: TouchEvent) => {
-  touchStartTime = Date.now();
-  touchStartX = event.touches[0].clientX;
-  touchStartY = event.touches[0].clientY;
   
-  longPressTimer = setTimeout(() => {
-    // Long press detected
-    const target = event.target as HTMLElement;
-    const planItem = target.closest('.plan-item');
-    if (planItem) {
-      const index = Array.from(planItem.parentElement?.children || []).indexOf(planItem);
-      showDeleteConfirmation(index);
-    }
-  }, 800); // 800ms for long press
-};
-
-const handleTouchEnd = () => {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-};
-
-const handleTouchMove = () => {
-  if (longPressTimer) {
-    clearTimeout(longPressTimer);
-    longPressTimer = null;
-  }
-};
-
-const onPlanMove = (evt: any) => {
-  // Prevent default move behavior to ensure smooth animation
-  return true;
-};
-
-const onPlanDragStart = () => {
-  // Add sorting class to enable smooth transitions
-  const draggableList = document.querySelector('.draggable-list');
-  if (draggableList) {
-    draggableList.classList.add('sorting');
-  }
-};
-
-const onPlanDragEnd = () => {
-  // Порядок планов определяется их позицией в массиве cyclePlans
-  // Не нужно обновлять поле order, так как API использует порядок элементов в plan_ids
-  // Просто обновляем порядок в массиве cyclePlans
-  
-  // Remove sorting class after animation completes with longer delay
+  // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
-    const draggableList = document.querySelector('.draggable-list');
-    if (draggableList) {
-      draggableList.classList.remove('sorting');
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement.blur) {
+      activeElement.blur();
     }
-  }, 500); // Increased delay for smoother animation
+  }, 100);
 };
+
+// Delete cycle functions
+const showDeleteCycleConfirmation = () => {
+  isDeleteCycleDialogOpen.value = true;
+};
+
+const confirmDeleteCycle = async () => {
+  if (!isEditMode.value) return;
+  
+  submitting.value = true;
+  
+  try {
+    await apiClient.delete(`/api/v1/cycles/${cycleId.value}`);
+    
+    const toast = await toastController.create({
+      message: 'Цикл успешно удален',
+      duration: 2000,
+      color: 'success',
+    });
+    await toast.present();
+    
+    // Уведомляем CyclesPage о необходимости обновления данных
+    window.dispatchEvent(new CustomEvent('cycles-updated'));
+    
+    // Переходим обратно к списку циклов
+    router.push('/tabs/cycles');
+  } catch (err) {
+    console.error('Failed to delete cycle:', err);
+    const apiError = err as ApiError;
+    
+    const toast = await toastController.create({
+      message: apiError.message || 'Не удалось удалить цикл',
+      duration: 3000,
+      color: 'danger',
+    });
+    await toast.present();
+  } finally {
+    submitting.value = false;
+    isDeleteCycleDialogOpen.value = false;
+    
+    // Возвращаем фокус на предыдущий элемент после закрытия модала
+    setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement;
+      if (activeElement && activeElement.blur) {
+        activeElement.blur();
+      }
+    }, 100);
+  }
+};
+
+const cancelDeleteCycle = () => {
+  isDeleteCycleDialogOpen.value = false;
+  
+  // Возвращаем фокус на предыдущий элемент после закрытия модала
+  setTimeout(() => {
+    const activeElement = document.activeElement as HTMLElement;
+    if (activeElement && activeElement.blur) {
+      activeElement.blur();
+    }
+  }, 100);
+};
+
 
 const openPlanModal = async () => {
   if (availablePlans.value.length === 0) {
-    await fetchAvailablePlans();
+    await fetchAvailablePlans('');
   }
   isPlanModalOpen.value = true;
 };
 
 // Initialize original state for new cycles
 const initializeOriginalState = () => {
+  const currentDate = new Date();
+  const defaultName = generateCycleName(currentDate, 6);
+  
   originalFormData.value = {
-    name: '',
-    weeks: '',
-    start_date: null,
+    name: defaultName,
+    weeks: '6', // Устанавливаем 6 недель по умолчанию
+    start_date: currentDate, // Устанавливаем текущую дату по умолчанию
     end_date: null,
   };
   originalCyclePlans.value = [];
@@ -779,8 +699,21 @@ onMounted(() => {
     fetchCycleData();
   } else {
     initializeOriginalState();
+    // Устанавливаем автоматически сгенерированное название для новых циклов
+    const currentDate = new Date();
+    formData.value.name = generateCycleName(currentDate, 6);
   }
 });
+
+// Автоматическое обновление названия при изменении даты начала или количества недель
+watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartDate, newWeeks]) => {
+  if (newStartDate && newWeeks && !isEditMode.value) {
+    const weeksNum = parseInt(newWeeks);
+    if (!isNaN(weeksNum) && weeksNum > 0) {
+      formData.value.name = generateCycleName(newStartDate, weeksNum);
+    }
+  }
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -895,6 +828,45 @@ onMounted(() => {
 .modern-button.secondary-button {
   background: rgba(255, 255, 255, 0.1);
   color: var(--ion-text-color);
+}
+
+/* Delete Cycle Button Styles */
+.delete-cycle-section {
+  padding: 0 16px 8px 16px;
+  margin-top: 8px;
+}
+
+.delete-cycle-button {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: rgba(239, 68, 68, 0.7);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+}
+
+.delete-cycle-button:hover {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.6);
+  color: rgba(239, 68, 68, 0.8);
+}
+
+.delete-cycle-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.delete-cycle-button i {
+  font-size: 14px;
 }
 
 .modern-button i {
@@ -1026,438 +998,6 @@ ion-toolbar ion-button i {
 
 .add-plan-button:hover {
   background: var(--ion-color-primary-shade);
-}
-
-.empty-plans-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.empty-plans-state i {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-plans-state p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.empty-plans-state .hint {
-  font-size: 14px;
-  color: var(--ion-color-medium);
-}
-
-.plans-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.draggable-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transform: translateZ(0); /* Force hardware acceleration */
-  will-change: transform;
-}
-
-.plan-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: grab;
-  position: relative;
-  will-change: transform, opacity, box-shadow;
-  backface-visibility: hidden;
-  perspective: 1000px;
-  contain: layout style paint;
-}
-
-.plan-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* Drag and drop animations - simplified */
-.plan-item.sortable-chosen {
-  cursor: grabbing;
-  transform: scale(1.02);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  z-index: 1000;
-  transition: all 0.2s ease;
-}
-
-.plan-item.sortable-drag {
-  opacity: 0.8;
-  transform: scale(1.05);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-  z-index: 1001;
-  transition: all 0.2s ease;
-}
-
-/* Hide ALL intermediate drag elements */
-.sortable-ghost,
-.sortable-placeholder,
-.sortable-fallback,
-.sortable-clone,
-.draggable-list .sortable-ghost,
-.draggable-list .sortable-placeholder,
-.draggable-list .sortable-fallback,
-.draggable-list .sortable-clone {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  height: 0 !important;
-  width: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  border: none !important;
-  background: transparent !important;
-}
-
-/* Smooth movement for all items during drag */
-.plan-item:not(.sortable-chosen):not(.sortable-drag) {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Additional rules to hide any drag-related elements */
-*[class*="sortable-ghost"],
-*[class*="sortable-placeholder"],
-*[class*="sortable-fallback"],
-*[class*="sortable-clone"],
-*[class*="ghost"],
-*[class*="placeholder"],
-*[class*="fallback"],
-*[class*="clone"] {
-  display: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-}
-
-/* Ensure no elements overlap during drag */
-.draggable-list.sorting .plan-item {
-  position: relative;
-  z-index: auto;
-}
-
-.draggable-list.sorting .plan-item.sortable-chosen,
-.draggable-list.sorting .plan-item.sortable-drag {
-  z-index: 1000;
-}
-
-/* Enhanced smooth movement */
-/* Removed duplicate .draggable-list styles - merged above */
-
-/* Prevent layout shifts during drag */
-/* Removed duplicate .plan-item styles - merged above */
-
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  color: var(--ion-color-medium);
-  cursor: grab;
-  border-radius: 6px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.drag-handle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-color-primary);
-  transform: scale(1.1);
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-  transform: scale(0.95);
-}
-
-/* Enhanced drag handle animations during drag */
-.plan-item.sortable-chosen .drag-handle {
-  color: var(--ion-color-primary);
-  background: rgba(99, 102, 241, 0.2);
-  transform: scale(1.1);
-}
-
-.plan-item.sortable-drag .drag-handle {
-  color: var(--ion-color-primary);
-  background: rgba(99, 102, 241, 0.3);
-  transform: scale(1.15);
-}
-
-.plan-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.plan-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.plan-info p {
-  margin: 0 0 8px 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-.plan-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.plan-stats {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
-.plan-stats i {
-  margin-right: 4px;
-  color: var(--ion-color-primary);
-}
-
-.remove-plan-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--ion-color-danger);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.remove-plan-button:hover {
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.plan-hint-text {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-  text-align: center;
-  margin-top: 8px;
-  opacity: 0.7;
-}
-
-
-/* Modal Styles */
-.modal-content {
-  padding: 16px;
-}
-
-.plans-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.modal-content .plan-card {
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.modal-content .plan-card:hover {
-  transform: translateY(-2px);
-}
-
-.modal-content .plan-card ion-card-header {
-  padding-bottom: 8px;
-}
-
-.modal-content .plan-card ion-card-title {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.modal-content .plan-card ion-card-content {
-  padding-top: 0;
-}
-
-.modal-content .plan-card ion-card-content p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-.modal-content .plan-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.modal-content .plan-stats {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.modal-content .plan-stats span {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
-.modal-content .plan-stats i {
-  margin-right: 4px;
-  color: var(--ion-color-primary);
-}
-
-/* Delete Confirmation Dialog Styles */
-.delete-dialog-content {
-  padding: 24px;
-  text-align: center;
-  max-width: 400px;
-  margin: 0 auto;
-}
-
-.delete-icon {
-  margin-bottom: 20px;
-}
-
-.delete-icon i {
-  font-size: 4rem;
-  color: var(--ion-color-warning);
-}
-
-.delete-dialog-content h2 {
-  margin: 0 0 16px 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.delete-dialog-content p {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: var(--ion-color-medium);
-  line-height: 1.5;
-}
-
-.warning-text {
-  color: var(--ion-color-warning) !important;
-  font-weight: 500;
-}
-
-.dialog-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.dialog-button {
-  flex: 1;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-}
-
-.cancel-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-text-color);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.cancel-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.delete-button {
-  background: var(--ion-color-danger);
-  color: white;
-}
-
-.delete-button:hover {
-  background: var(--ion-color-danger-shade);
-}
-
-.dialog-button i {
-  font-size: 16px;
-}
-
-/* Additional smooth animations for plan items */
-/* Removed duplicate .plan-item styles - merged above */
-
-.plan-item:not(.sortable-chosen):not(.sortable-drag) {
-  animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Smooth reordering animation */
-.plan-item.reordering {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Enhanced visual feedback during drag */
-.plan-item.sortable-chosen .plan-info {
-  opacity: 0.8;
-}
-
-.plan-item.sortable-drag .plan-info {
-  opacity: 0.6;
-}
-
-/* Force smooth animations on mobile */
-@media (max-width: 768px) {
-  .plan-item {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
-  
-  .draggable-list.sorting .plan-item {
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  }
 }
 </style>
 

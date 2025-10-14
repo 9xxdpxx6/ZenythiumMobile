@@ -281,7 +281,7 @@ ion-tab-button {
   transition: all 0.2s ease !important;
 }
 
-ion-tab-button ion-icon {
+ion-tab-button i {
   font-size: 24px !important;
   margin: 0 !important;
   color: var(--ion-color-medium) !important;
@@ -297,7 +297,7 @@ ion-tab-button.tab-selected {
   border: 1px solid rgba(99, 102, 241, 0.3) !important;
 }
 
-ion-tab-button.tab-selected ion-icon {
+ion-tab-button.tab-selected i {
   color: var(--ion-color-primary) !important;
 }
 

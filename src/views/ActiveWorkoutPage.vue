@@ -8,7 +8,7 @@
         <ion-title>{{ workout?.plan?.name || 'Тренировка' }}</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="finishWorkout" :disabled="finishing">
-            <ion-icon :icon="checkmarkOutline"></ion-icon>
+            <i class="fas fa-check"></i>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -93,7 +93,7 @@
       </div>
 
       <div v-else class="empty-state">
-        <ion-icon :icon="fitnessOutline" size="large"></ion-icon>
+        <i class="fas fa-dumbbell" style="font-size: 3rem;"></i>
         <h2>Тренировка не найдена</h2>
         <p>Возможно, тренировка была удалена</p>
       </div>
@@ -120,7 +120,6 @@ import {
   IonButtons,
   IonBackButton,
   IonButton,
-  IonIcon,
   IonList,
   IonItem,
   IonItemGroup,
@@ -130,10 +129,6 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import {
-  checkmarkOutline,
-  fitnessOutline,
-} from 'ionicons/icons';
 import apiClient from '@/services/api';
 import { 
   Workout, 
@@ -271,7 +266,7 @@ onMounted(() => {
   margin-bottom: 1rem;
 }
 
-.empty-state ion-icon {
+.empty-state i {
   font-size: 4rem;
   margin-bottom: 1rem;
 }
