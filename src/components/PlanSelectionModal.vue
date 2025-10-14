@@ -104,7 +104,7 @@ const emit = defineEmits<Emits>();
 const planSearchQuery = ref('');
 
 const filteredPlans = computed(() => {
-  // Фильтрация происходит на сервере, возвращаем все доступные планы
+  // Фильтрация происходит в родительском компоненте
   return props.availablePlans;
 });
 

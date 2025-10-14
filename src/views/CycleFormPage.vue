@@ -460,10 +460,7 @@ const handleBack = async () => {
 const fetchAvailablePlans = async (searchTerm: string = '') => {
   loadingPlans.value = true;
   try {
-    const params: any = {
-      is_active: true,    // Только активные планы
-      standalone: true,   // Только планы без цикла (свободные)
-    };
+    const params: any = {};
     
     // Добавляем поиск если есть
     if (searchTerm.trim()) {
@@ -472,7 +469,20 @@ const fetchAvailablePlans = async (searchTerm: string = '') => {
     
     const response = await apiClient.get('/api/v1/plans', { params });
     const allPlans = response.data.data || response.data || [];
-    availablePlans.value = allPlans;
+    
+    // Фильтруем планы на клиенте:
+    // 1. Только активные планы
+    // 2. Только standalone планы (без цикла)
+    // 3. Исключаем те, что уже добавлены в текущий цикл
+    const addedPlanIds = cyclePlans.value.map(cp => cp.plan_id);
+    const availablePlansFiltered = allPlans.filter((plan: Plan) => {
+      const isActive = plan.is_active === true || (plan.is_active as any) === 1;
+      const isStandalone = !plan.cycle || plan.cycle === null;
+      const notAdded = !addedPlanIds.includes(plan.id);
+      return isActive && isStandalone && notAdded;
+    });
+    
+    availablePlans.value = availablePlansFiltered;
   } catch (err) {
     console.error('Failed to fetch plans:', err);
     const toast = await toastController.create({
