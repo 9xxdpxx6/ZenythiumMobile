@@ -179,12 +179,19 @@
       @confirm="confirmDeleteCycle"
       @cancel="cancelDeleteCycle"
     />
+
+    <!-- Unsaved Changes Confirmation Dialog -->
+    <UnsavedChangesModal
+      :is-open="isUnsavedChangesDialogOpen"
+      @confirm="confirmLeave"
+      @cancel="cancelLeave"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -205,12 +212,12 @@ import {
   IonModal,
   IonSearchbar,
   toastController,
-  alertController,
 } from '@ionic/vue';
 import CustomInput from '@/components/CustomInput.vue';
 import PlansList from '@/components/PlansList.vue';
 import PlanSelectionModal from '@/components/PlanSelectionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import apiClient from '@/services/api';
@@ -281,6 +288,11 @@ const planToDeleteName = ref('');
 
 // Delete cycle confirmation dialog
 const isDeleteCycleDialogOpen = ref(false);
+
+// Unsaved changes confirmation
+const isUnsavedChangesDialogOpen = ref(false);
+const pendingNavigation = ref<any>(null);
+const isLeaving = ref(false);
 
 // Original state tracking for unsaved changes detection
 const originalFormData = ref<CycleFormData | null>(null);
@@ -444,16 +456,6 @@ const handleSubmit = async () => {
   } finally {
     submitting.value = false;
   }
-};
-
-const handleBack = async () => {
-  if (hasUnsavedChanges.value) {
-    const shouldLeave = await showUnsavedChangesWarning();
-    if (!shouldLeave) {
-      return; // Stay on the page
-    }
-  }
-  router.back();
 };
 
 // Plan management functions
@@ -685,30 +687,6 @@ const initializeOriginalState = () => {
   originalCyclePlans.value = [];
 };
 
-// Function to show unsaved changes warning
-const showUnsavedChangesWarning = async (): Promise<boolean> => {
-  const alert = await alertController.create({
-    header: 'Несохраненные изменения',
-    message: 'У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?',
-    buttons: [
-      {
-        text: 'Остаться',
-        role: 'cancel',
-        handler: () => false
-      },
-      {
-        text: 'Покинуть',
-        role: 'destructive',
-        handler: () => true
-      }
-    ]
-  });
-
-  await alert.present();
-  const { role } = await alert.onDidDismiss();
-  return role === 'destructive';
-};
-
 
 onMounted(() => {
   if (isEditMode.value) {
@@ -735,6 +713,51 @@ watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartD
     }
   }
 }, { deep: true });
+
+// Unsaved changes handling
+const handleBack = () => {
+  if (hasUnsavedChanges.value) {
+    pendingNavigation.value = () => router.back();
+    isUnsavedChangesDialogOpen.value = true;
+  } else {
+    // Убираем фокус с текущего элемента перед навигацией
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    router.back();
+  }
+};
+
+const confirmLeave = () => {
+  isUnsavedChangesDialogOpen.value = false;
+  isLeaving.value = true; // Устанавливаем флаг перед навигацией
+  if (pendingNavigation.value) {
+    pendingNavigation.value();
+    pendingNavigation.value = null;
+  }
+};
+
+const cancelLeave = () => {
+  isUnsavedChangesDialogOpen.value = false;
+  pendingNavigation.value = null;
+};
+
+// Обработка попытки покинуть страницу с несохраненными изменениями
+onBeforeRouteLeave((to: any, from: any, next: any) => {
+  // Если мы программно покидаем страницу, пропускаем проверку
+  if (isLeaving.value) {
+    isLeaving.value = false; // Сбрасываем флаг
+    next();
+    return;
+  }
+  
+  if (hasUnsavedChanges.value) {
+    pendingNavigation.value = () => next();
+    isUnsavedChangesDialogOpen.value = true;
+  } else {
+    next();
+  }
+});
 </script>
 
 <style scoped>

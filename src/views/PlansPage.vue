@@ -19,16 +19,23 @@
       <div class="page-content">
         <h1 class="page-title">Планы тренировок</h1>
         <p class="page-subtitle">Выберите план для своей тренировки</p>
+        
+        <SearchInput
+          v-model="searchQuery"
+          placeholder="Поиск планов..."
+          @search="handleSearch"
+          @clear="clearSearch"
+        />
 
         <div v-if="loading" class="loading-state">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Загрузка планов...</p>
         </div>
 
-        <div v-else-if="plans.length > 0">
+        <div v-else-if="filteredPlans.length > 0">
           <div class="plans-grid">
             <div
-              v-for="plan in plans"
+              v-for="plan in filteredPlans"
               :key="plan.id"
               class="plan-card modern-card"
               @click="handlePlanClick(plan)"
@@ -59,8 +66,8 @@
 
         <div v-else class="empty-state">
           <i class="fas fa-list empty-icon"></i>
-          <h2>Нет планов</h2>
-          <p>Планы тренировок будут доступны в ближайшее время</p>
+          <h2>{{ searchQuery ? 'Планы не найдены' : 'Нет планов' }}</h2>
+          <p>{{ searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Планы тренировок будут доступны в ближайшее время' }}</p>
           <button
             @click="createNewPlan"
             class="modern-button"
@@ -75,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onActivated, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -89,6 +96,7 @@ import {
   IonButtons,
   IonButton,
 } from '@ionic/vue';
+import SearchInput from '@/components/SearchInput.vue';
 import apiClient from '@/services/api';
 import { Plan, ApiError, Exercise } from '@/types/api';
 
@@ -96,6 +104,19 @@ const router = useRouter();
 const plans = ref<Plan[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
+const searchQuery = ref('');
+
+// Фильтрация планов по поисковому запросу
+const filteredPlans = computed(() => {
+  if (!searchQuery.value.trim()) {
+    return plans.value;
+  }
+  
+  const query = searchQuery.value.toLowerCase().trim();
+  return plans.value.filter(plan => 
+    plan.name.toLowerCase().includes(query)
+  );
+});
 
 const fetchPlans = async () => {
   loading.value = true;
@@ -131,6 +152,15 @@ const getSortedExercises = (exercises: Exercise[]) => {
   return exercises.sort((a, b) => a.order - b.order);
 };
 
+// Функции поиска
+const handleSearch = (value: string) => {
+  searchQuery.value = value;
+};
+
+const clearSearch = () => {
+  searchQuery.value = '';
+};
+
 const createNewPlan = () => {
   // Убираем фокус с текущего элемента перед навигацией
   if (document.activeElement instanceof HTMLElement) {
@@ -142,6 +172,11 @@ const createNewPlan = () => {
 onMounted(() => {
   fetchPlans();
 });
+
+onActivated(() => {
+  // Обновляем данные при возвращении на страницу (например, после создания/редактирования плана)
+  fetchPlans();
+});
 </script>
 
 <style scoped>
@@ -151,6 +186,11 @@ onMounted(() => {
   margin: 0 !important;
   padding-top: 4px !important;
   padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+}
+
+/* Search input spacing */
+.page-content .search-input {
+  margin-bottom: 16px;
 }
 
 /* Кнопка добавления в заголовке */

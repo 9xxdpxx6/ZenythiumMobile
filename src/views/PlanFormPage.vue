@@ -35,18 +35,6 @@
           </div>
 
           <div class="form-group">
-            <CustomInput
-              v-model="formData.order"
-              label="Порядок *"
-              type="number"
-              placeholder="Например: 1"
-              :error="!!errors.order"
-              :error-message="getFirstError(errors.order)"
-              required
-            />
-          </div>
-
-          <div class="form-group">
             <label class="form-label">
               <input
                 type="checkbox"
@@ -72,41 +60,12 @@
               </button>
             </div>
             
-            <div v-if="exercises.length === 0" class="empty-exercises-state">
-              <i class="fas fa-dumbbell"></i>
-              <p>Упражнения не добавлены</p>
-              <span class="hint">Добавьте упражнения для создания плана</span>
-            </div>
-
-            <div v-else class="exercises-list">
-              <div
-                v-for="(exercise, index) in exercises"
-                :key="exercise.id || index"
-                class="exercise-item"
-              >
-                <div class="exercise-info">
-                  <h4>{{ exercise.name }}</h4>
-                  <div class="exercise-meta">
-                    <span class="exercise-stats">
-                      <i class="fas fa-dumbbell"></i>
-                      {{ exercise.sets || 0 }} подходов
-                    </span>
-                    <span class="exercise-stats">
-                      <i class="fas fa-repeat"></i>
-                      {{ exercise.reps || 0 }} повторений
-                    </span>
-                  </div>
-                </div>
-                
-                <button
-                  type="button"
-                  class="remove-exercise-button"
-                  @click="removeExercise(index)"
-                >
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </div>
+            <ExercisesList
+              :exercises="exercises"
+              :is-edit-mode="!!isEditMode"
+              @exercise-reorder="handleExerciseReorder"
+              @exercise-delete="showDeleteExerciseConfirmation"
+            />
           </div>
 
           <div class="form-actions">
@@ -149,7 +108,29 @@
       </div>
     </ion-content>
 
-    <!-- Delete Confirmation Dialog -->
+    <!-- Exercise Selection Modal -->
+    <ExerciseSelectionModal
+      :is-open="isExerciseModalOpen"
+      :available-exercises="availableExercises"
+      :loading-exercises="loadingExercises"
+      @close="isExerciseModalOpen = false"
+      @select-exercise="addExerciseToPlan"
+      @create-new-exercise="createNewExercise"
+      @search="handleExerciseSearch"
+    />
+
+    <!-- Delete Exercise Confirmation Dialog -->
+    <DeleteConfirmationModal
+      :is-open="isDeleteExerciseDialogOpen"
+      title="Подтверждение удаления"
+      message="Вы уверены, что хотите удалить упражнение"
+      :item-name="exerciseToDeleteName"
+      warning-text="Это действие нельзя отменить."
+      @confirm="confirmDeleteExercise"
+      @cancel="cancelDeleteExercise"
+    />
+
+    <!-- Delete Plan Confirmation Dialog -->
     <DeleteConfirmationModal
       :is-open="isDeleteDialogOpen"
       title="Подтверждение удаления"
@@ -160,12 +141,19 @@
       @confirm="confirmDeletePlan"
       @cancel="cancelDeletePlan"
     />
+
+    <!-- Unsaved Changes Confirmation Dialog -->
+    <UnsavedChangesModal
+      :is-open="isUnsavedChangesDialogOpen"
+      @confirm="confirmLeave"
+      @cancel="cancelLeave"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -175,31 +163,36 @@ import {
   IonButtons,
   IonButton,
   IonSpinner,
+  IonModal,
   toastController,
 } from '@ionic/vue';
 import CustomInput from '@/components/CustomInput.vue';
+import ExercisesList from '@/components/ExercisesList.vue';
+import ExerciseSelectionModal from '@/components/ExerciseSelectionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
 import apiClient from '@/services/api';
-import { ApiError } from '@/types/api';
+import { ApiError, Exercise } from '@/types/api';
 
 interface PlanFormData {
   name: string;
-  order: string;
   is_active: boolean;
 }
 
-interface Exercise {
-  id?: number;
+interface AvailableExercise {
+  id: number;
   name: string;
-  sets?: number;
-  reps?: number;
-  weight?: number;
-  duration?: number;
+  description?: string;
+  muscle_group?: {
+    id: number;
+    name: string;
+  };
+  created_at: string;
+  updated_at: string;
 }
 
 interface ValidationErrors {
   name?: string | string[];
-  order?: string | string[];
 }
 
 const router = useRouter();
@@ -214,13 +207,27 @@ const errors = ref<ValidationErrors>({});
 
 // Exercise management
 const exercises = ref<Exercise[]>([]);
+const availableExercises = ref<AvailableExercise[]>([]);
+const isExerciseModalOpen = ref(false);
+const loadingExercises = ref(false);
+// Флаг hasExercisesChanged больше не нужен - порядок передается через массив exercise_ids
 
-// Delete confirmation dialog
+// Delete confirmation dialogs
 const isDeleteDialogOpen = ref(false);
+const isDeleteExerciseDialogOpen = ref(false);
+const exerciseToDelete = ref<number | null>(null);
+const exerciseToDeleteName = ref('');
+
+// Unsaved changes confirmation
+const isUnsavedChangesDialogOpen = ref(false);
+const pendingNavigation = ref<any>(null);
+const hasUnsavedChanges = ref(false);
+const initialFormData = ref<PlanFormData>({ name: '', is_active: true });
+const initialExercises = ref<Exercise[]>([]);
+const isLeaving = ref(false); // Флаг для предотвращения повторных проверок
 
 const formData = ref<PlanFormData>({
   name: '',
-  order: '1',
   is_active: true,
 });
 
@@ -245,14 +252,6 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (formData.value.order && formData.value.order.trim().length > 0) {
-    const orderNum = parseInt(formData.value.order);
-    if (isNaN(orderNum) || orderNum < 1) {
-      errors.value.order = 'Порядок должен быть положительным числом';
-      isValid = false;
-    }
-  }
-
   return isValid;
 };
 
@@ -273,12 +272,18 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: formData.value.name.trim(),
-      order: parseInt(formData.value.order),
+      order: null, // Порядок устанавливается автоматически на сервере
       is_active: formData.value.is_active,
+      exercise_ids: exercises.value.map(exercise => exercise.id), // Массив ID упражнений в порядке их расположения
     };
 
+    console.log('📤 Отправляем payload:', payload);
+    console.log('💪 Упражнения:', exercises.value);
+    console.log('🆔 Exercise IDs:', exercises.value.map(exercise => exercise.id));
+
     if (isEditMode.value) {
-      await apiClient.put(`/api/v1/plans/${planId.value}`, payload);
+      const response = await apiClient.put(`/api/v1/plans/${planId.value}`, payload);
+      console.log('📥 Ответ сервера (PUT):', response.data);
       const toast = await toastController.create({
         message: 'План успешно обновлен',
         duration: 2000,
@@ -286,7 +291,8 @@ const handleSubmit = async () => {
       });
       await toast.present();
     } else {
-      await apiClient.post('/api/v1/plans', payload);
+      const response = await apiClient.post('/api/v1/plans', payload);
+      console.log('📥 Ответ сервера (POST):', response.data);
       const toast = await toastController.create({
         message: 'План успешно создан',
         duration: 2000,
@@ -326,22 +332,169 @@ const handleSubmit = async () => {
   }
 };
 
+// Функция для проверки наличия несохраненных изменений
+const checkForUnsavedChanges = (): boolean => {
+  // Если уже покидаем страницу, не проверяем изменения
+  if (isLeaving.value) return false;
+  
+  // Проверяем изменения в форме
+  const formChanged = 
+    formData.value.name !== initialFormData.value.name ||
+    formData.value.is_active !== initialFormData.value.is_active;
+  
+  // Проверяем изменения в упражнениях
+  const exercisesChanged = 
+    exercises.value.length !== initialExercises.value.length ||
+    exercises.value.some((exercise, index) => {
+      const initialExercise = initialExercises.value[index];
+      return !initialExercise || 
+             exercise.id !== initialExercise.id ||
+             exercise.order !== initialExercise.order;
+    });
+  
+  return formChanged || exercisesChanged;
+};
+
 const handleBack = () => {
-  // Убираем фокус с текущего элемента перед навигацией
-  if (document.activeElement instanceof HTMLElement) {
-    document.activeElement.blur();
+  if (checkForUnsavedChanges()) {
+    pendingNavigation.value = () => router.back();
+    isUnsavedChangesDialogOpen.value = true;
+  } else {
+    // Убираем фокус с текущего элемента перед навигацией
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    router.back();
   }
-  router.back();
+};
+
+// Функции для обработки диалога несохраненных изменений
+const confirmLeave = () => {
+  isLeaving.value = true; // Устанавливаем флаг перед навигацией
+  isUnsavedChangesDialogOpen.value = false;
+  if (pendingNavigation.value) {
+    pendingNavigation.value();
+    pendingNavigation.value = null;
+  }
+};
+
+const cancelLeave = () => {
+  isUnsavedChangesDialogOpen.value = false;
+  pendingNavigation.value = null;
 };
 
 // Exercise management functions
-const openExerciseModal = () => {
-  // TODO: Implement exercise selection modal
-  console.log('Open exercise modal');
+const fetchAvailableExercises = async (searchTerm: string = '') => {
+  loadingExercises.value = true;
+  try {
+    const params: any = {};
+    
+    // Добавляем поиск если есть
+    if (searchTerm.trim()) {
+      params.search = searchTerm.trim();
+    }
+    
+    const response = await apiClient.get('/api/v1/exercises', { params });
+    const allExercises = response.data.data || response.data || [];
+    
+    // Фильтруем упражнения на клиенте:
+    // Исключаем те, что уже добавлены в текущий план
+    const addedExerciseIds = exercises.value.map(ex => ex.id);
+    const availableExercisesFiltered = allExercises.filter((exercise: AvailableExercise) => {
+      const notAdded = !addedExerciseIds.includes(exercise.id);
+      return notAdded;
+    });
+    
+    availableExercises.value = availableExercisesFiltered;
+  } catch (err) {
+    console.error('Failed to fetch exercises:', err);
+    const toast = await toastController.create({
+      message: 'Не удалось загрузить упражнения',
+      duration: 3000,
+      color: 'danger',
+    });
+    await toast.present();
+  } finally {
+    loadingExercises.value = false;
+  }
 };
 
-const removeExercise = (index: number) => {
-  exercises.value.splice(index, 1);
+const openExerciseModal = async () => {
+  if (availableExercises.value.length === 0) {
+    await fetchAvailableExercises('');
+  }
+  isExerciseModalOpen.value = true;
+};
+
+const addExerciseToPlan = async (exercise: AvailableExercise) => {
+  // Просто добавляем упражнение в локальный массив
+  // На сервер отправится только при нажатии "Сохранить"
+  const newExercise: Exercise = {
+    id: exercise.id,
+    plan_id: isEditMode.value ? parseInt(planId.value) : 0, // Для новых планов plan_id будет 0
+    name: exercise.name,
+    order: exercises.value.length + 1,
+    description: exercise.description || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  
+  exercises.value.push(newExercise);
+  console.log('➕ Добавлено упражнение:', newExercise);
+  console.log('📋 Все упражнения:', exercises.value);
+  
+  isExerciseModalOpen.value = false;
+  
+  // Обновляем список доступных упражнений, чтобы исключить только что добавленное
+  fetchAvailableExercises();
+};
+
+const handleExerciseReorder = (reorderedExercises: Exercise[]) => {
+  // Обновляем только локальное состояние
+  // Порядок элементов массива = порядок упражнений в плане
+  exercises.value = reorderedExercises;
+};
+
+const showDeleteExerciseConfirmation = (index: number) => {
+  const exercise = exercises.value[index];
+  exerciseToDelete.value = index;
+  exerciseToDeleteName.value = exercise.name;
+  isDeleteExerciseDialogOpen.value = true;
+};
+
+const confirmDeleteExercise = async () => {
+  if (exerciseToDelete.value === null) return;
+  
+  // Просто удаляем из локального массива
+  // На сервер отправится только при нажатии "Сохранить"
+  exercises.value.splice(exerciseToDelete.value, 1);
+  
+  isDeleteExerciseDialogOpen.value = false;
+  exerciseToDelete.value = null;
+  exerciseToDeleteName.value = '';
+  
+  // Обновляем список доступных упражнений
+  fetchAvailableExercises();
+};
+
+const cancelDeleteExercise = () => {
+  isDeleteExerciseDialogOpen.value = false;
+  exerciseToDelete.value = null;
+  exerciseToDeleteName.value = '';
+};
+
+const handleExerciseSearch = (value: string) => {
+  // Выполняем поиск на сервере
+  fetchAvailableExercises(value);
+};
+
+const createNewExercise = async () => {
+  // Закрываем модал выбора упражнений
+  isExerciseModalOpen.value = false;
+  
+  // Переходим на страницу создания нового упражнения
+  // TODO: Implement exercise creation page or modal
+  console.log('Create new exercise');
 };
 
 // Delete plan functions
@@ -395,23 +548,33 @@ const fetchPlanData = async () => {
   loading.value = true;
   try {
     const response = await apiClient.get(`/api/v1/plans/${planId.value}`);
-    const plan = response.data;
+    const plan = response.data.data; // Правильно извлекаем данные из API ответа
     
     formData.value = {
       name: plan.name || '',
-      order: (plan.order || 1).toString(),
       is_active: plan.is_active !== undefined ? plan.is_active : true,
     };
     
+    // Сохраняем начальные значения для отслеживания изменений
+    initialFormData.value = { ...formData.value };
+    
+    // Правильно обрабатываем вложенную структуру упражнений согласно API docs
     if (plan.exercises && Array.isArray(plan.exercises)) {
-      exercises.value = plan.exercises.map((ex: any) => ({
-        id: ex.id,
-        name: ex.name || '',
-        order: ex.order || 1,
+      exercises.value = plan.exercises.map((planExercise: any) => ({
+        id: planExercise.exercise.id,
+        plan_id: parseInt(planId.value),
+        name: planExercise.exercise.name || '',
+        order: planExercise.order || 1,
+        description: planExercise.exercise.description || null,
+        created_at: planExercise.exercise.created_at || new Date().toISOString(),
+        updated_at: planExercise.exercise.updated_at || new Date().toISOString(),
       }));
     } else {
       exercises.value = [];
     }
+    
+    // Сохраняем начальные упражнения для отслеживания изменений
+    initialExercises.value = [...exercises.value];
   } catch (err) {
     console.error('Failed to fetch plan:', err);
     const apiError = err as ApiError;
@@ -436,6 +599,26 @@ const fetchPlanData = async () => {
 onMounted(() => {
   if (isEditMode.value) {
     fetchPlanData();
+  } else {
+    // Для новых планов сохраняем начальные значения
+    initialFormData.value = { ...formData.value };
+    initialExercises.value = [...exercises.value];
+  }
+});
+
+// Обработка попытки покинуть страницу с несохраненными изменениями
+onBeforeRouteLeave((to: any, from: any, next: any) => {
+  // Если уже покидаем страницу, разрешаем навигацию
+  if (isLeaving.value) {
+    next();
+    return;
+  }
+  
+  if (checkForUnsavedChanges()) {
+    pendingNavigation.value = () => next();
+    isUnsavedChangesDialogOpen.value = true;
+  } else {
+    next();
   }
 });
 </script>
@@ -631,108 +814,6 @@ ion-toolbar ion-button i {
 
 .add-exercise-button:hover {
   background: var(--ion-color-primary-shade);
-}
-
-.empty-exercises-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-  border: 2px dashed rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.empty-exercises-state i {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-exercises-state p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.empty-exercises-state .hint {
-  font-size: 14px;
-  color: var(--ion-color-medium);
-}
-
-.exercises-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.exercise-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.exercise-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-}
-
-.exercise-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.exercise-info h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.exercise-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.exercise-stats {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
-.exercise-stats i {
-  margin-right: 4px;
-  color: var(--ion-color-primary);
-}
-
-.remove-exercise-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background: rgba(239, 68, 68, 0.1);
-  color: var(--ion-color-danger);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.remove-exercise-button:hover {
-  background: rgba(239, 68, 68, 0.2);
 }
 
 /* Delete Plan Button Styles */
