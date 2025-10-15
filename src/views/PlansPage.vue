@@ -18,14 +18,24 @@
 
       <div class="page-content">
         <h1 class="page-title">Планы тренировок</h1>
-        <p class="page-subtitle">Выберите план для своей тренировки</p>
+        <!-- <p class="page-subtitle">Выберите план для своей тренировки</p> -->
         
-        <SearchInput
-          v-model="searchQuery"
-          placeholder="Поиск планов..."
-          @search="handleSearch"
-          @clear="clearSearch"
-        />
+        <div class="search-filters-row">
+          <SearchInput
+            v-model="searchQuery"
+            placeholder="Поиск планов..."
+            @search="handleSearch"
+            @clear="clearSearch"
+            class="search-input"
+          />
+          
+          <PlansFilters
+            :filters="currentFilters"
+            @filters-changed="handleFiltersChanged"
+            @reset-filters="resetFilters"
+            class="filters-component"
+          />
+        </div>
 
         <div v-if="loading" class="loading-state">
           <ion-spinner name="crescent"></ion-spinner>
@@ -42,12 +52,23 @@
             >
               <div class="plan-header">
                 <h3>{{ plan.name }}</h3>
+                <div v-if="!plan.is_active" class="inactive-label">
+                  не активен
+                </div>
               </div>
               
               <div class="plan-stats">
                 <div class="stat">
-                  <i class="fas fa-dumbbell"></i>
-                  <span>{{ plan.exercise_count || 0 }} упражнений</span>
+                  <div class="stat-content">
+                    <div v-if="plan.cycle" class="cycle-info">
+                      <i class="fas fa-sync-alt cycle-icon"></i>
+                      <span>{{ plan.cycle.name }}</span>
+                    </div>
+                    <div class="exercise-count">
+                      <i class="fas fa-dumbbell"></i>
+                      <span>{{ plan.exercise_count || 0 }} упражнений</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -58,6 +79,12 @@
                   class="exercise-item"
                 >
                   {{ exercise.order }}. {{ exercise.name }}
+                </div>
+              </div>
+              
+              <div class="plan-footer">
+                <div class="created-date">
+                  {{ formatDate(plan.created_at) }}
                 </div>
               </div>
             </div>
@@ -82,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, computed } from 'vue';
+import { ref, onMounted, onActivated, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -97,6 +124,7 @@ import {
   IonButton,
 } from '@ionic/vue';
 import SearchInput from '@/components/SearchInput.vue';
+import PlansFilters from '@/components/PlansFilters.vue';
 import apiClient from '@/services/api';
 import { Plan, ApiError, Exercise } from '@/types/api';
 
@@ -105,6 +133,48 @@ const plans = ref<Plan[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+// Функции для работы с localStorage
+const FILTERS_STORAGE_KEY = 'plans-filters';
+
+const saveFiltersToStorage = (filters: any) => {
+  try {
+    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
+  } catch (error) {
+    console.warn('Failed to save filters to localStorage:', error);
+  }
+};
+
+const loadFiltersFromStorage = () => {
+  try {
+    const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch (error) {
+    console.warn('Failed to load filters from localStorage:', error);
+  }
+  return null;
+};
+
+const clearFiltersFromStorage = () => {
+  try {
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear filters from localStorage:', error);
+  }
+};
+
+// Инициализация фильтров с загрузкой из localStorage
+const defaultFilters = {
+  is_active: true, // По умолчанию показываем только активные планы
+  standalone: null,
+  cycle_id: null,
+  sort_by: 'created_at',
+  sort_order: 'desc'
+};
+
+const savedFilters = loadFiltersFromStorage();
+const currentFilters = ref(savedFilters || defaultFilters);
 
 // Фильтрация планов по поисковому запросу
 const filteredPlans = computed(() => {
@@ -123,10 +193,28 @@ const fetchPlans = async () => {
   error.value = null;
   
   try {
-    const response = await apiClient.get('/api/v1/plans');
-    const allPlans = response.data.data || response.data || [];
-    // Фильтруем только активные планы
-    plans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
+    const params: Record<string, string> = {};
+    
+    // Добавляем параметры фильтрации
+    if (currentFilters.value.is_active !== null) {
+      params.is_active = String(currentFilters.value.is_active);
+    }
+    if (currentFilters.value.standalone !== null) {
+      params.standalone = String(currentFilters.value.standalone);
+    }
+    if (currentFilters.value.cycle_id !== null) {
+      params.cycle_id = String(currentFilters.value.cycle_id);
+    }
+    if (currentFilters.value.sort_by) {
+      params.sort_by = currentFilters.value.sort_by;
+    }
+    if (currentFilters.value.sort_order) {
+      params.sort_order = currentFilters.value.sort_order;
+    }
+    
+    console.log('Fetching plans with params:', params);
+    const response = await apiClient.get('/api/v1/plans', { params });
+    plans.value = response.data.data || response.data || [];
   } catch (err) {
     console.error('Plans fetch error:', err);
     error.value = (err as ApiError).message;
@@ -152,13 +240,33 @@ const getSortedExercises = (exercises: Exercise[]) => {
   return exercises.sort((a, b) => a.order - b.order);
 };
 
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}.${month}.${year}`;
+};
+
 // Функции поиска
 const handleSearch = (value: string) => {
   searchQuery.value = value;
 };
 
+const handleFiltersChanged = (filters: any) => {
+  currentFilters.value = { ...filters };
+  saveFiltersToStorage(filters);
+  fetchPlans();
+};
+
 const clearSearch = () => {
   searchQuery.value = '';
+};
+
+const resetFilters = () => {
+  currentFilters.value = { ...defaultFilters };
+  clearFiltersFromStorage();
+  fetchPlans();
 };
 
 const createNewPlan = () => {
@@ -169,13 +277,25 @@ const createNewPlan = () => {
   router.push('/plan/new');
 };
 
-onMounted(() => {
-  fetchPlans();
-});
-
 onActivated(() => {
   // Обновляем данные при возвращении на страницу (например, после создания/редактирования плана)
   fetchPlans();
+});
+
+// Обработчик события обновления планов
+const handlePlansUpdated = () => {
+  fetchPlans();
+};
+
+onMounted(() => {
+  fetchPlans();
+  // Добавляем обработчик события
+  window.addEventListener('plans-updated', handlePlansUpdated);
+});
+
+onUnmounted(() => {
+  // Удаляем обработчик события при размонтировании компонента
+  window.removeEventListener('plans-updated', handlePlansUpdated);
 });
 </script>
 
@@ -189,8 +309,21 @@ onActivated(() => {
 }
 
 /* Search input spacing */
-.page-content .search-input {
-  margin-bottom: 16px;
+.search-filters-row {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  padding-right: 16px !important;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px !important;
+}
+
+.filters-component {
+  flex-shrink: 0;
 }
 
 /* Кнопка добавления в заголовке */
@@ -264,38 +397,68 @@ onActivated(() => {
   margin-bottom: 12px;
 }
 
-.plan-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-  flex: 1;
-  margin-right: 12px;
-}
-
-
-.plan-stats {
+.stat-content {
   display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.stat {
+.cycle-info {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+}
+
+.cycle-icon {
+  font-size: 12px;
+  color: var(--ion-color-primary);
+  margin-right: 6px;
+}
+
+.exercise-count {
   display: flex;
   align-items: center;
   font-size: 12px;
   color: var(--ion-color-medium);
 }
 
-.stat i {
-  font-size: 14px;
-  margin-right: 4px;
+.exercise-count i {
+  font-size: 12px;
+  margin-right: 6px;
   color: var(--ion-color-primary);
 }
 
-.exercises-list {
-  margin-top: 12px;
+.plan-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+  flex: 1;
+}
+
+.inactive-label {
+  background: var(--ion-color-medium);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+
+.plan-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.stat {
+  display: flex;
+  align-items: flex-start;
 }
 
 .exercise-item {
@@ -304,6 +467,19 @@ onActivated(() => {
   margin-bottom: 4px;
   padding: 2px 0;
   line-height: 1.3;
+}
+
+.plan-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.created-date {
+  font-size: 11px;
+  color: var(--ion-color-medium);
+  opacity: 0.7;
 }
 
 .modern-button {

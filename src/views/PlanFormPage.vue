@@ -136,7 +136,7 @@
       title="Подтверждение удаления"
       message="Вы уверены, что хотите удалить план"
       :item-name="formData.name"
-      warning-text="Это действие нельзя отменить. Будут удалены все связанные упражнения."
+      warning-text="Это действие нельзя отменить."
       :is-deleting="submitting"
       @confirm="confirmDeletePlan"
       @cancel="cancelDeletePlan"
@@ -300,6 +300,13 @@ const handleSubmit = async () => {
       });
       await toast.present();
     }
+
+    // Обновляем начальные значения после успешного сохранения
+    initialFormData.value = { ...formData.value };
+    initialExercises.value = [...exercises.value];
+
+    // Уведомляем PlansPage о необходимости обновления данных
+    window.dispatchEvent(new CustomEvent('plans-updated'));
 
     // Убираем фокус перед навигацией
     if (document.activeElement instanceof HTMLElement) {
@@ -516,6 +523,9 @@ const confirmDeletePlan = async () => {
       color: 'success',
     });
     await toast.present();
+    
+    // Уведомляем PlansPage о необходимости обновления данных
+    window.dispatchEvent(new CustomEvent('plans-updated'));
     
     // Убираем фокус перед навигацией
     if (document.activeElement instanceof HTMLElement) {
