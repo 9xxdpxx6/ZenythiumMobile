@@ -12,7 +12,7 @@
       </ion-refresher>
 
       <div class="workouts-page">
-        <h1 class="page-title">Тренировки</h1>
+        <h1 class="page-title">История тренировок</h1>
         
         <ion-button
           expand="block"

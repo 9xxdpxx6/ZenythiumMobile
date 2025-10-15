@@ -18,7 +18,7 @@
 
       <div class="page-content">
         <h1 class="page-title">Планы тренировок</h1>
-        <!-- <p class="page-subtitle">Выберите план для своей тренировки</p> -->
+        <p class="page-subtitle">Выберите план для своей тренировки</p>
         
         <div class="search-filters-row">
           <SearchInput

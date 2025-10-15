@@ -26,7 +26,6 @@
     "ionicons": "^7.0.0",
     "vue": "^3.3.0",
     "vue-router": "^4.2.0",
-    "vue-select": "^4.0.0-beta.6",
     "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
