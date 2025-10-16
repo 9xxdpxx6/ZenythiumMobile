@@ -43,11 +43,15 @@
                 <div class="history-date">{{ formatDate(historyItem.workout_date) }}</div>
                 <div class="history-sets">
                   <span 
-                    v-for="set in historyItem.sets" 
-                    :key="set.id"
+                    v-for="groupedSet in groupAndFormatSets(historyItem.sets)" 
+                    :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
                     class="set-item"
                   >
-                    {{ set.weight }}×{{ set.reps }}
+                    <div class="vertical-fraction">
+                      <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
+                      <div class="denominator">{{ groupedSet.reps }}</div>
+                    </div>
+                    <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
                   </span>
                 </div>
               </div>
@@ -59,11 +63,15 @@
             <p class="current-label">Сегодня:</p>
             <div class="current-sets-list">
               <span 
-                v-for="set in getCurrentSets(exercise.id)" 
-                :key="set.id"
+                v-for="groupedSet in groupAndFormatSets(getCurrentSets(exercise.id))" 
+                :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
                 class="current-set-item"
               >
-                {{ set.weight }}×{{ set.reps }}
+                <div class="vertical-fraction">
+                  <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
+                  <div class="denominator">{{ groupedSet.reps }}</div>
+                </div>
+                <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
               </span>
             </div>
           </div>
@@ -77,8 +85,9 @@
                 <ion-input
                   v-model="newSets[exercise.id].weight"
                   type="number"
-                  placeholder="0"
+                  :placeholder="getPlaceholderValue(exercise.id, 'weight')"
                   class="weight-input"
+                  @input="validateInput($event, exercise.id, 'weight')"
                 ></ion-input>
               </div>
               <div class="input-field">
@@ -86,8 +95,9 @@
                 <ion-input
                   v-model="newSets[exercise.id].reps"
                   type="number"
-                  placeholder="0"
+                  :placeholder="getPlaceholderValue(exercise.id, 'reps')"
                   class="reps-input"
+                  @input="validateInput($event, exercise.id, 'reps')"
                 ></ion-input>
               </div>
             </div>
@@ -178,7 +188,7 @@ console.log('🔧 ActiveWorkoutPage: Initial state:', {
   error: error.value
 });
 
-const newSets = ref<Record<number, { weight: number; reps: number }>>({});
+const newSets = ref<Record<number, { weight: number | null; reps: number | null }>>({});
 
 const fetchWorkout = async () => {
   loading.value = true;
@@ -210,13 +220,21 @@ const fetchWorkout = async () => {
           history: exercise.history,
           historyLength: exercise.history?.length || 0
         });
+        
+        // Проверяем, есть ли текущая тренировка в истории
+        const currentWorkoutHistory = exercise.history?.find((h: any) => h.workout_id === workoutId.value);
+        if (currentWorkoutHistory) {
+          console.log(`📊 ActiveWorkoutPage: Found current workout history for ${exercise.exercise.name}:`, currentWorkoutHistory);
+        } else {
+          console.log(`⚠️ ActiveWorkoutPage: No current workout history found for ${exercise.exercise.name}`);
+        }
       });
       
       // Initialize new sets for each exercise
       exercises.value.forEach(exercise => {
         newSets.value[exercise.id] = {
-          weight: 0,
-          reps: 0,
+          weight: null,
+          reps: null,
         };
       });
       console.log('✅ ActiveWorkoutPage: Initialized exercises and new sets');
@@ -258,18 +276,107 @@ const getCurrentSets = (exerciseId: number) => {
     // Возвращаем подходы текущей тренировки
     const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
     console.log(`📊 ActiveWorkoutPage: Current workout history:`, currentWorkoutHistory);
-    return currentWorkoutHistory?.sets || [];
+    
+    if (currentWorkoutHistory) {
+      console.log(`📊 ActiveWorkoutPage: Found ${currentWorkoutHistory.sets.length} sets for current workout`);
+      return currentWorkoutHistory.sets || [];
+    } else {
+      console.log(`⚠️ ActiveWorkoutPage: No current workout history found in getCurrentSets`);
+    }
   }
   return [];
+};
+
+const getLastHistoricalSet = (exerciseId: number) => {
+  const exercise = exercises.value.find(ex => ex.id === exerciseId);
+  if (exercise && exercise.history) {
+    // Получаем историю предыдущих тренировок (исключая текущую)
+    const previousHistory = exercise.history
+      .filter((h: any) => h.workout_id !== workoutId.value)
+      .sort((a: any, b: any) => new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime()); // Сортируем по убыванию даты
+    
+    // Возвращаем последний подход из самой новой тренировки
+    if (previousHistory.length > 0 && previousHistory[0].sets.length > 0) {
+      return previousHistory[0].sets[previousHistory[0].sets.length - 1]; // Последний подход
+    }
+  }
+  return null;
+};
+
+const getLastCurrentSet = (exerciseId: number) => {
+  const exercise = exercises.value.find(ex => ex.id === exerciseId);
+  if (!exercise?.history) return null;
+  
+  // Ищем текущую тренировку
+  const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
+  if (!currentWorkoutHistory?.sets || currentWorkoutHistory.sets.length === 0) return null;
+  
+  // Возвращаем последний подход из текущей тренировки
+  return currentWorkoutHistory.sets[currentWorkoutHistory.sets.length - 1];
+};
+
+const getPlaceholderValue = (exerciseId: number, field: 'weight' | 'reps') => {
+  const lastSet = getLastHistoricalSet(exerciseId);
+  if (lastSet) {
+    if (field === 'weight') {
+      return formatWeight(lastSet[field]);
+    }
+    return lastSet[field].toString();
+  }
+  return '';
 };
 
 const getPreviousSets = (exerciseId: number) => {
   const exercise = exercises.value.find(ex => ex.id === exerciseId);
   if (exercise && exercise.history) {
     // Возвращаем историю предыдущих тренировок (исключая текущую)
-    return exercise.history.filter((h: any) => h.workout_id !== workoutId.value);
+    // Сортируем по дате: старые сверху, новые снизу
+    return exercise.history
+      .filter((h: any) => h.workout_id !== workoutId.value)
+      .sort((a: any, b: any) => new Date(a.workout_date).getTime() - new Date(b.workout_date).getTime());
   }
   return [];
+};
+
+const groupAndFormatSets = (sets: any[]) => {
+  if (!sets || sets.length === 0) return [];
+  
+  // Группируем подходы по весу и повторениям
+  const grouped = sets.reduce((acc, set) => {
+    const key = `${set.weight}x${set.reps}`;
+    if (!acc[key]) {
+      acc[key] = {
+        weight: set.weight,
+        reps: set.reps,
+        count: 0
+      };
+    }
+    acc[key].count++;
+    return acc;
+  }, {} as Record<string, { weight: number; reps: number; count: number }>);
+  
+  // Преобразуем в массив и форматируем
+  return Object.values(grouped).map((group) => {
+    const typedGroup = group as { weight: number; reps: number; count: number };
+    return {
+      weight: typedGroup.weight,
+      reps: typedGroup.reps,
+      count: typedGroup.count,
+      formatted: typedGroup.count === 1 
+        ? `${formatWeight(typedGroup.weight)}/${typedGroup.reps}` // Одиночный подход как дробь
+        : `${formatWeight(typedGroup.weight)}/${typedGroup.reps} × ${typedGroup.count}` // Группа с количеством
+    };
+  });
+};
+
+const formatWeight = (weight: number) => {
+  // Округляем до целого, если после запятой только нули
+  const rounded = Math.round(weight);
+  if (Math.abs(weight - rounded) < 0.001) {
+    return rounded.toString();
+  }
+  // Иначе показываем с десятичной частью
+  return weight.toString();
 };
 
 const formatDate = (dateString: string) => {
@@ -286,9 +393,9 @@ const addSet = async (exerciseId: number) => {
   const setData = newSets.value[exerciseId];
   console.log('📊 ActiveWorkoutPage: Set data:', setData);
   
-  if (!setData.weight || !setData.reps) {
-    console.log('⚠️ ActiveWorkoutPage: Missing weight or reps');
-    error.value = 'Заполните вес и повторения';
+  if (!setData.weight || !setData.reps || setData.weight <= 0 || setData.reps <= 0) {
+    console.log('⚠️ ActiveWorkoutPage: Missing or invalid weight or reps');
+    error.value = 'Заполните вес и повторения (положительные числа)';
     return;
   }
 
@@ -303,7 +410,7 @@ const addSet = async (exerciseId: number) => {
       reps: setData.reps,
     });
     
-    await apiClient.post('/api/v1/workout-sets', {
+    const response = await apiClient.post('/api/v1/workout-sets', {
       workout_id: workoutId.value,
       plan_exercise_id: exerciseId,
       weight: setData.weight,
@@ -311,15 +418,52 @@ const addSet = async (exerciseId: number) => {
     });
     
     console.log('✅ ActiveWorkoutPage: Set added successfully');
+    console.log('📊 ActiveWorkoutPage: API response:', response.data);
     
-    // Reset form
-    newSets.value[exerciseId] = {
-      weight: 0,
-      reps: 0,
-    };
+    // Получаем созданный подход из ответа
+    const newSet = response.data.data;
     
-    // Refresh workout data to get updated history
-    await fetchWorkout();
+    // Находим упражнение и обновляем его историю
+    const exercise = exercises.value.find(ex => ex.id === exerciseId);
+    if (exercise) {
+      // Находим или создаем запись для текущей тренировки в истории
+      let currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
+      
+      if (!currentWorkoutHistory) {
+        // Создаем новую запись для текущей тренировки
+        currentWorkoutHistory = {
+          workout_id: workoutId.value,
+          workout_date: workout.value?.started_at || new Date().toISOString(),
+          sets: []
+        };
+        exercise.history.push(currentWorkoutHistory);
+      }
+      
+      // Добавляем новый подход
+      currentWorkoutHistory.sets.push({
+        id: newSet.id,
+        weight: newSet.weight,
+        reps: newSet.reps
+      });
+      
+      console.log('✅ ActiveWorkoutPage: Updated local state with new set');
+    }
+    
+    // Reset form - устанавливаем значения из последнего текущего подхода или null для плейсхолдеров
+    const lastCurrentSet = getLastCurrentSet(exerciseId);
+    if (lastCurrentSet) {
+      // Если есть сегодняшние подходы, используем значения последнего
+      newSets.value[exerciseId] = {
+        weight: lastCurrentSet.weight,
+        reps: lastCurrentSet.reps,
+      };
+    } else {
+      // Если нет сегодняшних подходов, оставляем null для плейсхолдеров
+      newSets.value[exerciseId] = {
+        weight: null,
+        reps: null,
+      };
+    }
   } catch (err) {
     console.error('❌ ActiveWorkoutPage: Error adding set:', err);
     error.value = (err as ApiError).message;
@@ -351,6 +495,35 @@ const finishWorkout = async () => {
 
 const clearError = () => {
   error.value = null;
+};
+
+const validateInput = (event: any, exerciseId: number, field: 'weight' | 'reps') => {
+  const value = event.target.value;
+  
+  // Разрешаем только цифры, запятую и точку
+  const validPattern = /^[0-9.,]*$/;
+  if (!validPattern.test(value)) {
+    event.target.value = value.replace(/[^0-9.,]/g, '');
+    return;
+  }
+  
+  // Заменяем запятую на точку для корректного парсинга
+  const normalizedValue = value.replace(',', '.');
+  const numValue = parseFloat(normalizedValue);
+  
+  // Проверяем на отрицательные значения и ноль
+  if (numValue < 0) {
+    event.target.value = '';
+    newSets.value[exerciseId][field] = null;
+    return;
+  }
+  
+  // Если значение валидно, обновляем состояние
+  if (!isNaN(numValue) && numValue > 0) {
+    newSets.value[exerciseId][field] = numValue;
+  } else if (value === '') {
+    newSets.value[exerciseId][field] = null;
+  }
 };
 
 onMounted(() => {
@@ -443,6 +616,46 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 0.9rem;
   color: var(--ion-text-color);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Vertical Fraction Styles */
+.vertical-fraction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 2;
+  position: relative;
+}
+
+.numerator {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.denominator {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.vertical-fraction::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.6;
+}
+
+.multiplier {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 /* Current Sets */
@@ -452,7 +665,7 @@ onMounted(() => {
 
 .current-label {
   font-size: 0.9rem;
-  color: var(--ion-color-primary);
+  color: white;
   margin: 0 0 8px 0;
   font-weight: 600;
 }
@@ -464,12 +677,55 @@ onMounted(() => {
 }
 
 .current-set-item {
-  background: var(--ion-color-primary);
+  background: transparent;
+  border: 2px solid var(--ion-color-primary);
   color: white;
   padding: 6px 12px;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.current-set-item .vertical-fraction {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 2;
+  position: relative;
+}
+
+.current-set-item .numerator {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.current-set-item .denominator {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.9;
+  color: white;
+}
+
+.current-set-item .vertical-fraction::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: white;
+  opacity: 0.8;
+}
+
+.current-set-item .multiplier {
+  font-size: 1.1rem;
+  font-weight: 500;
+  opacity: 0.9;
+  color: white;
 }
 
 /* Today's Input */
