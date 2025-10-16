@@ -90,6 +90,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'EditWorkout',
     component: () => import('@/views/EditWorkoutPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/view-workout/:id',
+    name: 'ViewWorkout',
+    component: () => import('@/views/ViewWorkoutPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

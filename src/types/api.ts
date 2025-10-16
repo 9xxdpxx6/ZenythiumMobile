@@ -46,6 +46,54 @@ export interface Workout {
   exercises?: PlanExercise[];
 }
 
+// Detailed workout types for view page
+export interface DetailedWorkout {
+  id: number;
+  started_at: string;
+  finished_at: string | null;
+  duration_minutes: number;
+  exercise_count: number;
+  total_volume: number;
+  plan: {
+    id: number;
+    name: string;
+  };
+  user: {
+    id: number;
+    name: string;
+  };
+  exercises: DetailedWorkoutExercise[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DetailedWorkoutExercise {
+  id: number;
+  order: number;
+  exercise: {
+    id: number;
+    name: string;
+    description: string;
+    muscle_group: {
+      id: number;
+      name: string;
+    };
+  };
+  history: DetailedExerciseHistory[];
+}
+
+export interface DetailedExerciseHistory {
+  workout_id: number;
+  workout_date: string | null; // null для незавершенной тренировки
+  sets: DetailedWorkoutSet[];
+}
+
+export interface DetailedWorkoutSet {
+  id: number;
+  weight: number;
+  reps: number;
+}
+
 export interface WorkoutSet {
   id: number;
   workout_id: number;
