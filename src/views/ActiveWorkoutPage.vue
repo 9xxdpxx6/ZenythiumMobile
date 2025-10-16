@@ -62,17 +62,24 @@
           <div v-if="getCurrentSets(exercise.id).length > 0" class="current-sets">
             <p class="current-label">Сегодня:</p>
             <div class="current-sets-list">
-              <span 
-                v-for="groupedSet in groupAndFormatSets(getCurrentSets(exercise.id))" 
-                :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
-                class="current-set-item"
-              >
-                <div class="vertical-fraction">
-                  <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
-                  <div class="denominator">{{ groupedSet.reps }}</div>
-                </div>
-                <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
-              </span>
+                <span
+                  v-for="groupedSet in groupAndFormatSets(getCurrentSets(exercise.id))"
+                  :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
+                  class="current-set-item"
+                >
+                  <div class="vertical-fraction">
+                    <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
+                    <div class="denominator">{{ groupedSet.reps }}</div>
+                  </div>
+                  <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
+                  <button 
+                    @click="deleteLastSetFromGroup(exercise.id, groupedSet)"
+                    class="delete-button"
+                    type="button"
+                  >
+                    <i class="fas fa-times delete-icon"></i>
+                  </button>
+                </span>
             </div>
           </div>
 
@@ -472,6 +479,70 @@ const addSet = async (exerciseId: number) => {
   }
 };
 
+const deleteSet = async (exerciseId: number, setId: number) => {
+  console.log('🗑️ ActiveWorkoutPage: Deleting set:', setId, 'for exercise:', exerciseId);
+  
+  try {
+    const response = await apiClient.delete(`/api/v1/workout-sets/${setId}`);
+    console.log('✅ ActiveWorkoutPage: Set deleted successfully');
+    
+    // Находим упражнение и удаляем подход из истории
+    const exercise = exercises.value.find(ex => ex.id === exerciseId);
+    if (exercise) {
+      const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
+      if (currentWorkoutHistory) {
+        // Удаляем подход из массива sets
+        const setIndex = currentWorkoutHistory.sets.findIndex((s: any) => s.id === setId);
+        if (setIndex !== -1) {
+          currentWorkoutHistory.sets.splice(setIndex, 1);
+          console.log('✅ ActiveWorkoutPage: Removed set from local state');
+        }
+      }
+    }
+    
+    // Обновляем значения в инпутах после удаления
+    const lastCurrentSet = getLastCurrentSet(exerciseId);
+    if (lastCurrentSet) {
+      newSets.value[exerciseId] = {
+        weight: lastCurrentSet.weight,
+        reps: lastCurrentSet.reps,
+      };
+    } else {
+      newSets.value[exerciseId] = {
+        weight: null,
+        reps: null,
+      };
+    }
+  } catch (err) {
+    console.error('❌ ActiveWorkoutPage: Error deleting set:', err);
+    error.value = (err as ApiError).message;
+  }
+};
+
+const deleteLastSetFromGroup = async (exerciseId: number, groupedSet: { weight: number; reps: number; count: number }) => {
+  console.log('🗑️ ActiveWorkoutPage: Deleting last set from group:', groupedSet);
+  
+  // Находим упражнение и текущую тренировку
+  const exercise = exercises.value.find(ex => ex.id === exerciseId);
+  if (!exercise) return;
+  
+  const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
+  if (!currentWorkoutHistory) return;
+  
+  // Находим последний подход с такими же весом и повторениями
+  const matchingSets = currentWorkoutHistory.sets.filter((s: any) => 
+    s.weight === groupedSet.weight && s.reps === groupedSet.reps
+  );
+  
+  if (matchingSets.length === 0) return;
+  
+  // Берем последний подход из группы
+  const lastSet = matchingSets[matchingSets.length - 1];
+  
+  // Удаляем подход
+  await deleteSet(exerciseId, lastSet.id);
+};
+
 const finishWorkout = async () => {
   console.log('🏁 ActiveWorkoutPage: Finishing workout:', workoutId.value);
   
@@ -726,6 +797,24 @@ onMounted(() => {
   font-weight: 500;
   opacity: 0.9;
   color: white;
+}
+
+.delete-button {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  margin-left: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.delete-icon {
+  font-size: 16px;
+  color: #ff4444;
+  font-weight: bold;
 }
 
 /* Today's Input */
