@@ -277,13 +277,8 @@ const handleSubmit = async () => {
       exercise_ids: exercises.value.map(exercise => exercise.id), // Массив ID упражнений в порядке их расположения
     };
 
-    console.log('📤 Отправляем payload:', payload);
-    console.log('💪 Упражнения:', exercises.value);
-    console.log('🆔 Exercise IDs:', exercises.value.map(exercise => exercise.id));
-
     if (isEditMode.value) {
       const response = await apiClient.put(`/api/v1/plans/${planId.value}`, payload);
-      console.log('📥 Ответ сервера (PUT):', response.data);
       const toast = await toastController.create({
         message: 'План успешно обновлен',
         duration: 2000,
@@ -292,7 +287,6 @@ const handleSubmit = async () => {
       await toast.present();
     } else {
       const response = await apiClient.post('/api/v1/plans', payload);
-      console.log('📥 Ответ сервера (POST):', response.data);
       const toast = await toastController.create({
         message: 'План успешно создан',
         duration: 2000,
@@ -402,7 +396,7 @@ const fetchAvailableExercises = async (searchTerm: string = '') => {
     }
     
     const response = await apiClient.get('/api/v1/exercises', { params });
-    const allExercises = response.data.data || response.data || [];
+    const allExercises = response.data.data || [];
     
     // Фильтруем упражнения на клиенте:
     // Исключаем те, что уже добавлены в текущий план
@@ -447,8 +441,6 @@ const addExerciseToPlan = async (exercise: AvailableExercise) => {
   };
   
   exercises.value.push(newExercise);
-  console.log('➕ Добавлено упражнение:', newExercise);
-  console.log('📋 Все упражнения:', exercises.value);
   
   isExerciseModalOpen.value = false;
   
@@ -501,7 +493,6 @@ const createNewExercise = async () => {
   
   // Переходим на страницу создания нового упражнения
   // TODO: Implement exercise creation page or modal
-  console.log('Create new exercise');
 };
 
 // Delete plan functions

@@ -212,9 +212,8 @@ const fetchPlans = async () => {
       params.sort_order = currentFilters.value.sort_order;
     }
     
-    console.log('Fetching plans with params:', params);
     const response = await apiClient.get('/api/v1/plans', { params });
-    plans.value = response.data.data || response.data || [];
+    plans.value = response.data.data || [];
   } catch (err) {
     console.error('Plans fetch error:', err);
     error.value = (err as ApiError).message;
@@ -306,6 +305,10 @@ onUnmounted(() => {
   margin: 0 !important;
   padding-top: 4px !important;
   padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+}
+
+.page-subtitle {
+  margin-bottom: 0 !important;
 }
 
 /* Search input spacing */

@@ -5,55 +5,34 @@
         <ion-buttons slot="start">
           <ion-back-button></ion-back-button>
         </ion-buttons>
-        <ion-title>Выберите план</ion-title>
+        <ion-title>Начать тренировку</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content :fullscreen="true">
       <div v-if="loading" class="loading-state">
         <ion-spinner name="crescent"></ion-spinner>
-        <p>Загрузка планов...</p>
+        <p>Подготовка тренировки...</p>
       </div>
 
-      <div v-else-if="plans.length > 0">
-        <ion-list>
-          <ion-radio-group v-model="selectedPlanId">
-            <ion-item
-              v-for="plan in plans"
-              :key="plan.id"
-              button
-              @click="selectedPlanId = plan.id"
-            >
-              <ion-label>
-                <h2>{{ plan.name }}</h2>
-                <p v-if="plan.exercises">
-                  Упражнений: {{ plan.exercises.length }}
-                </p>
-                <p v-else>
-                  Упражнений: {{ plan.exercise_count }}
-                </p>
-              </ion-label>
-              <ion-radio :value="plan.id" slot="start"></ion-radio>
-            </ion-item>
-          </ion-radio-group>
-        </ion-list>
+      <div v-else class="start-workout-content">
+        <div class="workout-info">
+          <i class="fas fa-dumbbell workout-icon"></i>
+          <h2>Готовы начать тренировку?</h2>
+          <p>Система автоматически выберет подходящий план на основе вашего прогресса и активного цикла.</p>
+        </div>
 
         <div class="ion-padding">
           <ion-button
             expand="block"
-            :disabled="!selectedPlanId || starting"
+            :disabled="starting"
             @click="startWorkout"
+            size="large"
           >
             <ion-spinner v-if="starting" name="crescent"></ion-spinner>
             <span v-else>Начать тренировку</span>
           </ion-button>
         </div>
-      </div>
-
-      <div v-else class="empty-state">
-        <i class="fas fa-file-alt" style="font-size: 3rem;"></i>
-        <h2>Нет доступных планов</h2>
-        <p>Обратитесь к администратору</p>
       </div>
     </ion-content>
 
@@ -68,7 +47,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -77,54 +56,42 @@ import {
   IonContent,
   IonButtons,
   IonBackButton,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonRadioGroup,
-  IonRadio,
   IonButton,
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
 import apiClient from '@/services/api';
-import { Plan, StartWorkoutResponse, ApiError } from '@/types/api';
+import { StartWorkoutResponse, ApiError } from '@/types/api';
 
 const router = useRouter();
-const plans = ref<Plan[]>([]);
-const selectedPlanId = ref<number | null>(null);
+const route = useRoute();
 const loading = ref(false);
 const starting = ref(false);
 const error = ref<string | null>(null);
 
-const fetchPlans = async () => {
-  loading.value = true;
-  error.value = null;
-  
-  try {
-    const response = await apiClient.get<Plan[]>('/api/v1/plans');
-    const allPlans = response.data;
-    // Фильтруем только активные планы
-    plans.value = allPlans.filter((plan: Plan) => plan.is_active === true);
-  } catch (err) {
-    error.value = (err as ApiError).message;
-  } finally {
-    loading.value = false;
-  }
-};
-
 const startWorkout = async () => {
-  if (!selectedPlanId.value) return;
-
+  console.log('🚀 SelectPlanPage: Starting workout creation');
+  
   starting.value = true;
   error.value = null;
   
   try {
-    const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', {
-      plan_id: selectedPlanId.value,
-    });
+    console.log('📡 SelectPlanPage: Sending POST request to /api/v1/workouts/start');
+    const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', {});
     
-    router.push(`/workout/${response.data.workout.id}`);
+    console.log('📡 SelectPlanPage: API response:', response);
+    console.log('📡 SelectPlanPage: Response data:', response.data);
+    console.log('💾 SelectPlanPage: Created workout:', response.data.data);
+    console.log('🔍 SelectPlanPage: Workout structure:', JSON.stringify(response.data.data, null, 2));
+    console.log('🔍 SelectPlanPage: Workout plan_id:', response.data.data?.plan_id);
+    console.log('🔍 SelectPlanPage: Workout plan:', response.data.data?.plan);
+    
+    const workoutId = response.data.data.id;
+    console.log('🔗 SelectPlanPage: Navigating to workout page with ID:', workoutId);
+    
+    router.push(`/workout/${workoutId}`);
   } catch (err) {
+    console.error('❌ SelectPlanPage: Error creating workout:', err);
     error.value = (err as ApiError).message;
   } finally {
     starting.value = false;
@@ -136,7 +103,9 @@ const clearError = () => {
 };
 
 onMounted(() => {
-  fetchPlans();
+  console.log('🚀 SelectPlanPage: Component mounted');
+  console.log('🔍 SelectPlanPage: Route params:', route.params);
+  // Страница готова к запуску тренировки
 });
 </script>
 
@@ -150,7 +119,7 @@ onMounted(() => {
 }
 
 .loading-state,
-.empty-state {
+.start-workout-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,6 +127,26 @@ onMounted(() => {
   padding: 2rem;
   text-align: center;
   color: var(--ion-color-medium);
+}
+
+.workout-info {
+  margin-bottom: 2rem;
+}
+
+.workout-icon {
+  font-size: 4rem;
+  color: var(--ion-color-primary);
+  margin-bottom: 1rem;
+}
+
+.workout-info h2 {
+  color: var(--ion-color-dark);
+  margin-bottom: 1rem;
+}
+
+.workout-info p {
+  color: var(--ion-color-medium);
+  line-height: 1.5;
 }
 
 .loading-state ion-spinner {

@@ -728,7 +728,6 @@ const fetchData = async () => {
     try {
       const statsResponse = await apiClient.get<StatisticsResponse>('/api/v1/user/statistics');
       statistics.value = statsResponse.data.data;
-      console.log('Statistics loaded:', statistics.value);
     } catch (statsError) {
       console.error('Statistics fetch error:', statsError);
     }
@@ -745,7 +744,6 @@ const fetchData = async () => {
     try {
       const muscleGroupResponse = await apiClient.get('/api/v1/user/muscle-group-statistics');
       muscleGroupStats.value = muscleGroupResponse.data.data;
-      console.log('Muscle group stats loaded:', muscleGroupStats.value);
     } catch (muscleGroupError) {
       console.error('Muscle group statistics fetch error:', muscleGroupError);
     }

@@ -43,26 +43,27 @@ export interface Workout {
   updated_at: string;
   plan?: Plan;
   sets?: WorkoutSet[];
+  exercises?: PlanExercise[];
 }
 
 export interface WorkoutSet {
   id: number;
   workout_id: number;
-  exercise_id: number;
+  plan_exercise_id: number;
   weight: number;
   reps: number;
-  rest_seconds: number;
   created_at: string;
   updated_at: string;
   exercise?: Exercise;
 }
 
 export interface StartWorkoutRequest {
-  plan_id: number;
+  plan_id?: number; // Необязательный параметр согласно API
 }
 
 export interface StartWorkoutResponse {
-  workout: Workout;
+  data: Workout;
+  message: string;
 }
 
 export interface FinishWorkoutResponse {
@@ -114,8 +115,29 @@ export interface Exercise {
   name: string;
   order: number;
   description: string | null;
+  muscle_group?: {
+    id: number;
+    name: string;
+  };
   created_at: string;
   updated_at: string;
+}
+
+export interface ExerciseHistory {
+  workout_id: number;
+  workout_date: string;
+  sets: Array<{
+    id: number;
+    weight: number;
+    reps: number;
+  }>;
+}
+
+export interface PlanExercise {
+  id: number;
+  order: number;
+  exercise: Exercise;
+  history: ExerciseHistory[];
 }
 
 // Statistics types

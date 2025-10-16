@@ -470,7 +470,7 @@ const fetchAvailablePlans = async (searchTerm: string = '') => {
     }
     
     const response = await apiClient.get('/api/v1/plans', { params });
-    const allPlans = response.data.data || response.data || [];
+    const allPlans = response.data.data || [];
     
     // Фильтруем планы на клиенте:
     // 1. Только активные планы
