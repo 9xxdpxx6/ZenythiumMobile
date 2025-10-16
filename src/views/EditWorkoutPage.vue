@@ -28,34 +28,34 @@
             <!-- Дата и время начала -->
             <div class="field-group">
               <label class="field-label">Дата и время начала</label>
-              <VueDatePicker
-                v-model="editData.started_at"
-                format="dd.MM.yyyy HH:mm"
-                :enable-time-picker="true"
-                auto-apply
-                :dark="true"
-                locale="ru"
-                :week-start="1"
-                :month-name-format="'long'"
-                :year-range="[2020, 2030]"
-              />
+               <VueDatePicker
+                 v-model="editData.started_at"
+                 format="dd.MM.yyyy HH:mm"
+                 :enable-time-picker="true"
+                 auto-apply
+                 :dark="true"
+                 locale="ru"
+                 :week-start="1"
+                 :month-name-format="'long'"
+                 :year-range="[2020, 2030]"
+               />
             </div>
 
             <!-- Дата и время окончания -->
             <div class="field-group">
               <label class="field-label">Дата и время окончания</label>
-              <VueDatePicker
-                v-model="editData.finished_at"
-                format="dd.MM.yyyy HH:mm"
-                :enable-time-picker="true"
-                auto-apply
-                :dark="true"
-                :min-date="editData.started_at || undefined"
-                locale="ru"
-                :week-start="1"
-                :month-name-format="'long'"
-                :year-range="[2020, 2030]"
-              />
+               <VueDatePicker
+                 v-model="editData.finished_at"
+                 format="dd.MM.yyyy HH:mm"
+                 :enable-time-picker="true"
+                 auto-apply
+                 :dark="true"
+                 :min-date="editData.started_at || undefined"
+                 locale="ru"
+                 :week-start="1"
+                 :month-name-format="'long'"
+                 :year-range="[2020, 2030]"
+               />
             </div>
           </div>
 
@@ -65,8 +65,8 @@
               <h3>Подходы</h3>
             </div>
 
-            <div v-if="Object.keys(groupedSets).length === 0" class="empty-sets">
-              <p>Нет подходов</p>
+            <div v-if="!workout?.exercises || workout.exercises.length === 0" class="empty-sets">
+              <p>Нет упражнений в плане</p>
             </div>
 
             <div v-else class="sets-list">
@@ -122,6 +122,11 @@
                         <ion-icon :icon="trashOutline"></ion-icon>
                       </ion-button>
                     </div>
+                  </div>
+                  
+                  <!-- Показываем сообщение если нет подходов к упражнению -->
+                  <div v-if="exerciseSets.length === 0" class="no-sets-message">
+                    <p>Нет подходов к этому упражнению</p>
                   </div>
                 </div>
               </div>
@@ -226,6 +231,15 @@ const workoutId = computed(() => {
 const groupedSets = computed(() => {
   const groups: { [key: string]: WorkoutSet[] } = {};
   
+  // Сначала добавляем все упражнения из плана тренировки
+  if (workout.value?.exercises) {
+    workout.value.exercises.forEach((planExercise: any) => {
+      const exerciseName = planExercise.exercise?.name || 'Неизвестное упражнение';
+      groups[exerciseName] = [];
+    });
+  }
+  
+  // Затем добавляем существующие подходы
   sets.value.forEach(set => {
     const exerciseName = set.exercise?.name || 'Неизвестное упражнение';
     if (!groups[exerciseName]) {
@@ -296,8 +310,26 @@ const loadWorkout = async () => {
   }
 };
 
+const formatLocalDateTime = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
 const saveWorkout = async () => {
   if (!workoutId.value) return;
+  
+  // Валидация: время окончания не может быть раньше времени начала
+  if (editData.value.started_at && editData.value.finished_at && 
+      editData.value.finished_at < editData.value.started_at) {
+    error.value = 'Время окончания не может быть раньше времени начала';
+    return;
+  }
   
   loading.value = true;
   error.value = null;
@@ -309,11 +341,11 @@ const saveWorkout = async () => {
     };
     
     if (editData.value.started_at) {
-      workoutData.started_at = editData.value.started_at.toISOString();
+      workoutData.started_at = formatLocalDateTime(editData.value.started_at);
     }
     
     if (editData.value.finished_at) {
-      workoutData.finished_at = editData.value.finished_at.toISOString();
+      workoutData.finished_at = formatLocalDateTime(editData.value.finished_at);
     }
     
     await apiClient.put(`/api/v1/workouts/${workoutId.value}`, workoutData);
@@ -358,28 +390,32 @@ const addSet = () => {
 };
 
 const addSetToExercise = (exerciseName: string) => {
-  // Находим упражнение в списке подходов
-  const exerciseSets = sets.value.filter(set => set.exercise?.name === exerciseName);
+  // Находим упражнение в плане тренировки
+  const planExercise = workout.value?.exercises?.find((pe: any) => 
+    pe.exercise?.name === exerciseName
+  );
   
-  if (exerciseSets.length > 0) {
-    // Берем данные из первого подхода этого упражнения
-    const firstSet = exerciseSets[0];
-    
+  if (planExercise) {
     // Создаем новый подход
     const newSet: WorkoutSet = {
       id: 0, // Временный ID для новых подходов
       workout_id: workoutId.value || 0,
-      plan_exercise_id: firstSet.plan_exercise_id,
+      plan_exercise_id: planExercise.id,
       weight: null, // Пустое значение вместо 0
       reps: null, // Пустое значение вместо 0
       created_at: '',
       updated_at: '',
-      exercise: firstSet.exercise
+      exercise: planExercise.exercise
     };
     
     // Добавляем новый подход в конец списка подходов этого упражнения
     const lastIndex = sets.value.findLastIndex(set => set.exercise?.name === exerciseName);
-    sets.value.splice(lastIndex + 1, 0, newSet);
+    if (lastIndex !== -1) {
+      sets.value.splice(lastIndex + 1, 0, newSet);
+    } else {
+      // Если подходов к этому упражнению еще нет, добавляем в конец
+      sets.value.push(newSet);
+    }
   }
 };
 
@@ -683,6 +719,18 @@ onMounted(() => {
 
 .set-actions {
   margin-left: 12px;
+}
+
+.no-sets-message {
+  text-align: center;
+  padding: 20px;
+  color: var(--ion-color-medium);
+  font-style: italic;
+}
+
+.no-sets-message p {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* Hotbar styles */

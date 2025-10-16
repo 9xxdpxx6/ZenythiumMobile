@@ -85,18 +85,15 @@
               <div class="workout-header">
                 <h3>{{ formatDate(workout.started_at) }}</h3>
                 <CustomChip
-                  :color="workout.status === 'active' ? 'warning' : 'success'"
+                  :color="workout.finished_at ? 'success' : 'warning'"
                   size="small"
                 >
-                  {{ workout.status === 'active' ? 'Активна' : 'Завершена' }}
+                  {{ workout.finished_at ? 'Завершена' : 'Активна' }}
                 </CustomChip>
               </div>
               
               <div class="workout-info">
                 <p><strong>План:</strong> {{ workout.plan?.name || 'План не найден' }}</p>
-                <div class="workout-status-icon">
-                  <i :class="workout.status === 'active' ? 'fas fa-play' : 'fas fa-check-circle'"></i>
-                </div>
               </div>
             </CustomCard>
           </div>
@@ -149,8 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, onMounted, computed, nextTick, onActivated, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -173,12 +170,14 @@ import apiClient from '@/services/api';
 import { Workout, ApiError } from '@/types/api';
 
 const router = useRouter();
+const route = useRoute();
 const workouts = ref<Workout[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
 const workoutsKey = ref(0);
+const isInitialized = ref(false);
 
 // Переменные для долгого нажатия
 const longPressTimer = ref<NodeJS.Timeout | null>(null);
@@ -190,6 +189,9 @@ const showActionModal = ref(false);
 const showDeleteModal = ref(false);
 const selectedWorkout = ref<Workout | null>(null);
 const isDeleting = ref(false);
+const isUserCancelling = ref(false);
+const isTransitioningToDelete = ref(false);
+const isDeletionCompleted = ref(false);
 
 // Все тренировки (фильтрация теперь происходит на сервере)
 const filteredWorkouts = computed(() => workouts.value);
@@ -256,7 +258,7 @@ const handleWorkoutClick = (workout: Workout) => {
     return;
   }
   
-  if (workout.status === 'active') {
+  if (!workout.finished_at) {
     router.push(`/workout/${workout.id}`);
   }
 };
@@ -265,6 +267,7 @@ const handleWorkoutClick = (workout: Workout) => {
 const handleWorkoutPressStart = (workout: Workout) => {
   isLongPressing.value = false;
   longPressTimer.value = setTimeout(() => {
+    console.log('⏰ Long press timeout reached, opening action modal for workout:', workout.id);
     isLongPressing.value = true;
     selectedWorkout.value = workout;
     showActionModal.value = true;
@@ -287,35 +290,103 @@ const handleActionEdit = () => {
 };
 
 const handleActionDelete = () => {
+  console.log('🔄 Opening delete confirmation modal for workout:', selectedWorkout.value?.id);
+  console.log('🔄 Modal state before:', { showActionModal: showActionModal.value, showDeleteModal: showDeleteModal.value });
+  console.log('🔄 Selected workout before:', selectedWorkout.value);
+  
+  // Сбрасываем все флаги для нового процесса удаления
+  isUserCancelling.value = false;
+  isTransitioningToDelete.value = true;
+  isDeletionCompleted.value = false;
+  
   showActionModal.value = false;
   showDeleteModal.value = true;
+  
+  console.log('🔄 Modal state after:', { showActionModal: showActionModal.value, showDeleteModal: showDeleteModal.value });
+  console.log('🔄 Selected workout after:', selectedWorkout.value);
 };
 
 const handleActionCancel = () => {
+  console.log('🔄 Action modal cancelled by user, isTransitioningToDelete:', isTransitioningToDelete.value);
+  
+  if (isTransitioningToDelete.value) {
+    console.log('🔄 Transitioning to delete, not clearing selectedWorkout');
+    isTransitioningToDelete.value = false;
+    return;
+  }
+  
   showActionModal.value = false;
   selectedWorkout.value = null;
 };
 
 const handleDeleteConfirm = async () => {
-  if (!selectedWorkout.value) return;
+  console.log('🔄 Delete confirmed, checking state...');
+  console.log('🔄 Selected workout:', selectedWorkout.value?.id);
+  console.log('🔄 Is user cancelling:', isUserCancelling.value);
+  console.log('🔄 Is transitioning to delete:', isTransitioningToDelete.value);
+  console.log('🔄 Is deletion completed:', isDeletionCompleted.value);
+  
+  if (!selectedWorkout.value) {
+    console.error('No workout selected for deletion');
+    return;
+  }
+  
+  if (isUserCancelling.value) {
+    console.log('User cancelled, aborting deletion');
+    return;
+  }
+  
+  console.log('🗑️ Starting workout deletion for ID:', selectedWorkout.value.id);
   
   isDeleting.value = true;
   try {
-    await apiClient.delete(`/api/v1/workouts/${selectedWorkout.value.id}`);
-    await fetchWorkouts(); // Обновляем список
+    console.log('📡 Sending DELETE request to:', `/api/v1/workouts/${selectedWorkout.value.id}`);
+    const response = await apiClient.delete(`/api/v1/workouts/${selectedWorkout.value.id}`);
+    console.log('✅ Workout deleted successfully:', response.data);
+    
+    // Обновляем список
+    console.log('🔄 Refreshing workouts list...');
+    await fetchWorkouts();
+    
+    // Закрываем модальные окна
     showDeleteModal.value = false;
     selectedWorkout.value = null;
+    isUserCancelling.value = false;
+    isTransitioningToDelete.value = false;
+    isDeletionCompleted.value = true;
+    
+    console.log('✅ Deletion process completed');
   } catch (err) {
-    console.error('Delete workout error:', err);
+    console.error('❌ Delete workout error:', err);
+    console.error('❌ Error details:', {
+      message: (err as ApiError).message,
+      errors: (err as ApiError).errors,
+      status: (err as any).response?.status,
+      statusText: (err as any).response?.statusText,
+      data: (err as any).response?.data
+    });
     error.value = (err as ApiError).message;
   } finally {
     isDeleting.value = false;
+    isUserCancelling.value = false;
+    isTransitioningToDelete.value = false;
+    isDeletionCompleted.value = false;
   }
 };
 
 const handleDeleteCancel = () => {
+  console.log('🔄 Delete cancelled by user, isDeletionCompleted:', isDeletionCompleted.value);
+  
+  if (isDeletionCompleted.value) {
+    console.log('🔄 Deletion already completed, ignoring cancel event');
+    isDeletionCompleted.value = false;
+    return;
+  }
+  
+  isUserCancelling.value = true;
   showDeleteModal.value = false;
   selectedWorkout.value = null;
+  isTransitioningToDelete.value = false;
 };
 
 const formatDate = (dateString: string) => {
@@ -340,8 +411,40 @@ const handleDateFilterChange = () => {
   fetchWorkouts();
 };
 
-onMounted(() => {
+// Обновляем список тренировок при возврате на страницу
+onActivated(async () => {
+  console.log('WorkoutsPage: Activated, isInitialized:', isInitialized.value);
+  
+  // Если компонент еще не инициализирован, ждем инициализации
+  if (!isInitialized.value) {
+    console.log('WorkoutsPage: Not initialized yet, skipping activated refresh');
+    return;
+  }
+  
+  // Ждем следующий тик, чтобы убедиться, что компонент готов
+  await nextTick();
+  
+  console.log('WorkoutsPage: Refreshing workouts list on activation');
   fetchWorkouts();
+});
+
+// Экспортируем для тестирования в консоли браузера
+(window as any).testFetchWorkouts = fetchWorkouts;
+(window as any).workouts = workouts;
+
+onMounted(async () => {
+  console.log('WorkoutsPage: Mounted, initializing...');
+  await fetchWorkouts();
+  isInitialized.value = true;
+  console.log('WorkoutsPage: Initialization completed');
+});
+
+// Дополнительно отслеживаем изменения роутера для надежности
+watch(() => route.path, (newPath) => {
+  if (newPath === '/tabs/workouts' && isInitialized.value) {
+    console.log('WorkoutsPage: Route changed to workouts, refreshing list');
+    fetchWorkouts();
+  }
 });
 </script>
 
@@ -503,11 +606,6 @@ onMounted(() => {
 
 .workout-info strong {
   color: var(--ion-text-color);
-}
-
-.workout-status-icon {
-  color: var(--ion-color-primary);
-  font-size: 18px;
 }
 
 .loading-state,

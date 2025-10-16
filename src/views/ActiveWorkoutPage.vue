@@ -7,7 +7,7 @@
             <i class="fas fa-arrow-left"></i>
           </ion-button>
         </ion-buttons>
-        <ion-title>Новая тренировка</ion-title>
+        <ion-title>Активная тренировка</ion-title>
       </ion-toolbar>
     </ion-header>
 
