@@ -78,7 +78,7 @@
                 <div class="exercise-header">
                   <h4>{{ exerciseName }}</h4>
                   <ion-button
-                    @click="addSetToExercise(exerciseName)"
+                    @click="addSetToExercise(String(exerciseName))"
                     fill="clear"
                     color="primary"
                     size="small"
@@ -96,25 +96,25 @@
                     <div class="set-info">
                       <div class="set-values">
                         <CustomInput
-                          :model-value="set.weight.toString()"
-                          @update:model-value="set.weight = parseFloat($event) || 0"
+                          :model-value="set.weight?.toString() || ''"
+                          @update:model-value="set.weight = $event && !isNaN(parseFloat($event)) ? parseFloat($event) : null"
                           type="number"
                           placeholder="Вес"
                           class="weight-input"
                         />
                         <span class="separator">x</span>
                         <CustomInput
-                          :model-value="set.reps.toString()"
-                          @update:model-value="set.reps = parseInt($event) || 0"
+                          :model-value="set.reps?.toString() || ''"
+                          @update:model-value="set.reps = $event && !isNaN(parseInt($event)) ? parseInt($event) : null"
                           type="number"
-                          placeholder="Повторы"
+                          placeholder="Повт."
                           class="reps-input"
                         />
                       </div>
                     </div>
                     <div class="set-actions">
                       <ion-button
-                        @click="deleteSet(exerciseName, index)"
+                        @click="deleteSet(String(exerciseName), index)"
                         fill="clear"
                         color="danger"
                         size="small"
@@ -143,13 +143,14 @@
     <!-- Hotbar with action buttons -->
     <div class="form-actions">
       <button
+        v-if="setsToDelete.length > 0 || sets.some(set => set.id === 0)"
         type="button"
-        class="modern-button secondary-button"
-        @click="handleBack"
+        class="modern-button warning-button"
+        @click="restoreDeletedSets"
         :disabled="loading"
       >
-        <i class="fas fa-times"></i>
-        Отмена
+        <i class="fas fa-undo"></i>
+        Отменить изменения
       </button>
 
       <button
@@ -214,6 +215,7 @@ const editData = ref({
 
 // Подходы
 const sets = ref<WorkoutSet[]>([]);
+const setsToDelete = ref<number[]>([]); // Массив ID подходов для удаления
 
 const workoutId = computed(() => {
   const id = route.params.id;
@@ -247,14 +249,16 @@ const loadWorkout = async () => {
     workout.value = response.data.data;
     
     // Инициализируем данные для редактирования
-    editData.value.started_at = workout.value.started_at ? new Date(workout.value.started_at) : null;
-    editData.value.finished_at = workout.value.finished_at ? new Date(workout.value.finished_at) : null;
+    if (workout.value) {
+      editData.value.started_at = workout.value.started_at ? new Date(workout.value.started_at) : null;
+      editData.value.finished_at = workout.value.finished_at ? new Date(workout.value.finished_at) : null;
+    }
     
     // Извлекаем подходы из exercises.history
     // Структура: exercises -> history (массив тренировок) -> sets (подходы)
     const allSets: WorkoutSet[] = [];
     
-    if (workout.value.exercises) {
+    if (workout.value && workout.value.exercises) {
       workout.value.exercises.forEach((planExercise: any) => {
         if (planExercise.history && planExercise.history.length > 0) {
           // Ищем текущую тренировку в истории (где workout_id совпадает с текущей тренировкой)
@@ -300,7 +304,9 @@ const saveWorkout = async () => {
   
   try {
     // Обновляем тренировку
-    const workoutData: any = {};
+    const workoutData: any = {
+      plan_id: workout.value?.plan?.id // Передаем ID существующего плана
+    };
     
     if (editData.value.started_at) {
       workoutData.started_at = editData.value.started_at.toISOString();
@@ -312,21 +318,26 @@ const saveWorkout = async () => {
     
     await apiClient.put(`/api/v1/workouts/${workoutId.value}`, workoutData);
     
+    // Удаляем помеченные подходы
+    for (const setId of setsToDelete.value) {
+      await apiClient.delete(`/api/v1/workout-sets/${setId}`);
+    }
+    
     // Обновляем подходы
     for (const set of sets.value) {
       if (set.id && set.id > 0) {
         // Обновляем существующий подход
         await apiClient.put(`/api/v1/workout-sets/${set.id}`, {
-          weight: set.weight,
-          reps: set.reps,
+          weight: set.weight || 0, // Если null, то 0
+          reps: set.reps || 0, // Если null, то 0
         });
       } else {
         // Создаем новый подход
         await apiClient.post('/api/v1/workout-sets', {
           workout_id: workoutId.value,
           plan_exercise_id: set.plan_exercise_id,
-          weight: set.weight,
-          reps: set.reps,
+          weight: set.weight || 0, // Если null, то 0
+          reps: set.reps || 0, // Если null, то 0
         });
       }
     }
@@ -359,8 +370,8 @@ const addSetToExercise = (exerciseName: string) => {
       id: 0, // Временный ID для новых подходов
       workout_id: workoutId.value || 0,
       plan_exercise_id: firstSet.plan_exercise_id,
-      weight: 0,
-      reps: 0,
+      weight: null, // Пустое значение вместо 0
+      reps: null, // Пустое значение вместо 0
       created_at: '',
       updated_at: '',
       exercise: firstSet.exercise
@@ -379,15 +390,12 @@ const deleteSet = (exerciseName: string, setIndex: number) => {
   if (exerciseSets.length > 0 && setIndex < exerciseSets.length) {
     const setToDelete = exerciseSets[setIndex];
     
-    // Если это существующий подход (с ID), удаляем его с сервера
+    // Если это существующий подход (с ID), добавляем его в список для удаления
     if (setToDelete.id && setToDelete.id > 0) {
-      apiClient.delete(`/api/v1/workout-sets/${setToDelete.id}`).catch(err => {
-        console.error('Delete set error:', err);
-        error.value = 'Ошибка при удалении подхода с сервера';
-      });
+      setsToDelete.value.push(setToDelete.id);
     }
     
-    // Удаляем подход из локального списка
+    // Удаляем подход из локального списка (визуально)
     const globalIndex = sets.value.findIndex(set => 
       set.exercise?.name === exerciseName && 
       set.id === setToDelete.id &&
@@ -416,8 +424,23 @@ const clearError = () => {
   error.value = null;
 };
 
+const restoreDeletedSets = () => {
+  // Очищаем список для удаления
+  setsToDelete.value = [];
+  
+  // Перезагружаем тренировку для восстановления удаленных подходов
+  loadWorkout();
+};
+
 const handleBack = () => {
-  router.push('/tabs/workouts');
+  // Если есть несохраненные изменения, показываем предупреждение
+  if (setsToDelete.value.length > 0 || sets.value.some(set => set.id === 0)) {
+    if (confirm('У вас есть несохраненные изменения. Вы уверены, что хотите покинуть страницу?')) {
+      router.push('/tabs/workouts');
+    }
+  } else {
+    router.push('/tabs/workouts');
+  }
 };
 
 onMounted(() => {
@@ -428,7 +451,7 @@ onMounted(() => {
 <style scoped>
 .page-content {
   padding: 20px;
-  padding-bottom: 120px; /* Отступ для хотбара */
+  padding-bottom: 140px; /* Увеличил отступ для хотбара */
 }
 
 .loading-state,
@@ -569,7 +592,7 @@ onMounted(() => {
 }
 
 .sets-section {
-  margin-bottom: 32px;
+  margin-bottom: 90px; /* Увеличил отступ снизу для хотбара */
 }
 
 .section-header {
@@ -691,8 +714,17 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
   min-height: 48px;
+}
+
+/* Когда есть изменения - кнопки делят ширину пополам */
+.form-actions:has(.warning-button) .modern-button {
+  flex: 1;
+}
+
+/* Когда нет изменений - кнопка "Сохранить" на всю ширину */
+.form-actions:not(:has(.warning-button)) .modern-button {
+  width: 100%;
 }
 
 .modern-button:disabled {
@@ -707,6 +739,11 @@ onMounted(() => {
 .modern-button.secondary-button {
   background: rgba(255, 255, 255, 0.1);
   color: var(--ion-text-color);
+}
+
+.modern-button.warning-button {
+  background: var(--ion-color-warning);
+  color: white;
 }
 
 .modern-button i {

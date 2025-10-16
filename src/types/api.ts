@@ -50,8 +50,8 @@ export interface WorkoutSet {
   id: number;
   workout_id: number;
   plan_exercise_id: number;
-  weight: number;
-  reps: number;
+  weight: number | null;
+  reps: number | null;
   created_at: string;
   updated_at: string;
   exercise?: Exercise;
