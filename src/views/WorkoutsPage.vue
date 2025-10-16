@@ -69,12 +69,17 @@
         </div>
 
         <div v-else-if="filteredWorkouts.length > 0">
-          <div class="workouts-list">
+          <div class="workouts-list" :key="workoutsKey">
             <CustomCard
               v-for="workout in filteredWorkouts"
               :key="workout.id"
               clickable
               @click="handleWorkoutClick(workout)"
+              @touchstart="handleWorkoutPressStart(workout)"
+              @touchend="handleWorkoutPressEnd"
+              @mousedown="handleWorkoutPressStart(workout)"
+              @mouseup="handleWorkoutPressEnd"
+              @mouseleave="handleWorkoutPressEnd"
               class="workout-card"
             >
               <div class="workout-header">
@@ -118,11 +123,33 @@
       color="danger"
       @didDismiss="clearError"
     />
+
+    <!-- Модальное окно действий с тренировкой -->
+    <WorkoutActionModal
+      :is-open="showActionModal"
+      :workout="selectedWorkout || undefined"
+      :is-deleting="isDeleting"
+      @edit="handleActionEdit"
+      @delete="handleActionDelete"
+      @cancel="handleActionCancel"
+    />
+
+    <!-- Модальное окно подтверждения удаления -->
+    <DeleteConfirmationModal
+      :is-open="showDeleteModal"
+      title="Удалить тренировку"
+      message="Вы уверены, что хотите удалить эту тренировку?"
+      :item-name="selectedWorkout?.plan?.name"
+      warning-text="Это действие нельзя отменить."
+      :is-deleting="isDeleting"
+      @confirm="handleDeleteConfirm"
+      @cancel="handleDeleteCancel"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -138,6 +165,8 @@ import CustomButton from '@/components/CustomButton.vue';
 import CustomCard from '@/components/CustomCard.vue';
 import CustomChip from '@/components/CustomChip.vue';
 import CustomToast from '@/components/CustomToast.vue';
+import WorkoutActionModal from '@/components/WorkoutActionModal.vue';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import apiClient from '@/services/api';
@@ -149,6 +178,18 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
+const workoutsKey = ref(0);
+
+// Переменные для долгого нажатия
+const longPressTimer = ref<NodeJS.Timeout | null>(null);
+const longPressDelay = 500; // 500ms для долгого нажатия
+const isLongPressing = ref(false);
+
+// Переменные для модальных окон
+const showActionModal = ref(false);
+const showDeleteModal = ref(false);
+const selectedWorkout = ref<Workout | null>(null);
+const isDeleting = ref(false);
 
 // Все тренировки (фильтрация теперь происходит на сервере)
 const filteredWorkouts = computed(() => workouts.value);
@@ -175,8 +216,24 @@ const fetchWorkouts = async () => {
     }
     
     const response = await apiClient.get('/api/v1/workouts', { params });
-    // API может возвращать данные в разных форматах
+    
+    // Отладочная информация
+    console.log('API Response:', response.data);
+    
+    // Исправляем доступ к данным согласно API документации
+    // API возвращает: { data: [...], message: "...", meta: {...} }
     workouts.value = response.data.data || [];
+    
+    // Принудительно обновляем реактивность
+    workouts.value = [...workouts.value];
+    
+    // Увеличиваем ключ для принудительного перерендера списка
+    workoutsKey.value++;
+    
+    // Ждем обновления DOM
+    await nextTick();
+    
+    console.log('Updated workouts:', workouts.value.length, 'items');
   } catch (err) {
     console.error('Workouts fetch error:', err);
     error.value = (err as ApiError).message;
@@ -186,14 +243,79 @@ const fetchWorkouts = async () => {
 };
 
 const handleRefresh = async (event: CustomEvent) => {
+  console.log('Refreshing workouts...');
   await fetchWorkouts();
   event.detail.complete();
+  console.log('Refresh completed');
 };
 
 const handleWorkoutClick = (workout: Workout) => {
+  // Если было долгое нажатие, не обрабатываем обычный клик
+  if (isLongPressing.value) {
+    isLongPressing.value = false;
+    return;
+  }
+  
   if (workout.status === 'active') {
     router.push(`/workout/${workout.id}`);
   }
+};
+
+// Функции для долгого нажатия
+const handleWorkoutPressStart = (workout: Workout) => {
+  isLongPressing.value = false;
+  longPressTimer.value = setTimeout(() => {
+    isLongPressing.value = true;
+    selectedWorkout.value = workout;
+    showActionModal.value = true;
+  }, longPressDelay);
+};
+
+const handleWorkoutPressEnd = () => {
+  if (longPressTimer.value) {
+    clearTimeout(longPressTimer.value);
+    longPressTimer.value = null;
+  }
+};
+
+// Функции для модальных окон
+const handleActionEdit = () => {
+  showActionModal.value = false;
+  if (selectedWorkout.value) {
+    router.push(`/edit-workout/${selectedWorkout.value.id}`);
+  }
+};
+
+const handleActionDelete = () => {
+  showActionModal.value = false;
+  showDeleteModal.value = true;
+};
+
+const handleActionCancel = () => {
+  showActionModal.value = false;
+  selectedWorkout.value = null;
+};
+
+const handleDeleteConfirm = async () => {
+  if (!selectedWorkout.value) return;
+  
+  isDeleting.value = true;
+  try {
+    await apiClient.delete(`/api/v1/workouts/${selectedWorkout.value.id}`);
+    await fetchWorkouts(); // Обновляем список
+    showDeleteModal.value = false;
+    selectedWorkout.value = null;
+  } catch (err) {
+    console.error('Delete workout error:', err);
+    error.value = (err as ApiError).message;
+  } finally {
+    isDeleting.value = false;
+  }
+};
+
+const handleDeleteCancel = () => {
+  showDeleteModal.value = false;
+  selectedWorkout.value = null;
 };
 
 const formatDate = (dateString: string) => {
@@ -213,6 +335,7 @@ const clearError = () => {
 
 // Функции фильтрации по датам
 const handleDateFilterChange = () => {
+  console.log('Date filter changed, fetching workouts...');
   // Вызываем fetchWorkouts при изменении дат для получения отфильтрованных данных с сервера
   fetchWorkouts();
 };
@@ -332,14 +455,6 @@ onMounted(() => {
   color: var(--ion-text-color) !important;
 }
 
-:deep(.dp__calendar_item:hover) {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-:deep(.dp__date_hover) {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
 :deep(.dp__date_selected) {
   background: var(--ion-color-primary) !important;
   color: white !important;
@@ -442,10 +557,6 @@ onMounted(() => {
   gap: 8px;
   width: 100%;
   justify-content: center;
-}
-
-.modern-button:hover {
-  background: var(--ion-color-primary-shade);
 }
 
 .modern-button i {

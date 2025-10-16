@@ -3,14 +3,11 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button></ion-back-button>
-        </ion-buttons>
-        <ion-title>{{ workout?.plan?.name || 'Тренировка' }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="finishWorkout" :disabled="finishing">
-            <i class="fas fa-check"></i>
+          <ion-button @click="router.back()">
+            <i class="fas fa-arrow-left"></i>
           </ion-button>
         </ion-buttons>
+        <ion-title>Новая тренировка</ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -21,6 +18,11 @@
       </div>
 
       <div v-else-if="workout && exercises.length > 0" class="workout-container">
+        <!-- Workout Title -->
+        <div class="workout-title-section">
+          <h1 class="workout-title">{{ workout?.plan?.name || 'Тренировка' }}</h1>
+        </div>
+
         <div 
           v-for="exercise in exercises" 
           :key="exercise.id"
@@ -88,24 +90,22 @@
             <p class="today-label">Добавить подход:</p>
             <div class="input-row">
               <div class="input-field">
-                <label>Вес</label>
-                <ion-input
-                  v-model="newSets[exercise.id].weight"
+                <CustomInput
+                  :modelValue="newSets[exercise.id].weight?.toString() || ''"
+                  label="Вес"
                   type="number"
                   :placeholder="getPlaceholderValue(exercise.id, 'weight')"
-                  class="weight-input"
-                  @input="validateInput($event, exercise.id, 'weight')"
-                ></ion-input>
+                  @update:modelValue="(value) => validateInput(value, exercise.id, 'weight')"
+                />
               </div>
               <div class="input-field">
-                <label>Повт</label>
-                <ion-input
-                  v-model="newSets[exercise.id].reps"
+                <CustomInput
+                  :modelValue="newSets[exercise.id].reps?.toString() || ''"
+                  label="Повт"
                   type="number"
                   :placeholder="getPlaceholderValue(exercise.id, 'reps')"
-                  class="reps-input"
-                  @input="validateInput($event, exercise.id, 'reps')"
-                ></ion-input>
+                  @update:modelValue="(value) => validateInput(value, exercise.id, 'reps')"
+                />
               </div>
             </div>
             <ion-button 
@@ -125,7 +125,7 @@
             expand="block"
             color="success"
             @click="finishWorkout"
-            :disabled="finishing"
+            :disabled="finishing || !canFinishWorkout"
           >
             <ion-spinner v-if="finishing" name="crescent"></ion-spinner>
             <span v-else>Завершить тренировку</span>
@@ -161,10 +161,10 @@ import {
   IonButtons,
   IonBackButton,
   IonButton,
-  IonInput,
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
+import CustomInput from '@/components/CustomInput.vue';
 import apiClient from '@/services/api';
 import { 
   Workout, 
@@ -196,6 +196,16 @@ console.log('🔧 ActiveWorkoutPage: Initial state:', {
 });
 
 const newSets = ref<Record<number, { weight: number | null; reps: number | null }>>({});
+
+// Проверяем, есть ли подходы во всех упражнениях
+const canFinishWorkout = computed(() => {
+  if (exercises.value.length === 0) return false;
+  
+  return exercises.value.every(exercise => {
+    const currentSets = getCurrentSets(exercise.id);
+    return currentSets.length > 0;
+  });
+});
 
 const fetchWorkout = async () => {
   loading.value = true;
@@ -568,13 +578,10 @@ const clearError = () => {
   error.value = null;
 };
 
-const validateInput = (event: any, exerciseId: number, field: 'weight' | 'reps') => {
-  const value = event.target.value;
-  
+const validateInput = (value: string, exerciseId: number, field: 'weight' | 'reps') => {
   // Разрешаем только цифры, запятую и точку
   const validPattern = /^[0-9.,]*$/;
   if (!validPattern.test(value)) {
-    event.target.value = value.replace(/[^0-9.,]/g, '');
     return;
   }
   
@@ -584,7 +591,6 @@ const validateInput = (event: any, exerciseId: number, field: 'weight' | 'reps')
   
   // Проверяем на отрицательные значения и ноль
   if (numValue < 0) {
-    event.target.value = '';
     newSets.value[exerciseId][field] = null;
     return;
   }
@@ -611,6 +617,21 @@ onMounted(() => {
   padding: 16px;
   max-width: 100%;
   background: var(--ion-background-color);
+}
+
+/* Workout Title */
+.workout-title-section {
+  margin-bottom: 24px;
+  text-align: left;
+  padding-left: 0;
+}
+
+.workout-title {
+  font-size: 22px !important;
+  font-weight: 700 !important;
+  color: var(--ion-text-color) !important;
+  margin: 0 0 6px 0 !important;
+  padding-left: 0 !important;
 }
 
 /* Exercise Card */
@@ -843,29 +864,9 @@ onMounted(() => {
   gap: 8px;
 }
 
-.input-field label {
-  font-size: 0.8rem;
-  color: var(--ion-color-medium);
-  font-weight: 500;
-}
-
-.input-field ion-input {
-  --background: rgba(255, 255, 255, 0.05);
-  --color: var(--ion-text-color);
-  --placeholder-color: var(--ion-color-medium);
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.input-field ion-input:focus-within {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+/* Убираем стили для ion-input, так как теперь используем CustomInput */
+.input-field CustomInput {
+  margin: 0;
 }
 
 .add-set-button {
@@ -911,5 +912,11 @@ onMounted(() => {
   --padding-bottom: 12px;
   font-weight: 600;
   box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Back Button */
+ion-toolbar ion-button i {
+  font-size: 20px;
+  color: white;
 }
 </style>
