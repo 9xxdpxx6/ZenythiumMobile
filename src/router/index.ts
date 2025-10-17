@@ -96,6 +96,19 @@ const routes: Array<RouteRecordRaw> = [
     name: 'ViewWorkout',
     component: () => import('@/views/ViewWorkoutPage.vue'),
     meta: { requiresAuth: true }
+  },
+  // Data pages
+  {
+    path: '/exercises',
+    name: 'Exercises',
+    component: () => import('@/views/ExercisesPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/muscle-groups',
+    name: 'MuscleGroups',
+    component: () => import('@/views/MuscleGroupsPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
