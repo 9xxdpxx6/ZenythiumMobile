@@ -97,15 +97,15 @@
                       <div class="set-values">
                         <CustomInput
                           :model-value="set.weight?.toString() || ''"
-                          @update:model-value="set.weight = $event && !isNaN(parseFloat($event)) ? parseFloat($event) : null"
+                          @update:model-value="set.weight = $event && !isNaN(parseFloat($event)) && parseFloat($event) >= 0 ? parseFloat($event) : null"
                           type="number"
                           placeholder="Вес"
                           class="weight-input"
                         />
-                        <span class="separator">x</span>
+                        <span v-if="set.weight !== 0" class="separator">x</span>
                         <CustomInput
                           :model-value="set.reps?.toString() || ''"
-                          @update:model-value="set.reps = $event && !isNaN(parseInt($event)) ? parseInt($event) : null"
+                          @update:model-value="set.reps = $event && !isNaN(parseInt($event)) && parseInt($event) > 0 ? parseInt($event) : null"
                           type="number"
                           placeholder="Повт."
                           class="reps-input"

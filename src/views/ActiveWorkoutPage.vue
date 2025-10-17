@@ -50,11 +50,14 @@
                     :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
                     class="set-item"
                   >
-                    <div class="vertical-fraction">
+                    <div v-if="groupedSet.isSimple" class="simple-reps">
+                      {{ groupedSet.reps }}<span v-if="groupedSet.count > 1"> × {{ groupedSet.count }}</span>
+                    </div>
+                    <div v-else class="vertical-fraction">
                       <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
                       <div class="denominator">{{ groupedSet.reps }}</div>
                     </div>
-                    <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
+                    <span v-if="!groupedSet.isSimple && groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
                   </span>
                 </div>
               </div>
@@ -70,11 +73,14 @@
                   :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
                   class="current-set-item"
                 >
-                  <div class="vertical-fraction">
+                  <div v-if="groupedSet.isSimple" class="simple-reps">
+                    {{ groupedSet.reps }}<span v-if="groupedSet.count > 1"> × {{ groupedSet.count }}</span>
+                  </div>
+                  <div v-else class="vertical-fraction">
                     <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
                     <div class="denominator">{{ groupedSet.reps }}</div>
                   </div>
-                  <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
+                  <span v-if="!groupedSet.isSimple && groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
                   <button 
                     @click="deleteLastSetFromGroup(exercise.id, groupedSet)"
                     class="delete-button"
@@ -376,13 +382,28 @@ const groupAndFormatSets = (sets: any[]) => {
   // Преобразуем в массив и форматируем
   return Object.values(grouped).map((group) => {
     const typedGroup = group as { weight: number; reps: number; count: number };
+    const isSimple = Number(typedGroup.weight) === 0;
+    
+    console.log('🔍 ActiveWorkoutPage: Processing set:', {
+      weight: typedGroup.weight,
+      weightType: typeof typedGroup.weight,
+      reps: typedGroup.reps,
+      count: typedGroup.count,
+      isSimple: isSimple
+    });
+    
     return {
       weight: typedGroup.weight,
       reps: typedGroup.reps,
       count: typedGroup.count,
-      formatted: typedGroup.count === 1 
-        ? `${formatWeight(typedGroup.weight)}/${typedGroup.reps}` // Одиночный подход как дробь
-        : `${formatWeight(typedGroup.weight)}/${typedGroup.reps} × ${typedGroup.count}` // Группа с количеством
+      isSimple: isSimple,
+      formatted: isSimple 
+        ? (typedGroup.count === 1 
+            ? `${typedGroup.reps}` // Простой формат для одиночного подхода
+            : `${typedGroup.reps} × ${typedGroup.count}`) // Простой формат с количеством
+        : (typedGroup.count === 1 
+            ? `${formatWeight(typedGroup.weight)}/${typedGroup.reps}` // Обычная дробь для одиночного подхода
+            : `${formatWeight(typedGroup.weight)}/${typedGroup.reps} × ${typedGroup.count}`) // Обычная дробь с количеством
     };
   });
 };
@@ -423,9 +444,9 @@ const addSet = async (exerciseId: number) => {
   const setData = newSets.value[exerciseId];
   console.log('📊 ActiveWorkoutPage: Set data:', setData);
   
-  if (!setData.weight || !setData.reps || setData.weight <= 0 || setData.reps <= 0) {
+  if (setData.weight === null || setData.weight === undefined || !setData.reps || setData.weight < 0 || setData.reps <= 0) {
     console.log('⚠️ ActiveWorkoutPage: Missing or invalid weight or reps');
-    error.value = 'Заполните вес и повторения (положительные числа)';
+    error.value = 'Заполните вес (≥0) и повторения (положительные числа)';
     return;
   }
 
@@ -602,14 +623,20 @@ const validateInput = (value: string, exerciseId: number, field: 'weight' | 'rep
   const normalizedValue = value.replace(',', '.');
   const numValue = parseFloat(normalizedValue);
   
-  // Проверяем на отрицательные значения и ноль
+  // Проверяем на отрицательные значения
   if (numValue < 0) {
     newSets.value[exerciseId][field] = null;
     return;
   }
   
+  // Для повторений запрещаем 0, для веса разрешаем
+  if (field === 'reps' && numValue === 0) {
+    newSets.value[exerciseId][field] = null;
+    return;
+  }
+  
   // Если значение валидно, обновляем состояние
-  if (!isNaN(numValue) && numValue > 0) {
+  if (!isNaN(numValue) && (field === 'weight' ? numValue >= 0 : numValue > 0)) {
     newSets.value[exerciseId][field] = numValue;
   } else if (value === '') {
     newSets.value[exerciseId][field] = null;
@@ -770,6 +797,12 @@ onMounted(() => {
   opacity: 0.8;
 }
 
+.simple-reps {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
 /* Current Sets */
 .current-sets {
   margin-bottom: 20px;
@@ -837,6 +870,12 @@ onMounted(() => {
   font-size: 1.1rem;
   font-weight: 500;
   opacity: 0.9;
+  color: white;
+}
+
+.current-set-item .simple-reps {
+  font-size: 1.1rem;
+  font-weight: 600;
   color: white;
 }
 

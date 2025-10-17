@@ -133,11 +133,14 @@
                         class="set-item"
                       >
                         <div class="set-fraction">
-                          <div class="vertical-fraction">
+                          <div v-if="groupedSet.isSimple" class="simple-reps">
+                            {{ groupedSet.reps }}<span v-if="groupedSet.count > 1"> × {{ groupedSet.count }}</span>
+                          </div>
+                          <div v-else class="vertical-fraction">
                             <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
                             <div class="denominator">{{ groupedSet.reps }}</div>
                           </div>
-                          <span v-if="groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
+                          <span v-if="!groupedSet.isSimple && groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
                         </div>
                       </div>
                     </div>
@@ -309,6 +312,7 @@ interface GroupedSet {
   weight: number;
   reps: number;
   count: number;
+  isSimple: boolean;
 }
 
 const groupAndFormatSets = (sets: any[]): GroupedSet[] => {
@@ -326,10 +330,28 @@ const groupAndFormatSets = (sets: any[]): GroupedSet[] => {
     }
     acc[key].count++;
     return acc;
-  }, {} as Record<string, GroupedSet>);
+  }, {} as Record<string, { weight: number; reps: number; count: number }>);
   
-  // Преобразуем в массив
-  return Object.values(grouped);
+  // Преобразуем в массив и добавляем поле isSimple
+  return Object.values(grouped).map((group) => {
+    const typedGroup = group as { weight: number; reps: number; count: number };
+    const isSimple = Number(typedGroup.weight) === 0;
+    
+    console.log('🔍 ViewWorkoutPage: Processing set:', {
+      weight: typedGroup.weight,
+      weightType: typeof typedGroup.weight,
+      reps: typedGroup.reps,
+      count: typedGroup.count,
+      isSimple: isSimple
+    });
+    
+    return {
+      weight: typedGroup.weight,
+      reps: typedGroup.reps,
+      count: typedGroup.count,
+      isSimple: isSimple
+    };
+  });
 };
 
 const getSortedHistory = (history: any[]) => {
@@ -675,6 +697,12 @@ onMounted(() => {
   font-size: 0.9rem;
   font-weight: 500;
   opacity: 0.8;
+  color: var(--ion-text-color);
+}
+
+.simple-reps {
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--ion-text-color);
 }
 
