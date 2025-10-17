@@ -245,3 +245,71 @@ export interface ApiResponse<T> {
   data: T;
   message?: string;
 }
+
+// Exercise Resource (from API)
+export interface ExerciseResource {
+  id: number;
+  name: string;
+  description: string | null;
+  muscle_group: {
+    id: number;
+    name: string;
+  };
+  user: {
+    id: number;
+    name: string;
+  };
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Muscle Group Resource (from API)
+export interface MuscleGroupResource {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Exercise CRUD request types
+export interface CreateExerciseRequest {
+  name: string;
+  description?: string;
+  muscle_group_id: number;
+  is_active?: boolean;
+}
+
+export interface UpdateExerciseRequest {
+  name?: string;
+  description?: string;
+  muscle_group_id?: number;
+  is_active?: boolean;
+}
+
+// Exercise responses
+export interface ExercisesResponse {
+  data: ExerciseResource[];
+  message: string;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+  };
+}
+
+export interface MuscleGroupsResponse {
+  data: MuscleGroupResource[];
+  message: string;
+  meta?: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+    from: number;
+    to: number;
+  };
+}
