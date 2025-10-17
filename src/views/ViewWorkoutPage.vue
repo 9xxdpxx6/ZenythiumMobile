@@ -147,8 +147,32 @@
             </div>
           </div>
         </div>
+        
+        <!-- Кнопки действий в конце страницы -->
+        <div class="bottom-actions">
+          <CustomButton
+            @click="handleEdit"
+            variant="outline"
+            color="warning"
+            class="action-button edit-button"
+            icon="fas fa-edit"
+          >
+            Редактировать
+          </CustomButton>
+          
+          <CustomButton
+            @click="handleDelete"
+            variant="outline"
+            color="danger"
+            class="action-button delete-button"
+            icon="fas fa-trash"
+          >
+            Удалить
+          </CustomButton>
+        </div>
       </div>
     </ion-content>
+
 
     <CustomToast
       :is-open="!!toastMessage"
@@ -156,12 +180,24 @@
       :color="toastColor"
       @didDismiss="clearToast"
     />
+
+    <!-- Модальное окно подтверждения удаления -->
+    <DeleteConfirmationModal
+      :is-open="showDeleteModal"
+      title="Удалить тренировку"
+      message="Вы уверены, что хотите удалить эту тренировку?"
+      :item-name="workout?.plan?.name"
+      warning-text="Это действие нельзя отменить."
+      :is-deleting="isDeleting"
+      @confirm="handleDeleteConfirm"
+      @cancel="handleDeleteCancel"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -175,15 +211,21 @@ import {
 import CustomButton from '@/components/CustomButton.vue';
 import CustomChip from '@/components/CustomChip.vue';
 import CustomToast from '@/components/CustomToast.vue';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import apiClient from '@/services/api';
 import { DetailedWorkout, ApiError } from '@/types/api';
 
 const route = useRoute();
+const router = useRouter();
 const workout = ref<DetailedWorkout | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const toastMessage = ref<string | null>(null);
 const toastColor = ref<'success' | 'danger' | 'warning'>('danger');
+
+// Переменные для модального окна удаления
+const showDeleteModal = ref(false);
+const isDeleting = ref(false);
 
 const fetchWorkout = async () => {
   const workoutId = route.params.id as string;
@@ -316,6 +358,45 @@ const clearToast = () => {
   toastMessage.value = null;
 };
 
+// Функции обработки кнопок
+const handleEdit = () => {
+  if (workout.value) {
+    router.push(`/edit-workout/${workout.value.id}`);
+  }
+};
+
+const handleDelete = () => {
+  showDeleteModal.value = true;
+};
+
+const handleDeleteConfirm = async () => {
+  if (!workout.value) return;
+  
+  isDeleting.value = true;
+  try {
+    await apiClient.delete(`/api/v1/workouts/${workout.value.id}`);
+    
+    toastMessage.value = 'Тренировка успешно удалена';
+    toastColor.value = 'success';
+    
+    // Переходим обратно к списку тренировок
+    setTimeout(() => {
+      router.push('/tabs/workouts');
+    }, 1500);
+  } catch (err) {
+    console.error('Delete workout error:', err);
+    toastMessage.value = (err as ApiError).message || 'Ошибка удаления тренировки';
+    toastColor.value = 'danger';
+  } finally {
+    isDeleting.value = false;
+    showDeleteModal.value = false;
+  }
+};
+
+const handleDeleteCancel = () => {
+  showDeleteModal.value = false;
+};
+
 onMounted(() => {
   fetchWorkout();
 });
@@ -341,7 +422,7 @@ onMounted(() => {
 .workout-status-header {
   display: flex;
   align-items: center;
-  padding-right: 16px;
+  padding-right: 8px;
 }
 
 .section-title {
@@ -664,9 +745,28 @@ onMounted(() => {
   opacity: 0.9;
 }
 
+/* Кнопки действий в конце страницы */
+.bottom-actions {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.action-button {
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .workout-details {
     padding: 16px;
+  }
+  
+  .bottom-actions {
+    padding: 12px 0;
+    gap: 8px;
+    margin-top: 20px;
   }
   
   .info-grid {

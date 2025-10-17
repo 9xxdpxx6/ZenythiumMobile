@@ -21,6 +21,7 @@
         <!-- Workout Title -->
         <div class="workout-title-section">
           <h1 class="workout-title">{{ workout?.plan?.name || 'Тренировка' }}</h1>
+          <p class="workout-start-time">{{ formatStartTime(workout?.started_at) }}</p>
         </div>
 
         <div 
@@ -404,6 +405,18 @@ const formatDate = (dateString: string) => {
   });
 };
 
+const formatStartTime = (dateString: string | undefined) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+};
+
 const addSet = async (exerciseId: number) => {
   console.log('➕ ActiveWorkoutPage: Adding set for exercise:', exerciseId);
   
@@ -631,6 +644,13 @@ onMounted(() => {
   font-weight: 700 !important;
   color: var(--ion-text-color) !important;
   margin: 0 0 6px 0 !important;
+  padding-left: 0 !important;
+}
+
+.workout-start-time {
+  font-size: 14px !important;
+  color: var(--ion-color-medium) !important;
+  margin: 0 !important;
   padding-left: 0 !important;
 }
 

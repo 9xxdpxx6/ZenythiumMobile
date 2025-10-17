@@ -258,8 +258,14 @@ const handleWorkoutClick = (workout: Workout) => {
     return;
   }
   
-  // Переходим на страницу просмотра тренировки для всех тренировок
-  router.push(`/view-workout/${workout.id}`);
+  // Проверяем статус тренировки
+  if (workout.finished_at === null) {
+    // Активная тренировка - переходим на ActiveWorkoutPage
+    router.push(`/workout/${workout.id}`);
+  } else {
+    // Завершенная тренировка - переходим на ViewWorkoutPage
+    router.push(`/view-workout/${workout.id}`);
+  }
 };
 
 // Функции для долгого нажатия

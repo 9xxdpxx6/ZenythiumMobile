@@ -16,6 +16,7 @@ import { computed, useSlots } from 'vue';
 
 interface Props {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'medium';
   size?: 'small' | 'medium' | 'large';
   expand?: boolean;
   disabled?: boolean;
@@ -25,6 +26,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
+  color: 'primary',
   size: 'medium',
   expand: false,
   disabled: false,
@@ -41,6 +43,7 @@ const buttonClasses = computed(() => {
   const classes = ['custom-button'];
   
   classes.push(`button-${props.variant}`);
+  classes.push(`button-${props.color}`);
   classes.push(`button-${props.size}`);
   
   if (props.expand) {
@@ -111,13 +114,45 @@ const handleClick = (event: MouseEvent) => {
 
 .button-outline {
   background: transparent;
-  color: var(--ion-color-primary);
   border: 1px solid var(--ion-color-primary);
 }
 
 .button-outline:hover:not(.button-disabled) {
   background: var(--ion-color-primary);
   color: white;
+}
+
+/* Color variants for outline */
+.button-outline.button-primary {
+  color: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+}
+
+.button-outline.button-primary:hover:not(.button-disabled) {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.button-outline.button-warning {
+  color: var(--ion-color-warning) !important;
+  border-color: var(--ion-color-warning) !important;
+  background: transparent !important;
+}
+
+.button-outline.button-warning:hover:not(.button-disabled) {
+  background: var(--ion-color-warning) !important;
+  color: white !important;
+}
+
+.button-outline.button-danger {
+  color: var(--ion-color-danger) !important;
+  border-color: var(--ion-color-danger) !important;
+  background: transparent !important;
+}
+
+.button-outline.button-danger:hover:not(.button-disabled) {
+  background: var(--ion-color-danger) !important;
+  color: white !important;
 }
 
 .button-ghost {
