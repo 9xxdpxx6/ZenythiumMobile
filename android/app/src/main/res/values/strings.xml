@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Zenythium</string>
+    <string name="title_activity_main">Zenythium</string>
+    <string name="package_name">com.zenythium.fitness.app</string>
+    <string name="custom_url_scheme">com.zenythium.fitness.app</string>
+</resources>

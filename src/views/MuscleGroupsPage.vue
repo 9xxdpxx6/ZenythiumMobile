@@ -34,7 +34,7 @@
                 <div class="muscle-group-info">
                   <h3 class="muscle-group-name">{{ muscleGroup.name }}</h3>
                   <div class="muscle-group-count">
-                    {{ muscleGroup.exercises_count }} упражнений
+                    {{ (muscleGroup as any).exercises_count || 0 }} упражнений
                   </div>
                 </div>
               </div>

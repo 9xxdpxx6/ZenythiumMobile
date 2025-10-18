@@ -1,0 +1,4 @@
+---
+alwaysApply: true
+---
+NEVER! never use the 'npx cap run android command'. You're allowed only to 'cap sync'

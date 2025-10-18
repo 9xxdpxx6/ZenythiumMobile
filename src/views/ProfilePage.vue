@@ -70,7 +70,7 @@
 
                <div class="stat-card modern-card">
                  <div class="stat-top">
-                   <div class="stat-value">{{ statistics.current_weight }} кг</div>
+                   <div class="stat-value">{{ (statistics as any).current_weight || 'N/A' }} кг</div>
                    <i class="fas fa-chart-line stat-icon"></i>
                  </div>
                  <div class="stat-content">

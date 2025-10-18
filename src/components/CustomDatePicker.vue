@@ -154,7 +154,7 @@ const calendarDays = computed((): CalendarDay[] => {
       year: currentYear.value,
       isCurrentMonth: true,
       isToday,
-      isSelected
+      isSelected: isSelected || false
     });
   }
   
