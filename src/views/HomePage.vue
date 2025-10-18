@@ -95,6 +95,9 @@
             <!-- Weight Chart -->
             <div class="chart-container modern-card">
               <div class="chart-header">
+                <ion-button fill="clear" size="small" @click="$router.push('/metrics')" class="list-btn">
+                  <i class="fas fa-list"></i>
+                </ion-button>
                 <h3>Изменение веса тела</h3>
                 <ion-button fill="clear" size="small" @click="refreshWeightChart">
                   <i class="fas fa-sync-alt" :class="{ 
@@ -113,17 +116,27 @@
                       <span class="weight-value">{{ getCurrentWeight() }} кг</span>
                       <span class="weight-date">{{ getCurrentWeightDate() }}</span>
                     </div>
-                    <div class="weight-change" v-if="getWeightChange()">
-                      <span :class="getWeightChangeClassForChart()">
-                        {{ getWeightChange() }}
-                      </span>
+                    <div class="chart-actions">
+                      <div class="weight-change" v-if="getWeightChange()">
+                        <span :class="getWeightChangeClassForChart()">
+                          {{ getWeightChange() }}
+                        </span>
+                      </div>
+                      <ion-button 
+                        fill="clear" 
+                        size="small" 
+                        @click="openAddMetricModal"
+                        class="add-metric-btn"
+                      >
+                        <i class="fas fa-plus"></i>
+                      </ion-button>
                     </div>
                   </div>
                 </div>
                 <div v-else class="no-data">
                   <i class="fas fa-weight chart-icon"></i>
-                  <p>Нет веса</p>
-                  <ion-button fill="outline" size="small" @click="addWeightEntry">
+                  <p>Нет измерений</p>
+                  <ion-button fill="outline" size="small" @click="openAddMetricModal">
                     Добавить вес
                   </ion-button>
                 </div>
@@ -274,11 +287,80 @@
       </div>
 
     </ion-content>
+
+    <!-- Add Metric Modal -->
+    <ion-modal :is-open="isAddMetricModalOpen" @did-dismiss="closeAddMetricModal">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Добавить вес</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="closeAddMetricModal">
+              <i class="fas fa-times"></i>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="modal-content">
+        <div class="metric-form">
+          <div class="form-group">
+            <CustomDatePicker
+              v-model="newMetricDate"
+              label="Дата измерения"
+              :max="new Date().toISOString()"
+            />
+          </div>
+          
+          <div class="form-group">
+            <CustomInput
+              v-model="newMetricWeight"
+              label="Вес (кг)"
+              type="number"
+              placeholder="Введите вес"
+              :min="0"
+              :max="1000"
+              step="0.01"
+            />
+          </div>
+          
+          <div class="form-group">
+            <CustomInput
+              v-model="newMetricNote"
+              label="Заметка (необязательно)"
+              type="text"
+              placeholder="Добавьте заметку к измерению"
+            />
+          </div>
+          
+          <div class="form-actions">
+            <ion-button 
+              expand="block" 
+              @click="addMetric"
+              :disabled="!newMetricWeight || isAddingMetric"
+              class="save-btn"
+            >
+              <ion-spinner v-if="isAddingMetric" name="crescent"></ion-spinner>
+              <span v-else>Сохранить</span>
+            </ion-button>
+          </div>
+        </div>
+      </ion-content>
+    </ion-modal>
+    
+    <!-- Toast notifications -->
+    <CustomToast
+      :is-open="isToastOpen"
+      :message="toastMessage"
+      :color="toastColor"
+      position="bottom"
+      :duration="4000"
+      @didDismiss="onToastDismiss"
+    />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, computed, nextTick, onActivated } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -288,11 +370,16 @@ import {
   IonContent,
   IonButton,
   IonSpinner,
+  IonModal,
+  IonButtons,
 } from '@ionic/vue';
 // Font Awesome icons - no imports needed, using CSS classes
 import apiClient from '@/services/api';
 import { Workout, Statistics, StatisticsResponse, MetricsResponse, Metric, ApiError } from '@/types/api';
 import { Chart, registerables } from 'chart.js';
+import CustomDatePicker from '@/components/CustomDatePicker.vue';
+import CustomInput from '@/components/CustomInput.vue';
+import CustomToast from '@/components/CustomToast.vue';
 
 // Register Chart.js components
 Chart.register(...registerables);
@@ -316,6 +403,18 @@ let weightChart: Chart | null = null;
 // Refresh animation state
 const isRefreshingChart = ref(false);
 const isCompletingChart = ref(false);
+
+// Add metric modal state
+const isAddMetricModalOpen = ref(false);
+const newMetricDate = ref('');
+const newMetricWeight = ref<string>('');
+const newMetricNote = ref('');
+const isAddingMetric = ref(false);
+
+// Toast state
+const isToastOpen = ref(false);
+const toastMessage = ref('');
+const toastColor = ref<'primary' | 'secondary' | 'success' | 'warning' | 'danger'>('primary');
 
 // Exercise progress tracking
 const selectedExercises = ref<Array<{
@@ -600,6 +699,12 @@ const createWeightChart = () => {
           bodyColor: '#fff',
           borderColor: 'rgb(124, 58, 237)',
           borderWidth: 1,
+          position: 'nearest',
+          xAlign: 'center',
+          yAlign: 'top',
+          caretSize: 6,
+          caretPadding: 8,
+          displayColors: false,
           callbacks: {
             title: function(context) {
               const index = context[0].dataIndex;
@@ -711,8 +816,121 @@ const formatDateShort = (dateString: string) => {
   });
 };
 
+// Modal functions
+const openAddMetricModal = () => {
+  // Set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  newMetricDate.value = today;
+  newMetricWeight.value = '';
+  newMetricNote.value = '';
+  isAddMetricModalOpen.value = true;
+};
+
+const closeAddMetricModal = () => {
+  isAddMetricModalOpen.value = false;
+  newMetricDate.value = '';
+  newMetricWeight.value = '';
+  newMetricNote.value = '';
+};
+
+const addMetric = async () => {
+  if (!newMetricWeight.value || !newMetricDate.value) return;
+  
+  // Validate date is not in the future
+  const selectedDate = new Date(newMetricDate.value);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // End of today
+  
+  if (selectedDate > today) {
+    showErrorToast('Дата не может быть в будущем');
+    return;
+  }
+  
+  // Validate weight
+  const weight = parseFloat(newMetricWeight.value);
+  if (isNaN(weight) || weight <= 0 || weight > 1000) {
+    showErrorToast('Вес должен быть от 0 до 1000 кг');
+    return;
+  }
+  
+  isAddingMetric.value = true;
+  
+  try {
+    const metricData = {
+      date: newMetricDate.value,
+      weight: weight.toFixed(2),
+      note: newMetricNote.value || null
+    };
+    
+    await apiClient.post('/api/v1/metrics', metricData);
+    
+    // Refresh data to update chart
+    await fetchData();
+    
+    // Show success toast
+    showSuccessToast('Метрика успешно добавлена!');
+    
+    // Close modal
+    closeAddMetricModal();
+  } catch (error: any) {
+    console.error('Error adding metric:', error);
+    
+    // Handle different types of errors
+    if (error.response?.status === 422) {
+      const errorData = error.response.data;
+      
+      // Специальная обработка для ошибки дублирования даты
+      if (errorData.errors && errorData.errors.date) {
+        const dateError = Array.isArray(errorData.errors.date) 
+          ? errorData.errors.date[0] 
+          : String(errorData.errors.date);
+        showErrorToast(`Запись на эту дату уже существует. ${dateError}`);
+      } else if (errorData.message) {
+        showErrorToast(errorData.message);
+      } else if (errorData.errors) {
+        // Handle validation errors
+        const firstError = Object.values(errorData.errors)[0];
+        if (Array.isArray(firstError)) {
+          showErrorToast(firstError[0]);
+        } else {
+          showErrorToast(String(firstError));
+        }
+      } else {
+        showErrorToast('Ошибка валидации данных');
+      }
+    } else if (error.response?.status === 401) {
+      showErrorToast('Необходимо войти в систему');
+    } else if (error.response?.status >= 500) {
+      showErrorToast('Ошибка сервера. Попробуйте позже');
+    } else {
+      showErrorToast('Произошла ошибка при сохранении метрики');
+    }
+  } finally {
+    isAddingMetric.value = false;
+  }
+};
+
 const addWeightEntry = () => {
-  // This would typically open a modal to add weight entry
+  openAddMetricModal();
+};
+
+// Toast functions
+const showToast = (message: string, color: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' = 'primary') => {
+  toastMessage.value = message;
+  toastColor.value = color;
+  isToastOpen.value = true;
+};
+
+const showSuccessToast = (message: string) => {
+  showToast(message, 'success');
+};
+
+const showErrorToast = (message: string) => {
+  showToast(message, 'danger');
+};
+
+const onToastDismiss = () => {
+  isToastOpen.value = false;
 };
 
 const fetchData = async () => {
@@ -845,6 +1063,12 @@ const getWeightChangeClass = (weightChange: any) => {
 };
 
 onMounted(() => {
+  fetchData();
+});
+
+// Обновляем данные при возврате на страницу
+onActivated(() => {
+  console.log('HomePage: Activated, refreshing data...');
   fetchData();
 });
 </script>
@@ -1216,9 +1440,29 @@ onMounted(() => {
 
 .chart-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 10px;
+  gap: 8px;
+}
+
+.list-btn {
+  --color: var(--ion-color-medium);
+  --background: transparent;
+  --border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+}
+
+.list-btn:hover {
+  --color: var(--ion-color-primary);
+}
+
+.list-btn i {
+  font-size: 14px;
 }
 
 .chart-header h3 {
@@ -1226,7 +1470,8 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: var(--ion-text-color);
-  padding-left: 18px;
+  padding-left: 0;
+  flex: 1;
 }
 
 
@@ -1247,6 +1492,28 @@ onMounted(() => {
   align-items: center;
   padding: 8px 0;
   border-top: 1px solid var(--ion-color-step-200);
+}
+
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-metric-btn {
+  --color: var(--ion-color-primary);
+  --background: transparent;
+  --border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+}
+
+.add-metric-btn i {
+  font-size: 14px;
 }
 
 .current-weight {
@@ -1329,9 +1596,10 @@ onMounted(() => {
 }
 
 .chart-icon {
-  margin-bottom: 6px;
-  font-size: 2rem;
+  margin-bottom: 0;
+  font-size: 2.5rem;
   color: var(--ion-color-primary);
+  opacity: 0.8;
 }
 
 .no-data {
@@ -1339,22 +1607,50 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 70px;
+  height: 160px;
   text-align: center;
   color: var(--ion-color-medium);
+  padding: 20px;
+  gap: 16px;
 }
 
 .no-data p {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 14px;
+  line-height: 1.4;
 }
 
 .no-data ion-button {
-  --padding-start: 12px;
-  --padding-end: 12px;
-  --padding-top: 6px;
-  --padding-bottom: 6px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  min-width: 120px;
+  --border-radius: 8px;
+}
+
+.no-data ion-button .button-native {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+.no-workout-data {
+  margin: 0;
   font-size: 12px;
+  line-height: 1.5;
+  color: var(--ion-color-medium);
+  opacity: 0.8;
+  text-align: center;
+  max-width: 280px;
+}
+
+.no-workout-data small {
+  display: block;
+  margin-bottom: 6px;
+  text-align: center;
 }
 
 /* Exercise Progress - Increased spacing */
@@ -1488,17 +1784,62 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  padding: 2rem;
   text-align: center;
   color: var(--ion-color-medium);
+  gap: 16px;
+  min-height: 120px;
 }
 
 .loading-state ion-spinner {
-  margin-bottom: 0.5rem;
+  margin-bottom: 0;
+  --color: var(--ion-color-primary);
 }
 
 .loading-state p {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ion-color-medium);
+}
+
+/* Modal Styles */
+.modal-content {
+  --background: var(--ion-color-step-50);
+}
+
+.metric-form {
+  padding: 20px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.form-actions {
+  margin-top: 30px;
+}
+
+.save-btn {
+  --background: var(--ion-color-primary);
+  --color: white;
+  --border-radius: 8px;
+  height: 48px;
+  font-weight: 600;
+}
+
+.save-btn:disabled {
+  --background: var(--ion-color-step-200);
+  --color: var(--ion-color-medium);
 }
 </style>

@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button></ion-back-button>
+          <ion-back-button default-href="/"></ion-back-button>
         </ion-buttons>
         <ion-title>Начать тренировку</ion-title>
       </ion-toolbar>
@@ -19,20 +19,30 @@
         <div class="workout-info">
           <i class="fas fa-dumbbell workout-icon"></i>
           <h2>Готовы начать тренировку?</h2>
-          <p>Система автоматически выберет подходящий план на основе вашего прогресса и активного цикла.</p>
+          <p v-if="selectedPlanId === 'auto'">Система автоматически выберет подходящий план на основе вашего прогресса и активного цикла.</p>
         </div>
+      </div>
 
-        <div class="ion-padding">
-          <ion-button
-            expand="block"
-            :disabled="starting"
-            @click="startWorkout"
-            size="large"
-          >
-            <ion-spinner v-if="starting" name="crescent"></ion-spinner>
-            <span v-else>Начать тренировку</span>
-          </ion-button>
-        </div>
+      <div v-if="!loading" class="plan-selection">
+        <CustomSelect
+          v-model="selectedPlanId"
+          :options="planOptions"
+          placeholder="Выберите план тренировки"
+          search-placeholder="Поиск планов..."
+          @change="onPlanChange"
+        />
+      </div>
+
+      <div v-if="!loading" class="ion-padding">
+        <ion-button
+          expand="block"
+          :disabled="starting || !selectedPlanId"
+          @click="startWorkout"
+          size="large"
+        >
+          <ion-spinner v-if="starting" name="crescent"></ion-spinner>
+          <span v-else>Начать тренировку</span>
+        </ion-button>
       </div>
     </ion-content>
 
@@ -46,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import {
   IonPage,
@@ -60,14 +70,76 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
+import CustomSelect from '@/components/CustomSelect.vue';
 import apiClient from '@/services/api';
-import { StartWorkoutResponse, ApiError } from '@/types/api';
+import { DataService } from '@/services/data';
+import { StartWorkoutResponse, ApiError, Cycle, Plan } from '@/types/api';
 
 const router = useRouter();
 const route = useRoute();
 const loading = ref(false);
 const starting = ref(false);
 const error = ref<string | null>(null);
+const selectedPlanId = ref<string>('auto');
+const cycles = ref<Cycle[]>([]);
+const plans = ref<Plan[]>([]);
+
+// Computed property for plan options
+const planOptions = computed(() => {
+  const options = [
+    { value: 'auto', label: 'Автоматический выбор' }
+  ];
+  
+  plans.value.forEach(plan => {
+    if (plan.is_active) {
+      options.push({
+        value: plan.id.toString(),
+        label: plan.name
+      });
+    }
+  });
+  
+  return options;
+});
+
+const loadActiveCyclesAndPlans = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+    
+    // Fetch all cycles
+    const cyclesResponse = await DataService.getCycles();
+    cycles.value = cyclesResponse.data;
+    
+    // Find active cycles
+    const activeCycles = cycles.value.filter(cycle => DataService.isCycleActive(cycle));
+    
+    if (activeCycles.length > 0) {
+      // Use the first active cycle
+      const firstActiveCycle = activeCycles[0];
+      console.log('Using active cycle:', firstActiveCycle);
+      
+      // Fetch plans for this cycle
+      const plansResponse = await DataService.getPlans(1, 100, firstActiveCycle.id);
+      plans.value = plansResponse.data;
+      
+      console.log('Loaded plans:', plans.value);
+    } else {
+      console.log('No active cycles found');
+      plans.value = [];
+    }
+  } catch (err) {
+    console.error('Error loading cycles and plans:', err);
+    error.value = 'Ошибка загрузки планов тренировок';
+  } finally {
+    loading.value = false;
+  }
+};
+
+const onPlanChange = (value: any) => {
+  console.log('Plan changed to:', value);
+  selectedPlanId.value = value;
+};
 
 const startWorkout = async () => {
   console.log('🚀 SelectPlanPage: Starting workout creation');
@@ -76,8 +148,15 @@ const startWorkout = async () => {
   error.value = null;
   
   try {
-    console.log('📡 SelectPlanPage: Sending POST request to /api/v1/workouts/start');
-    const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', {});
+    const requestData: any = {};
+    
+    // If a specific plan is selected (not auto), include it in the request
+    if (selectedPlanId.value !== 'auto') {
+      requestData.plan_id = parseInt(selectedPlanId.value);
+    }
+    
+    console.log('📡 SelectPlanPage: Sending POST request to /api/v1/workouts/start with data:', requestData);
+    const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', requestData);
     
     console.log('📡 SelectPlanPage: API response:', response);
     console.log('📡 SelectPlanPage: Response data:', response.data);
@@ -105,7 +184,7 @@ const clearError = () => {
 onMounted(() => {
   console.log('🚀 SelectPlanPage: Component mounted');
   console.log('🔍 SelectPlanPage: Route params:', route.params);
-  // Страница готова к запуску тренировки
+  loadActiveCyclesAndPlans();
 });
 </script>
 
@@ -133,6 +212,11 @@ onMounted(() => {
   margin-bottom: 2rem;
 }
 
+.plan-selection {
+  padding: 0 16px;
+  margin-bottom: 2rem;
+}
+
 .workout-icon {
   font-size: 4rem;
   color: var(--ion-color-primary);
@@ -140,7 +224,7 @@ onMounted(() => {
 }
 
 .workout-info h2 {
-  color: var(--ion-color-dark);
+  color: #FFFFFF;
   margin-bottom: 1rem;
 }
 

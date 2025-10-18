@@ -109,6 +109,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'MuscleGroups',
     component: () => import('@/views/MuscleGroupsPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/metrics',
+    name: 'Metrics',
+    component: () => import('@/views/MetricsPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

@@ -9,6 +9,9 @@
         :value="modelValue"
         :disabled="disabled"
         :required="required"
+        :min="min"
+        :max="max"
+        :step="step"
         class="custom-input"
         @input="handleInput"
         @focus="handleFocus"
@@ -34,6 +37,9 @@ interface Props {
   required?: boolean;
   error?: boolean;
   errorMessage?: string;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
 }
 
 interface Emits {
