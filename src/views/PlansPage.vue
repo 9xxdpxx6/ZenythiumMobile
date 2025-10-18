@@ -86,6 +86,17 @@
                 <div class="created-date">
                   {{ formatDate(plan.created_at) }}
                 </div>
+                <div class="plan-actions">
+                  <button 
+                    @click.stop="duplicatePlan(plan)"
+                    class="duplicate-button"
+                    :disabled="duplicatingPlanId === plan.id"
+                    title="Дублировать план"
+                  >
+                    <i v-if="duplicatingPlanId === plan.id" class="fas fa-spinner fa-spin"></i>
+                    <i v-else class="fas fa-copy"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -133,6 +144,7 @@ const plans = ref<Plan[]>([]);
 const loading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+const duplicatingPlanId = ref<number | null>(null);
 // Функции для работы с localStorage
 const FILTERS_STORAGE_KEY = 'plans-filters';
 
@@ -274,6 +286,55 @@ const createNewPlan = () => {
     document.activeElement.blur();
   }
   router.push('/plan/new');
+};
+
+const duplicatePlan = async (plan: Plan) => {
+  if (duplicatingPlanId.value) return; // Prevent multiple simultaneous duplications
+  
+  duplicatingPlanId.value = plan.id;
+  
+  try {
+    const requestBody: any = {
+      name: `${plan.name} (копия)`,
+      is_active: false // По умолчанию копия неактивна
+    };
+    
+    // Если у плана есть цикл, сохраняем его
+    if (plan.cycle?.id) {
+      requestBody.cycle_id = plan.cycle.id;
+    }
+    
+    const response = await apiClient.post(`/api/v1/plans/${plan.id}/duplicate`, requestBody);
+    
+    // Показываем уведомление об успехе
+    const event = new CustomEvent('show-toast', {
+      detail: {
+        message: 'План успешно скопирован',
+        type: 'success',
+        duration: 3000
+      }
+    });
+    window.dispatchEvent(event);
+    
+    // Обновляем список планов
+    await fetchPlans();
+    
+  } catch (err) {
+    console.error('Plan duplication error:', err);
+    const errorMessage = (err as ApiError).message || 'Ошибка при копировании плана';
+    
+    // Показываем уведомление об ошибке
+    const event = new CustomEvent('show-toast', {
+      detail: {
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      }
+    });
+    window.dispatchEvent(event);
+  } finally {
+    duplicatingPlanId.value = null;
+  }
 };
 
 onActivated(() => {
@@ -476,13 +537,49 @@ onUnmounted(() => {
   margin-top: auto;
   padding-top: 12px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .created-date {
   font-size: 11px;
   color: var(--ion-color-medium);
   opacity: 0.7;
+}
+
+.plan-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.duplicate-button {
+  background: transparent;
+  border: 1px solid var(--ion-color-primary);
+  color: var(--ion-color-primary);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+}
+
+.duplicate-button:hover:not(:disabled) {
+  background: var(--ion-color-primary);
+  color: white;
+}
+
+.duplicate-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.duplicate-button i {
+  font-size: 12px;
 }
 
 .modern-button {
