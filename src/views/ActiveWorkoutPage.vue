@@ -325,8 +325,11 @@ const getPreviousSets = (exerciseId: number) => {
 const groupAndFormatSets = (sets: any[]) => {
   if (!sets || sets.length === 0) return [];
   
+  // Сортируем подходы по ID (от старых к новым)
+  const sortedSets = [...sets].sort((a, b) => (a.id || 0) - (b.id || 0));
+  
   // Группируем подходы по весу и повторениям
-  const grouped = sets.reduce((acc, set) => {
+  const grouped = sortedSets.reduce((acc, set) => {
     const key = `${set.weight}x${set.reps}`;
     if (!acc[key]) {
       acc[key] = {
