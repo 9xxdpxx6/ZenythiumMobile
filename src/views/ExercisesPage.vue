@@ -701,7 +701,7 @@ onUnmounted(() => {
   color: var(--ion-color-medium);
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  margin: 8px 0;
+  margin: 8px 16px;
 }
 
 .search-loading ion-spinner {

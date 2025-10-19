@@ -42,13 +42,20 @@
           <p>Загрузка планов...</p>
         </div>
 
-        <div v-else-if="filteredPlans.length > 0">
+        <div v-else-if="plans.length > 0">
+          <!-- Локальный спиннер для поиска -->
+          <div v-if="searchLoading" class="search-loading">
+            <ion-spinner name="crescent"></ion-spinner>
+            <p>Поиск планов...</p>
+          </div>
+          
           <div class="plans-grid">
             <div
-              v-for="plan in filteredPlans"
+              v-for="plan in plans"
               :key="plan.id"
               class="plan-card modern-card"
               @click="handlePlanClick(plan)"
+              v-show="!searchLoading"
             >
               <div class="plan-header">
                 <h3>{{ plan.name }}</h3>
@@ -102,7 +109,7 @@
           </div>
         </div>
 
-        <div v-else class="empty-state">
+        <div v-else-if="!searchLoading" class="empty-state">
           <i class="fas fa-list empty-icon"></i>
           <h2>{{ searchQuery ? 'Планы не найдены' : 'Нет планов' }}</h2>
           <p>{{ searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Планы тренировок будут доступны в ближайшее время' }}</p>
@@ -141,8 +148,10 @@ import { Plan, ApiError, Exercise } from '@/types/api';
 const router = useRouter();
 const plans = ref<Plan[]>([]);
 const loading = ref(false);
+const searchLoading = ref(false);
 const error = ref<string | null>(null);
 const searchQuery = ref('');
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const duplicatingPlanId = ref<number | null>(null);
 // Функции для работы с localStorage
 const FILTERS_STORAGE_KEY = 'plans-filters';
@@ -187,24 +196,24 @@ const defaultFilters = {
 const savedFilters = loadFiltersFromStorage();
 const currentFilters = ref(savedFilters || defaultFilters);
 
-// Фильтрация планов по поисковому запросу
-const filteredPlans = computed(() => {
-  if (!searchQuery.value.trim()) {
-    return plans.value;
-  }
-  
-  const query = searchQuery.value.toLowerCase().trim();
-  return plans.value.filter(plan => 
-    plan.name.toLowerCase().includes(query)
-  );
-});
+// Теперь используем API поиск, локальная фильтрация не нужна
 
-const fetchPlans = async () => {
-  loading.value = true;
+const fetchPlans = async (isSearch: boolean = false) => {
+  // Используем searchLoading для поиска, loading для обычной загрузки
+  if (isSearch) {
+    searchLoading.value = true;
+  } else {
+    loading.value = true;
+  }
   error.value = null;
   
   try {
     const params: Record<string, string> = {};
+    
+    // Добавляем параметр поиска
+    if (searchQuery.value.trim()) {
+      params.search = searchQuery.value.trim();
+    }
     
     // Добавляем параметры фильтрации
     if (currentFilters.value.is_active !== null) {
@@ -229,7 +238,11 @@ const fetchPlans = async () => {
     console.error('Plans fetch error:', err);
     error.value = (err as ApiError).message;
   } finally {
-    loading.value = false;
+    if (isSearch) {
+      searchLoading.value = false;
+    } else {
+      loading.value = false;
+    }
   }
 };
 
@@ -261,6 +274,16 @@ const formatDate = (dateString: string) => {
 // Функции поиска
 const handleSearch = (value: string) => {
   searchQuery.value = value;
+  
+  // Очищаем предыдущий таймаут
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  
+  // Устанавливаем новый таймаут для дебаунса (300ms)
+  searchTimeout.value = setTimeout(() => {
+    fetchPlans(true); // Используем локальную загрузку для поиска
+  }, 300);
 };
 
 const handleFiltersChanged = (filters: any) => {
@@ -271,6 +294,10 @@ const handleFiltersChanged = (filters: any) => {
 
 const clearSearch = () => {
   searchQuery.value = '';
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  fetchPlans(true); // Используем локальную загрузку для поиска
 };
 
 const resetFilters = () => {
@@ -355,6 +382,11 @@ onMounted(() => {
 onUnmounted(() => {
   // Удаляем обработчик события при размонтировании компонента
   window.removeEventListener('plans-updated', handlePlansUpdated);
+  
+  // Очищаем таймаут при размонтировании компонента
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
 });
 </script>
 
@@ -442,6 +474,28 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
+}
+
+.search-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--ion-color-medium);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin: 8px 16px;
+}
+
+.search-loading ion-spinner {
+  margin-bottom: 1rem;
+}
+
+.search-loading p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .plan-card {
