@@ -233,8 +233,6 @@ const isDeleting = ref(false);
 const fetchWorkout = async () => {
   const workoutId = route.params.id as string;
   
-  console.log('Fetching workout with ID:', workoutId);
-  
   if (!workoutId) {
     error.value = 'ID тренировки не найден';
     return;
@@ -244,14 +242,11 @@ const fetchWorkout = async () => {
   error.value = null;
   
   try {
-    console.log('Making API request to:', `/api/v1/workouts/${workoutId}`);
     const response = await apiClient.get(`/api/v1/workouts/${workoutId}`);
-    console.log('API Response:', response.data);
     
     // Проверяем структуру ответа
     if (response.data && response.data.data) {
       workout.value = response.data.data;
-      console.log('Workout data set:', workout.value);
     } else {
       console.error('Unexpected API response structure:', response.data);
       error.value = 'Неожиданная структура ответа API';
@@ -267,7 +262,6 @@ const fetchWorkout = async () => {
     error.value = (err as ApiError).message || 'Ошибка загрузки тренировки';
   } finally {
     loading.value = false;
-    console.log('Loading completed, loading.value:', loading.value);
   }
 };
 
@@ -336,14 +330,6 @@ const groupAndFormatSets = (sets: any[]): GroupedSet[] => {
   return Object.values(grouped).map((group) => {
     const typedGroup = group as { weight: number; reps: number; count: number };
     const isSimple = Number(typedGroup.weight) === 0;
-    
-    console.log('🔍 ViewWorkoutPage: Processing set:', {
-      weight: typedGroup.weight,
-      weightType: typeof typedGroup.weight,
-      reps: typedGroup.reps,
-      count: typedGroup.count,
-      isSimple: isSimple
-    });
     
     return {
       weight: typedGroup.weight,

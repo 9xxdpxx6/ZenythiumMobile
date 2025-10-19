@@ -117,15 +117,12 @@ const loadActiveCyclesAndPlans = async () => {
     if (activeCycles.length > 0) {
       // Use the first active cycle
       const firstActiveCycle = activeCycles[0];
-      console.log('Using active cycle:', firstActiveCycle);
       
       // Fetch plans for this cycle
       const plansResponse = await DataService.getPlans(1, 100, firstActiveCycle.id);
       plans.value = plansResponse.data;
       
-      console.log('Loaded plans:', plans.value);
     } else {
-      console.log('No active cycles found');
       plans.value = [];
     }
   } catch (err) {
@@ -137,13 +134,10 @@ const loadActiveCyclesAndPlans = async () => {
 };
 
 const onPlanChange = (value: any) => {
-  console.log('Plan changed to:', value);
   selectedPlanId.value = value;
 };
 
 const startWorkout = async () => {
-  console.log('🚀 SelectPlanPage: Starting workout creation');
-  
   starting.value = true;
   error.value = null;
   
@@ -155,19 +149,9 @@ const startWorkout = async () => {
       requestData.plan_id = parseInt(selectedPlanId.value);
     }
     
-    console.log('📡 SelectPlanPage: Sending POST request to /api/v1/workouts/start with data:', requestData);
     const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', requestData);
     
-    console.log('📡 SelectPlanPage: API response:', response);
-    console.log('📡 SelectPlanPage: Response data:', response.data);
-    console.log('💾 SelectPlanPage: Created workout:', response.data.data);
-    console.log('🔍 SelectPlanPage: Workout structure:', JSON.stringify(response.data.data, null, 2));
-    console.log('🔍 SelectPlanPage: Workout plan_id:', response.data.data?.plan_id);
-    console.log('🔍 SelectPlanPage: Workout plan:', response.data.data?.plan);
-    
     const workoutId = response.data.data.id;
-    console.log('🔗 SelectPlanPage: Navigating to workout page with ID:', workoutId);
-    
     router.push(`/workout/${workoutId}`);
   } catch (err) {
     console.error('❌ SelectPlanPage: Error creating workout:', err);
@@ -182,8 +166,6 @@ const clearError = () => {
 };
 
 onMounted(() => {
-  console.log('🚀 SelectPlanPage: Component mounted');
-  console.log('🔍 SelectPlanPage: Route params:', route.params);
   loadActiveCyclesAndPlans();
 });
 </script>

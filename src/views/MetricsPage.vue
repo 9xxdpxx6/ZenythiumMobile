@@ -580,7 +580,6 @@ const resetFilters = () => {
 
 // Функции фильтрации по датам
 const handleDateFilterChange = () => {
-  console.log('Date filter changed, fetching metrics...');
   fetchMetrics(1);
 };
 

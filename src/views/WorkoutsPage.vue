@@ -219,23 +219,14 @@ const fetchWorkouts = async () => {
     
     const response = await apiClient.get('/api/v1/workouts', { params });
     
-    // Отладочная информация
-    console.log('API Response:', response.data);
-    
-    // Исправляем доступ к данным согласно API документации
-    // API возвращает: { data: [...], message: "...", meta: {...} }
     workouts.value = response.data.data || [];
     
-    // Принудительно обновляем реактивность
     workouts.value = [...workouts.value];
     
-    // Увеличиваем ключ для принудительного перерендера списка
     workoutsKey.value++;
     
-    // Ждем обновления DOM
     await nextTick();
     
-    console.log('Updated workouts:', workouts.value.length, 'items');
   } catch (err) {
     console.error('Workouts fetch error:', err);
     error.value = (err as ApiError).message;
@@ -245,14 +236,11 @@ const fetchWorkouts = async () => {
 };
 
 const handleRefresh = async (event: CustomEvent) => {
-  console.log('Refreshing workouts...');
   await fetchWorkouts();
   event.detail.complete();
-  console.log('Refresh completed');
 };
 
 const handleWorkoutClick = (workout: Workout) => {
-  // Если было долгое нажатие, не обрабатываем обычный клик
   if (isLongPressing.value) {
     isLongPressing.value = false;
     return;
@@ -272,7 +260,6 @@ const handleWorkoutClick = (workout: Workout) => {
 const handleWorkoutPressStart = (workout: Workout) => {
   isLongPressing.value = false;
   longPressTimer.value = setTimeout(() => {
-    console.log('⏰ Long press timeout reached, opening action modal for workout:', workout.id);
     isLongPressing.value = true;
     selectedWorkout.value = workout;
     showActionModal.value = true;
@@ -295,11 +282,6 @@ const handleActionEdit = () => {
 };
 
 const handleActionDelete = () => {
-  console.log('🔄 Opening delete confirmation modal for workout:', selectedWorkout.value?.id);
-  console.log('🔄 Modal state before:', { showActionModal: showActionModal.value, showDeleteModal: showDeleteModal.value });
-  console.log('🔄 Selected workout before:', selectedWorkout.value);
-  
-  // Сбрасываем все флаги для нового процесса удаления
   isUserCancelling.value = false;
   isTransitioningToDelete.value = true;
   isDeletionCompleted.value = false;
@@ -307,15 +289,10 @@ const handleActionDelete = () => {
   showActionModal.value = false;
   showDeleteModal.value = true;
   
-  console.log('🔄 Modal state after:', { showActionModal: showActionModal.value, showDeleteModal: showDeleteModal.value });
-  console.log('🔄 Selected workout after:', selectedWorkout.value);
 };
 
 const handleActionCancel = () => {
-  console.log('🔄 Action modal cancelled by user, isTransitioningToDelete:', isTransitioningToDelete.value);
-  
   if (isTransitioningToDelete.value) {
-    console.log('🔄 Transitioning to delete, not clearing selectedWorkout');
     isTransitioningToDelete.value = false;
     return;
   }
@@ -325,32 +302,21 @@ const handleActionCancel = () => {
 };
 
 const handleDeleteConfirm = async () => {
-  console.log('🔄 Delete confirmed, checking state...');
-  console.log('🔄 Selected workout:', selectedWorkout.value?.id);
-  console.log('🔄 Is user cancelling:', isUserCancelling.value);
-  console.log('🔄 Is transitioning to delete:', isTransitioningToDelete.value);
-  console.log('🔄 Is deletion completed:', isDeletionCompleted.value);
-  
   if (!selectedWorkout.value) {
     console.error('No workout selected for deletion');
     return;
   }
   
   if (isUserCancelling.value) {
-    console.log('User cancelled, aborting deletion');
     return;
   }
   
-  console.log('🗑️ Starting workout deletion for ID:', selectedWorkout.value.id);
   
   isDeleting.value = true;
   try {
-    console.log('📡 Sending DELETE request to:', `/api/v1/workouts/${selectedWorkout.value.id}`);
     const response = await apiClient.delete(`/api/v1/workouts/${selectedWorkout.value.id}`);
-    console.log('✅ Workout deleted successfully:', response.data);
     
     // Обновляем список
-    console.log('🔄 Refreshing workouts list...');
     await fetchWorkouts();
     
     // Закрываем модальные окна
@@ -360,7 +326,6 @@ const handleDeleteConfirm = async () => {
     isTransitioningToDelete.value = false;
     isDeletionCompleted.value = true;
     
-    console.log('✅ Deletion process completed');
   } catch (err) {
     console.error('❌ Delete workout error:', err);
     console.error('❌ Error details:', {
@@ -380,10 +345,8 @@ const handleDeleteConfirm = async () => {
 };
 
 const handleDeleteCancel = () => {
-  console.log('🔄 Delete cancelled by user, isDeletionCompleted:', isDeletionCompleted.value);
   
   if (isDeletionCompleted.value) {
-    console.log('🔄 Deletion already completed, ignoring cancel event');
     isDeletionCompleted.value = false;
     return;
   }
@@ -411,25 +374,18 @@ const clearError = () => {
 
 // Функции фильтрации по датам
 const handleDateFilterChange = () => {
-  console.log('Date filter changed, fetching workouts...');
-  // Вызываем fetchWorkouts при изменении дат для получения отфильтрованных данных с сервера
   fetchWorkouts();
 };
 
 // Обновляем список тренировок при возврате на страницу
 onActivated(async () => {
-  console.log('WorkoutsPage: Activated, isInitialized:', isInitialized.value);
-  
-  // Если компонент еще не инициализирован, ждем инициализации
   if (!isInitialized.value) {
-    console.log('WorkoutsPage: Not initialized yet, skipping activated refresh');
     return;
   }
   
   // Ждем следующий тик, чтобы убедиться, что компонент готов
   await nextTick();
   
-  console.log('WorkoutsPage: Refreshing workouts list on activation');
   fetchWorkouts();
 });
 
@@ -438,16 +394,13 @@ onActivated(async () => {
 (window as any).workouts = workouts;
 
 onMounted(async () => {
-  console.log('WorkoutsPage: Mounted, initializing...');
   await fetchWorkouts();
   isInitialized.value = true;
-  console.log('WorkoutsPage: Initialization completed');
 });
 
 // Дополнительно отслеживаем изменения роутера для надежности
 watch(() => route.path, (newPath) => {
   if (newPath === '/tabs/workouts' && isInitialized.value) {
-    console.log('WorkoutsPage: Route changed to workouts, refreshing list');
     fetchWorkouts();
   }
 });

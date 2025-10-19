@@ -1068,7 +1068,6 @@ onMounted(() => {
 
 // Обновляем данные при возврате на страницу
 onActivated(() => {
-  console.log('HomePage: Activated, refreshing data...');
   fetchData();
 });
 </script>

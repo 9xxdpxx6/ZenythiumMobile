@@ -29,7 +29,7 @@
               <button 
                 v-for="option in activityOptions" 
                 :key="String(option.value)"
-                @click="localFilters.is_active = option.value; console.log('Activity filter clicked:', option.value)"
+                @click="localFilters.is_active = option.value"
                 :class="['toggle-button', { active: localFilters.is_active === option.value }]"
               >
                 {{ option.label }}
@@ -193,7 +193,6 @@ const applyFilters = () => {
     sort_order: localFilters.sort_order,
   };
   
-  console.log('Applying filters:', filtersToApply);
   emit('filters-changed', filtersToApply);
   closeFilters();
 };

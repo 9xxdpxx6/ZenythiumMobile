@@ -471,7 +471,6 @@ const fetchExercises = async (page: number = 1) => {
     // Add filters
     if (filters.value.is_active !== null) {
       params.is_active = filters.value.is_active ? '1' : '0';
-      console.log('Filter is_active:', filters.value.is_active, '-> params.is_active:', params.is_active);
     }
     if (filters.value.muscle_group_id !== null) {
       params.muscle_group_id = filters.value.muscle_group_id;
@@ -488,8 +487,6 @@ const fetchExercises = async (page: number = 1) => {
     if (filters.value.sort_order) {
       params.sort_order = filters.value.sort_order;
     }
-
-    console.log('API request params:', params);
 
     const response = await DataService.getExercises(page, perPage.value, params);
     exercises.value = response.data;
@@ -549,9 +546,7 @@ const clearSearch = () => {
 };
 
 const handleFiltersChanged = (newFilters: any) => {
-  console.log('Filters changed:', newFilters);
   filters.value = { ...newFilters };
-  console.log('Updated filters:', filters.value);
   goToPage(1); // Reset to first page when filtering
 };
 

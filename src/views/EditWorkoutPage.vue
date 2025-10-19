@@ -300,8 +300,6 @@ const loadWorkout = async () => {
     
     sets.value = allSets;
     
-    console.log('Loaded workout:', workout.value);
-    console.log('Loaded sets:', sets.value);
   } catch (err) {
     console.error('Load workout error:', err);
     error.value = (err as ApiError).message;

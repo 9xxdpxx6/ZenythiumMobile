@@ -32,13 +32,11 @@ export class DataService {
         ...additionalParams
       };
       
-      console.log('DataService.getExercises - params:', params);
       
       const response = await apiClient.get<ExercisesResponse>('/api/v1/exercises', {
         params
       });
       
-      console.log('DataService.getExercises - response:', response.data);
       return response.data;
     } catch (error) {
       throw error as ApiError;

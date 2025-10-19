@@ -400,6 +400,8 @@ const handleSubmit = async () => {
   errors.value = {};
 
   try {
+    const planIds = cyclePlans.value.map(cp => cp.plan_id).filter(id => typeof id === 'number' && !isNaN(id));
+    
     const payload: any = {
       name: formData.value.name.trim(),
       weeks: parseInt(formData.value.weeks),
@@ -407,7 +409,7 @@ const handleSubmit = async () => {
       start_date: formData.value.start_date ? formData.value.start_date.toISOString().split('T')[0] : null,
       end_date: formData.value.end_date ? formData.value.end_date.toISOString().split('T')[0] : null,
       // Отправляем массив ID планов в порядке их расположения
-      plan_ids: cyclePlans.value.map(cp => cp.plan_id).filter(id => typeof id === 'number' && !isNaN(id))
+      plan_ids: planIds
     };
 
     if (isEditMode.value) {
@@ -432,8 +434,13 @@ const handleSubmit = async () => {
     window.dispatchEvent(new CustomEvent('cycles-updated'));
     
     // Update original state after successful save
-    originalFormData.value = JSON.parse(JSON.stringify(formData.value));
-    originalCyclePlans.value = JSON.parse(JSON.stringify(cyclePlans.value));
+    originalFormData.value = {
+      name: formData.value.name,
+      weeks: formData.value.weeks,
+      start_date: formData.value.start_date ? new Date(formData.value.start_date) : null,
+      end_date: formData.value.end_date ? new Date(formData.value.end_date) : null,
+    };
+    originalCyclePlans.value = [...cyclePlans.value];
     
     // Если это режим редактирования, также обновляем данные текущего цикла
     if (isEditMode.value) {
@@ -559,6 +566,11 @@ const addPlanToCycle = (plan: Plan) => {
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
+    // Убираем aria-hidden с модального окна
+    const modalElement = document.querySelector('.ion-page-hidden');
+    if (modalElement) {
+      modalElement.removeAttribute('aria-hidden');
+    }
   }, 100);
 };
 
@@ -597,6 +609,11 @@ const confirmDeletePlan = () => {
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
+    // Убираем aria-hidden с модального окна
+    const modalElement = document.querySelector('.ion-page-hidden');
+    if (modalElement) {
+      modalElement.removeAttribute('aria-hidden');
+    }
   }, 100);
 };
 
@@ -610,6 +627,11 @@ const cancelDeletePlan = () => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
+    }
+    // Убираем aria-hidden с модального окна
+    const modalElement = document.querySelector('.ion-page-hidden');
+    if (modalElement) {
+      modalElement.removeAttribute('aria-hidden');
     }
   }, 100);
 };
@@ -671,6 +693,11 @@ const cancelDeleteCycle = () => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
+    }
+    // Убираем aria-hidden с модального окна
+    const modalElement = document.querySelector('.ion-page-hidden');
+    if (modalElement) {
+      modalElement.removeAttribute('aria-hidden');
     }
   }, 100);
 };

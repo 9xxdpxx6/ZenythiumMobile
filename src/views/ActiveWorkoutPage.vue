@@ -193,15 +193,6 @@ const addingSet = ref(false);
 const finishing = ref(false);
 const error = ref<string | null>(null);
 
-// Debug reactive state changes
-console.log('🔧 ActiveWorkoutPage: Initial state:', {
-  workoutId: workoutId.value,
-  workout: workout.value,
-  exercises: exercises.value,
-  loading: loading.value,
-  error: error.value
-});
-
 const newSets = ref<Record<number, { weight: number | null; reps: number | null }>>({});
 
 // Проверяем, есть ли подходы во всех упражнениях
@@ -218,40 +209,21 @@ const fetchWorkout = async () => {
   loading.value = true;
   error.value = null;
   
-  console.log('🔍 ActiveWorkoutPage: Starting to fetch workout with ID:', workoutId.value);
   
   try {
     const response = await apiClient.get(`/api/v1/workouts/${workoutId.value}`);
-    console.log('📡 ActiveWorkoutPage: API response:', response);
-    console.log('📡 ActiveWorkoutPage: Response data:', response.data);
     
     // API возвращает WorkoutResource в поле data
     workout.value = response.data.data;
-    console.log('💾 ActiveWorkoutPage: Parsed workout:', workout.value);
-    console.log('🔍 ActiveWorkoutPage: Workout structure:', JSON.stringify(workout.value, null, 2));
-    console.log('🔍 ActiveWorkoutPage: Workout plan_id:', workout.value?.plan_id);
-    console.log('🔍 ActiveWorkoutPage: Workout plan:', workout.value?.plan);
     
     // Используем упражнения из ответа API
     if (workout.value?.exercises && workout.value.exercises.length > 0) {
-      console.log('📋 ActiveWorkoutPage: Found exercises in workout response:', workout.value.exercises);
       exercises.value = workout.value.exercises || [];
       
       // Debug each exercise
       exercises.value.forEach(exercise => {
-        console.log(`🔍 ActiveWorkoutPage: Exercise ${exercise.exercise.name}:`, {
-          id: exercise.id,
-          history: exercise.history,
-          historyLength: exercise.history?.length || 0
-        });
-        
         // Проверяем, есть ли текущая тренировка в истории
         const currentWorkoutHistory = exercise.history?.find((h: any) => h.workout_id === workoutId.value);
-        if (currentWorkoutHistory) {
-          console.log(`📊 ActiveWorkoutPage: Found current workout history for ${exercise.exercise.name}:`, currentWorkoutHistory);
-        } else {
-          console.log(`⚠️ ActiveWorkoutPage: No current workout history found for ${exercise.exercise.name}`);
-        }
       });
       
       // Initialize new sets for each exercise
@@ -261,13 +233,10 @@ const fetchWorkout = async () => {
           reps: null,
         };
       });
-      console.log('✅ ActiveWorkoutPage: Initialized exercises and new sets');
     } else {
-      console.log('❌ ActiveWorkoutPage: No exercises found in workout');
       error.value = 'Тренировка не содержит упражнений';
     }
   } catch (err) {
-    console.error('❌ ActiveWorkoutPage: Error fetching workout:', err);
     error.value = (err as ApiError).message;
   } finally {
     loading.value = false;
@@ -290,22 +259,13 @@ const getExerciseSets = (exerciseId: number) => {
 
 const getCurrentSets = (exerciseId: number) => {
   const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  console.log(`🔍 ActiveWorkoutPage: getCurrentSets for exercise ${exerciseId}:`, {
-    exercise: exercise?.exercise.name,
-    history: exercise?.history,
-    currentWorkoutId: workoutId.value
-  });
   
   if (exercise && exercise.history) {
     // Возвращаем подходы текущей тренировки
     const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-    console.log(`📊 ActiveWorkoutPage: Current workout history:`, currentWorkoutHistory);
     
     if (currentWorkoutHistory) {
-      console.log(`📊 ActiveWorkoutPage: Found ${currentWorkoutHistory.sets.length} sets for current workout`);
       return currentWorkoutHistory.sets || [];
-    } else {
-      console.log(`⚠️ ActiveWorkoutPage: No current workout history found in getCurrentSets`);
     }
   }
   return [];
@@ -384,14 +344,6 @@ const groupAndFormatSets = (sets: any[]) => {
     const typedGroup = group as { weight: number; reps: number; count: number };
     const isSimple = Number(typedGroup.weight) === 0;
     
-    console.log('🔍 ActiveWorkoutPage: Processing set:', {
-      weight: typedGroup.weight,
-      weightType: typeof typedGroup.weight,
-      reps: typedGroup.reps,
-      count: typedGroup.count,
-      isSimple: isSimple
-    });
-    
     return {
       weight: typedGroup.weight,
       reps: typedGroup.reps,
@@ -439,13 +391,9 @@ const formatStartTime = (dateString: string | undefined) => {
 };
 
 const addSet = async (exerciseId: number) => {
-  console.log('➕ ActiveWorkoutPage: Adding set for exercise:', exerciseId);
-  
   const setData = newSets.value[exerciseId];
-  console.log('📊 ActiveWorkoutPage: Set data:', setData);
   
   if (setData.weight === null || setData.weight === undefined || !setData.reps || setData.weight < 0 || setData.reps <= 0) {
-    console.log('⚠️ ActiveWorkoutPage: Missing or invalid weight or reps');
     error.value = 'Заполните вес (≥0) и повторения (положительные числа)';
     return;
   }
@@ -454,22 +402,12 @@ const addSet = async (exerciseId: number) => {
   error.value = null;
   
   try {
-    console.log('📡 ActiveWorkoutPage: Sending set data to API:', {
-      workout_id: workoutId.value,
-      plan_exercise_id: exerciseId,
-      weight: setData.weight,
-      reps: setData.reps,
-    });
-    
     const response = await apiClient.post('/api/v1/workout-sets', {
       workout_id: workoutId.value,
       plan_exercise_id: exerciseId,
       weight: setData.weight,
       reps: setData.reps,
     });
-    
-    console.log('✅ ActiveWorkoutPage: Set added successfully');
-    console.log('📊 ActiveWorkoutPage: API response:', response.data);
     
     // Получаем созданный подход из ответа
     const newSet = response.data.data;
@@ -496,8 +434,6 @@ const addSet = async (exerciseId: number) => {
         weight: newSet.weight,
         reps: newSet.reps
       });
-      
-      console.log('✅ ActiveWorkoutPage: Updated local state with new set');
     }
     
     // Reset form - устанавливаем значения из последнего текущего подхода или null для плейсхолдеров
@@ -516,7 +452,6 @@ const addSet = async (exerciseId: number) => {
       };
     }
   } catch (err) {
-    console.error('❌ ActiveWorkoutPage: Error adding set:', err);
     error.value = (err as ApiError).message;
   } finally {
     addingSet.value = false;
@@ -524,11 +459,8 @@ const addSet = async (exerciseId: number) => {
 };
 
 const deleteSet = async (exerciseId: number, setId: number) => {
-  console.log('🗑️ ActiveWorkoutPage: Deleting set:', setId, 'for exercise:', exerciseId);
-  
   try {
-    const response = await apiClient.delete(`/api/v1/workout-sets/${setId}`);
-    console.log('✅ ActiveWorkoutPage: Set deleted successfully');
+    await apiClient.delete(`/api/v1/workout-sets/${setId}`);
     
     // Находим упражнение и удаляем подход из истории
     const exercise = exercises.value.find(ex => ex.id === exerciseId);
@@ -539,7 +471,6 @@ const deleteSet = async (exerciseId: number, setId: number) => {
         const setIndex = currentWorkoutHistory.sets.findIndex((s: any) => s.id === setId);
         if (setIndex !== -1) {
           currentWorkoutHistory.sets.splice(setIndex, 1);
-          console.log('✅ ActiveWorkoutPage: Removed set from local state');
         }
       }
     }
@@ -558,14 +489,11 @@ const deleteSet = async (exerciseId: number, setId: number) => {
       };
     }
   } catch (err) {
-    console.error('❌ ActiveWorkoutPage: Error deleting set:', err);
     error.value = (err as ApiError).message;
   }
 };
 
 const deleteLastSetFromGroup = async (exerciseId: number, groupedSet: { weight: number; reps: number; count: number }) => {
-  console.log('🗑️ ActiveWorkoutPage: Deleting last set from group:', groupedSet);
-  
   // Находим упражнение и текущую тренировку
   const exercise = exercises.value.find(ex => ex.id === exerciseId);
   if (!exercise) return;
@@ -588,20 +516,13 @@ const deleteLastSetFromGroup = async (exerciseId: number, groupedSet: { weight: 
 };
 
 const finishWorkout = async () => {
-  console.log('🏁 ActiveWorkoutPage: Finishing workout:', workoutId.value);
-  
   finishing.value = true;
   error.value = null;
   
   try {
-    console.log('📡 ActiveWorkoutPage: Sending finish request to API');
     await apiClient.post<FinishWorkoutResponse>(`/api/v1/workouts/${workoutId.value}/finish`);
-    
-    console.log('✅ ActiveWorkoutPage: Workout finished successfully');
-    console.log('🔗 ActiveWorkoutPage: Navigating to workouts page');
     router.push('/tabs/workouts');
   } catch (err) {
-    console.error('❌ ActiveWorkoutPage: Error finishing workout:', err);
     error.value = (err as ApiError).message;
   } finally {
     finishing.value = false;
@@ -644,9 +565,6 @@ const validateInput = (value: string, exerciseId: number, field: 'weight' | 'rep
 };
 
 onMounted(() => {
-  console.log('🚀 ActiveWorkoutPage: Component mounted');
-  console.log('🔍 ActiveWorkoutPage: Route params:', route.params);
-  console.log('🔍 ActiveWorkoutPage: Workout ID from route:', workoutId.value);
   fetchWorkout();
 });
 </script>
