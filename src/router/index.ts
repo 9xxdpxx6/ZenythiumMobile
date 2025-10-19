@@ -115,6 +115,12 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Metrics',
     component: () => import('@/views/MetricsPage.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/statistics',
+    name: 'Statistics',
+    component: () => import('@/views/StatisticsPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

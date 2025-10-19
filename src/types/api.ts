@@ -193,9 +193,10 @@ export interface Statistics {
   total_workouts: number;
   completed_workouts: number;
   total_training_time: number;
-  total_volume: number;
+  total_volume: number | string; // API может возвращать как число, так и строку
+  current_weight: number;
   active_cycles_count: number;
-  weight_change_30_days: number;
+  weight_change_30_days: number | null; // API может возвращать null
   training_frequency_4_weeks: number;
   training_streak_days: number;
 }
@@ -270,6 +271,74 @@ export interface MuscleGroupResource {
   name: string;
   created_at: string;
   updated_at: string;
+}
+
+// Time Analytics types
+export interface WeeklyPattern {
+  day_of_week: string;
+  workout_count: number;
+  avg_duration: number;
+  total_volume: number;
+}
+
+export interface MonthlyTrend {
+  month: string;
+  workout_count: number;
+  total_volume: number;
+  avg_duration: number;
+}
+
+export interface MuscleGroupStats {
+  muscle_group_name: string;
+  size_factor: number;
+  optimal_frequency_per_week: number;
+  total_volume: number;
+  workout_count: number;
+  exercise_count: number;
+  avg_volume_per_workout: number;
+  last_trained: string;
+  first_trained: string;
+  unique_training_days: number;
+  days_since_last_training: number;
+}
+
+export interface BalanceAnalysis {
+  most_trained: string;
+  least_trained: string;
+  balance_score: number;
+  recommendations: string[];
+}
+
+export interface TimeAnalytics {
+  weekly_pattern: WeeklyPattern[];
+  monthly_trends: MonthlyTrend[];
+  muscle_group_stats: MuscleGroupStats[];
+  balance_analysis: BalanceAnalysis;
+}
+
+export interface TimeAnalyticsResponse {
+  data: TimeAnalytics;
+  message: string;
+}
+
+// Personal Records types
+export interface PersonalRecord {
+  exercise_name: string;
+  muscle_group: string;
+  max_weight: number;
+  max_reps: number;
+  max_volume: number;
+  achieved_date: string;
+  workout_id: number;
+}
+
+export interface RecordsResponse {
+  data: {
+    personal_records: PersonalRecord[];
+    total_records: number;
+    recent_achievements: PersonalRecord[];
+  };
+  message: string;
 }
 
 // Exercise CRUD request types

@@ -219,13 +219,16 @@ const formatTime = (minutes: number) => {
   return `${mins}м`;
 };
 
-const formatWeight = (volume: number) => {
-  if (volume >= 1000000) {
-    return `${(volume / 1000000).toFixed(1)}М кг`;
-  } else if (volume >= 1000) {
-    return `${(volume / 1000).toFixed(1)}К кг`;
+const formatWeight = (volume: number | string) => {
+  const numVolume = typeof volume === 'string' ? parseFloat(volume) : volume;
+  if (isNaN(numVolume)) return '0 кг';
+  
+  if (numVolume >= 1000000) {
+    return `${(numVolume / 1000000).toFixed(1)}М кг`;
+  } else if (numVolume >= 1000) {
+    return `${(numVolume / 1000).toFixed(1)}К кг`;
   }
-  return `${volume} кг`;
+  return `${numVolume} кг`;
 };
 
 const fetchStatistics = async () => {

@@ -1,9 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { ApiError } from '@/types/api';
+import { ApiError, TimeAnalyticsResponse, RecordsResponse, MetricsResponse } from '@/types/api';
 
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
-  baseURL: 'https://api-zenythium.ru/',
+  // baseURL: 'https://api-zenythium.ru/',
+  baseURL: 'http://localhost:8000/',
   timeout: 30000, // Increased timeout to 30 seconds
   headers: {
     'Content-Type': 'application/json',
@@ -65,3 +66,30 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+
+// Statistics API methods
+export const statisticsApi = {
+  // Get time analytics
+  getTimeAnalytics: async (): Promise<TimeAnalyticsResponse> => {
+    const response = await apiClient.get<TimeAnalyticsResponse>('/api/v1/user/time-analytics');
+    return response.data;
+  },
+
+  // Get personal records
+  getRecords: async (): Promise<RecordsResponse> => {
+    const response = await apiClient.get<RecordsResponse>('/api/v1/user/records');
+    return response.data; // Возвращаем response.data, который содержит { data: {...}, message: "..." }
+  },
+
+  // Get metrics with pagination
+  getMetrics: async (page: number = 1, perPage: number = 50): Promise<MetricsResponse> => {
+    const response = await apiClient.get<MetricsResponse>(`/api/v1/metrics?page=${page}&per_page=${perPage}`);
+    return response.data;
+  },
+
+  // Get specific metric by ID
+  getMetric: async (metricId: number): Promise<{ data: any; message: string }> => {
+    const response = await apiClient.get(`/api/v1/metrics/${metricId}`);
+    return response.data;
+  }
+};

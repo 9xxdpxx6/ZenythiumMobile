@@ -16,7 +16,7 @@
           <h1 class="page-title">Zenythium</h1>
         </div>
 
-        <!-- Main Action Grid 2x2 -->
+        <!-- Main Action Grid 3x2 -->
         <div class="action-grid">
           <div class="grid-item" @click="$router.push('/select-plan')">
             <div class="grid-card modern-card">
@@ -27,7 +27,7 @@
 
           <div class="grid-item" @click="$router.push('/tabs/workouts')">
             <div class="grid-card modern-card">
-              <i class="fas fa-list grid-icon"></i>
+              <i class="fas fa-dumbbell grid-icon"></i>
               <h3>Тренировки</h3>
             </div>
           </div>
@@ -43,6 +43,20 @@
             <div class="grid-card modern-card">
               <i class="fas fa-sync-alt grid-icon"></i>
               <h3>Циклы</h3>
+            </div>
+          </div>
+
+          <div class="grid-item" @click="$router.push('/exercises')">
+            <div class="grid-card modern-card">
+              <i class="fas fa-list grid-icon"></i>
+              <h3>Упражнения</h3>
+            </div>
+          </div>
+
+          <div class="grid-item" @click="$router.push('/statistics')">
+            <div class="grid-card modern-card">
+              <i class="fas fa-chart-bar grid-icon"></i>
+              <h3>Статистика</h3>
             </div>
           </div>
         </div>
@@ -111,9 +125,12 @@
                 </ion-button>
               </div>
               <div class="chart-content">
-                <div v-if="weightData.length > 0" class="weight-chart">
+                <div v-if="weightChartData" class="weight-chart">
                   <div class="chart-container-wrapper">
-                    <canvas ref="weightChartCanvas" class="weight-chart-canvas"></canvas>
+                    <Line
+                      :data="weightChartData"
+                      :options="weightChartOptions"
+                    />
                   </div>
                   <div class="chart-summary">
                     <div class="current-weight">
@@ -382,13 +399,33 @@ import {
 // Font Awesome icons - no imports needed, using CSS classes
 import apiClient from '@/services/api';
 import { Workout, Statistics, StatisticsResponse, MetricsResponse, Metric, ApiError } from '@/types/api';
-import { Chart, registerables } from 'chart.js';
+import { Line } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js';
 import CustomDatePicker from '@/components/CustomDatePicker.vue';
 import CustomInput from '@/components/CustomInput.vue';
 import CustomToast from '@/components/CustomToast.vue';
 
 // Register Chart.js components
-Chart.register(...registerables);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const router = useRouter();
 const workouts = ref<Workout[]>([]);
@@ -401,10 +438,6 @@ const error = ref<string | null>(null);
 
 // Weight tracking data
 const weightData = ref<Array<{date: string, weight: number}>>([]);
-
-// Chart.js variables
-const weightChartCanvas = ref<HTMLCanvasElement | null>(null);
-let weightChart: Chart | null = null;
 
 // Refresh animation state
 const isRefreshingChart = ref(false);
@@ -571,6 +604,104 @@ const hasWorkoutData = computed(() => {
   return workouts.value.length > 0;
 });
 
+// Chart data computed properties
+const weightChartData = computed(() => {
+  if (weightData.value.length === 0) return null;
+  
+  const monthlyData = getMonthlyWeightData();
+  if (monthlyData.length === 0) return null;
+  
+  return {
+    labels: monthlyData.map(item => {
+      const date = new Date(item.date);
+      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    }),
+    datasets: [{
+      label: 'Вес (кг)',
+      data: monthlyData.map(item => item.weight),
+      borderColor: 'rgb(124, 58, 237)',
+      backgroundColor: 'rgba(124, 58, 237, 0.1)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: 'rgb(124, 58, 237)',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    }]
+  };
+});
+
+const weightChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      display: false
+    },
+    tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.8)',
+      titleColor: '#fff',
+      bodyColor: '#fff',
+      borderColor: 'rgb(124, 58, 237)',
+      borderWidth: 1,
+      position: 'nearest' as const,
+      xAlign: 'center' as const,
+      yAlign: 'top' as const,
+      caretSize: 6,
+      caretPadding: 8,
+      displayColors: false,
+      callbacks: {
+        title: function(context: any) {
+          const index = context[0].dataIndex;
+          const monthlyData = getMonthlyWeightData();
+          const date = new Date(monthlyData[index].date);
+          return date.toLocaleDateString('ru-RU', { 
+            day: '2-digit', 
+            month: 'long',
+            year: 'numeric'
+          });
+        },
+        label: function(context: any) {
+          return `Вес: ${context.parsed.y.toFixed(1)} кг`;
+        }
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.1)'
+      },
+      ticks: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        font: {
+          size: 11
+        }
+      }
+    },
+    y: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.1)'
+      },
+      ticks: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        font: {
+          size: 11
+        },
+        callback: function(value: any) {
+          return value + ' кг';
+        }
+      }
+    }
+  },
+  interaction: {
+    intersect: false,
+    mode: 'index' as const
+  }
+};
+
 
 // Функция для получения реального прогресса упражнений из API статистики
 const fetchExerciseProgress = async () => {
@@ -655,114 +786,6 @@ const refreshWeightChart = async () => {
       isCompletingChart.value = false;
     }, 300);
   }
-};
-
-const createWeightChart = () => {
-  if (!weightChartCanvas.value || weightData.value.length === 0) return;
-  
-  // Destroy existing chart
-  if (weightChart) {
-    weightChart.destroy();
-  }
-  
-  // Filter data for last month
-  const monthlyData = getMonthlyWeightData();
-  
-  if (monthlyData.length === 0) return;
-  
-  const ctx = weightChartCanvas.value.getContext('2d');
-  if (!ctx) return;
-  
-  weightChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: monthlyData.map(item => {
-        const date = new Date(item.date);
-        return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
-      }),
-      datasets: [{
-        label: 'Вес (кг)',
-        data: monthlyData.map(item => item.weight),
-        borderColor: 'rgb(124, 58, 237)', // Purple color
-        backgroundColor: 'rgba(124, 58, 237, 0.1)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: 'rgb(124, 58, 237)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          titleColor: '#fff',
-          bodyColor: '#fff',
-          borderColor: 'rgb(124, 58, 237)',
-          borderWidth: 1,
-          position: 'nearest',
-          xAlign: 'center',
-          yAlign: 'top',
-          caretSize: 6,
-          caretPadding: 8,
-          displayColors: false,
-          callbacks: {
-            title: function(context) {
-              const index = context[0].dataIndex;
-              const date = new Date(monthlyData[index].date);
-              return date.toLocaleDateString('ru-RU', { 
-                day: '2-digit', 
-                month: 'long',
-                year: 'numeric'
-              });
-            },
-            label: function(context) {
-              return `Вес: ${context.parsed.y.toFixed(1)} кг`;
-            }
-          }
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
-          },
-          ticks: {
-            color: 'rgba(255, 255, 255, 0.7)',
-            font: {
-              size: 11
-            }
-          }
-        },
-        y: {
-          grid: {
-            color: 'rgba(255, 255, 255, 0.1)'
-          },
-          ticks: {
-            color: 'rgba(255, 255, 255, 0.7)',
-            font: {
-              size: 11
-            },
-            callback: function(value) {
-              return value + ' кг';
-            }
-          }
-        }
-      },
-      interaction: {
-        intersect: false,
-        mode: 'index'
-      }
-    }
-  });
 };
 
 const formatDate = (dateString: string) => {
@@ -997,11 +1020,6 @@ const fetchData = async () => {
           date: metric.date,
           weight: parseFloat(metric.weight) // Конвертируем строку в число
         })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()); // Сортируем по дате
-        
-        // Create chart after data is loaded
-        nextTick(() => {
-          createWeightChart();
-        });
       }
     } catch (metricsError) {
       console.error('Metrics fetch error:', metricsError);
@@ -1059,13 +1077,16 @@ const formatTimeCompact = (seconds: number) => {
 };
 
 // Форматирование объема тренировок
-const formatVolume = (volume: number) => {
-  if (volume >= 1000000) {
-    return `${(volume / 1000000).toFixed(1)}М кг`;
-  } else if (volume >= 1000) {
-    return `${(volume / 1000).toFixed(1)}К кг`;
+const formatVolume = (volume: number | string) => {
+  const numVolume = typeof volume === 'string' ? parseFloat(volume) : volume;
+  if (isNaN(numVolume)) return '0 кг';
+  
+  if (numVolume >= 1000000) {
+    return `${(numVolume / 1000000).toFixed(1)}М кг`;
+  } else if (numVolume >= 1000) {
+    return `${(numVolume / 1000).toFixed(1)}К кг`;
   }
-  return `${volume} кг`;
+  return `${numVolume} кг`;
 };
 
 // Функции для форматирования изменения веса
@@ -1228,6 +1249,22 @@ onBeforeUnmount(() => {
   border: 2px solid rgba(245, 158, 11, 0.6);
 }
 
+.grid-item:nth-child(5) .grid-card {
+  background: linear-gradient(135deg, 
+    rgba(100, 30, 50, 0.9) 0%, 
+    rgba(120, 50, 70, 0.8) 50%, 
+    rgba(80, 20, 40, 0.9) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+}
+
+.grid-item:nth-child(6) .grid-card {
+  background: linear-gradient(135deg, 
+    rgba(30, 80, 100, 0.9) 0%, 
+    rgba(50, 100, 120, 0.8) 50%, 
+    rgba(20, 60, 80, 0.9) 100%);
+  border: 2px solid rgba(6, 182, 212, 0.6);
+}
+
 /* Статичные пузыри */
 .grid-card::before {
   content: '';
@@ -1263,6 +1300,18 @@ onBeforeUnmount(() => {
               radial-gradient(circle at 15% 65%, rgba(217, 119, 6, 0.08) 0%, transparent 40%);
 }
 
+.grid-item:nth-child(5) .grid-card::before {
+  background: radial-gradient(circle at 25% 20%, rgba(239, 68, 68, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 75% 80%, rgba(220, 38, 38, 0.12) 0%, transparent 50%),
+              radial-gradient(circle at 20% 70%, rgba(185, 28, 28, 0.08) 0%, transparent 40%);
+}
+
+.grid-item:nth-child(6) .grid-card::before {
+  background: radial-gradient(circle at 30% 25%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 70% 75%, rgba(8, 145, 178, 0.12) 0%, transparent 50%),
+              radial-gradient(circle at 25% 80%, rgba(14, 116, 144, 0.08) 0%, transparent 40%);
+}
+
 /* Статичные световые эффекты */
 .grid-card::after {
   content: '';
@@ -1282,11 +1331,35 @@ onBeforeUnmount(() => {
 
 .grid-icon {
   font-size: 2rem;
-  color: var(--ion-color-primary);
   margin-bottom: 8px;
   position: relative;
   z-index: 2;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Цветные иконки для каждой кнопки */
+.grid-item:nth-child(1) .grid-icon {
+  color: #3b82f6; /* Синий - как у рамки */
+}
+
+.grid-item:nth-child(2) .grid-icon {
+  color: #a855f7; /* Фиолетовый - как у рамки */
+}
+
+.grid-item:nth-child(3) .grid-icon {
+  color: #22c55e; /* Зеленый - как у рамки */
+}
+
+.grid-item:nth-child(4) .grid-icon {
+  color: #f59e0b; /* Оранжевый - как у рамки */
+}
+
+.grid-item:nth-child(5) .grid-icon {
+  color: #ef4444; /* Красный - как у рамки */
+}
+
+.grid-item:nth-child(6) .grid-icon {
+  color: #06b6d4; /* Голубой - как у рамки */
 }
 
 .grid-card h3 {
@@ -1552,11 +1625,6 @@ onBeforeUnmount(() => {
   position: relative;
   height: 200px;
   width: 100%;
-}
-
-.weight-chart-canvas {
-  width: 100% !important;
-  height: 100% !important;
 }
 
 .chart-summary {
