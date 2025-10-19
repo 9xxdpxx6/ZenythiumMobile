@@ -20,7 +20,7 @@
       </ion-refresher>
 
       <div class="page-content">
-        <h1 class="page-title">Статистика</h1>
+        <!-- <h1 class="page-title">Статистика</h1> -->
 
         <!-- Loading State -->
         <div v-if="loading && !statistics" class="loading-state">
@@ -130,6 +130,12 @@
                   :options="muscleBalanceChartOptions"
                 />
               </div>
+              
+              <!-- Balance Recommendation -->
+              <div v-if="balanceRecommendation" class="balance-recommendation">
+                <h4>💡 Рекомендация по балансу:</h4>
+                <p>{{ balanceRecommendation }}</p>
+              </div>
             </div>
           </section>
 
@@ -168,57 +174,68 @@
               </div>
             </div>
 
-            <!-- Personal Records Table -->
-            <div class="table-container modern-card" v-if="records?.data?.personal_records">
+            <!-- Personal Records Cards -->
+            <div class="records-container modern-card" v-if="records?.data?.personal_records">
               <h3>Личные рекорды</h3>
-              <div class="table-wrapper">
-                <table class="stats-table">
-                  <thead>
-                    <tr>
-                      <th>Упражнение</th>
-                      <th>Группа мышц</th>
-                      <th>Макс. вес</th>
-                      <th>Макс. повторения</th>
-                      <th>Дата</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="record in records.data.personal_records.slice(0, 10)" :key="record.exercise_name">
-                      <td>{{ record.exercise_name }}</td>
-                      <td>{{ record.muscle_group }}</td>
-                      <td>{{ record.max_weight }} кг</td>
-                      <td>{{ record.max_reps }}</td>
-                      <td>{{ formatDate(record.achieved_date) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="records-grid">
+                <div 
+                  v-for="record in records.data.personal_records.slice(0, 10)" 
+                  :key="record.exercise_name"
+                  class="record-card"
+                >
+                  <div class="record-header">
+                    <h4>{{ record.exercise_name }}</h4>
+                    <span class="muscle-group">{{ record.muscle_group }}</span>
+                  </div>
+                  <div class="record-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Макс. вес</span>
+                      <span class="stat-value">{{ record.max_weight }} кг</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Повторения</span>
+                      <span class="stat-value">{{ record.max_reps }}</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-label">Дата</span>
+                      <span class="stat-value">{{ formatDate(record.achieved_date) }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Recent Metrics Table -->
-            <div class="table-container modern-card" v-if="metrics?.data">
+            <!-- Recent Metrics Cards -->
+            <div class="metrics-container modern-card" v-if="metrics?.data">
               <h3>Последние измерения</h3>
-              <div class="table-wrapper">
-                <table class="stats-table">
-                  <thead>
-                    <tr>
-                      <th>Дата</th>
-                      <th>Вес</th>
-                      <th>Жир %</th>
-                      <th>Мышцы</th>
-                      <th>Примечание</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="metric in metrics.data.slice(0, 10)" :key="metric.id">
-                      <td>{{ formatDate(metric.date) }}</td>
-                      <td>{{ metric.weight }} кг</td>
-                      <td>{{ metric.body_fat_percentage || '-' }}%</td>
-                      <td>{{ metric.muscle_mass || '-' }} кг</td>
-                      <td>{{ metric.note || '-' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="metrics-grid">
+                <div 
+                  v-for="metric in metrics.data.slice(0, 5)" 
+                  :key="metric.id"
+                  class="metric-card"
+                >
+                  <div class="metric-header">
+                    <h4>{{ formatDate(metric.date) }}</h4>
+                  </div>
+                  <div class="metric-stats">
+                    <div class="stat-item">
+                      <span class="stat-label">Вес</span>
+                      <span class="stat-value">{{ formatWeight(metric.weight) }}</span>
+                    </div>
+                    <div class="stat-item" v-if="metric.body_fat_percentage">
+                      <span class="stat-label">Жир %</span>
+                      <span class="stat-value">{{ metric.body_fat_percentage }}%</span>
+                    </div>
+                    <div class="stat-item" v-if="metric.muscle_mass">
+                      <span class="stat-label">Мышцы</span>
+                      <span class="stat-value">{{ metric.muscle_mass }} кг</span>
+                    </div>
+                    <div class="stat-item" v-if="metric.note">
+                      <span class="stat-label">Заметка</span>
+                      <span class="stat-value">{{ metric.note }}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -347,6 +364,13 @@ const getMedalEmoji = (index: number) => {
   return medals[index] || '🏅';
 };
 
+// Balance recommendation computed property
+const balanceRecommendation = computed(() => {
+  // Пока что возвращаем null, так как API не возвращает рекомендации
+  // В будущем можно добавить логику для генерации рекомендаций на основе данных
+  return null;
+});
+
 // Chart data computed properties
 const weeklyChartData = computed(() => {
   if (!timeAnalytics.value?.weekly_pattern) return null;
@@ -392,19 +416,43 @@ const monthlyChartData = computed(() => {
 });
 
 const muscleBalanceChartData = computed(() => {
-  if (!timeAnalytics.value?.muscle_group_stats) return null;
+  if (!records.value?.data?.personal_records) return null;
+  
+  // Группируем рекорды по группам мышц и суммируем объем
+  const muscleGroups: Record<string, number> = {};
+  
+  records.value.data.personal_records.forEach(record => {
+    const group = record.muscle_group;
+    if (!muscleGroups[group]) {
+      muscleGroups[group] = 0;
+    }
+    muscleGroups[group] += record.max_volume;
+  });
   
   const colors = [
     '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
     '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
   ];
   
+  const labels = Object.keys(muscleGroups);
+  const data = Object.values(muscleGroups);
+  const total = data.reduce((sum, value) => sum + value, 0);
+  
+  // Конвертируем в проценты
+  const percentages = data.map(value => Math.round((value / total) * 100));
+  
+  // Создаем labels с процентами
+  const labelsWithPercentages = labels.map((label, index) => 
+    `${label} (${percentages[index]}%)`
+  );
+  
   return {
-    labels: timeAnalytics.value.muscle_group_stats.map(item => item.muscle_group_name),
+    labels: labelsWithPercentages,
     datasets: [{
-      data: timeAnalytics.value.muscle_group_stats.map(item => item.total_volume),
-      backgroundColor: colors.slice(0, timeAnalytics.value.muscle_group_stats.length),
+      data: percentages, // Используем проценты вместо абсолютных значений
+      backgroundColor: colors.slice(0, labels.length),
       borderWidth: 2,
+      borderColor: '#ffffff',
     }]
   };
 });
@@ -571,6 +619,12 @@ const formatVolume = (volume: number) => {
   return `${volume.toFixed(0)} кг`;
 };
 
+const formatWeight = (weight: number | string) => {
+  const numWeight = typeof weight === 'string' ? parseFloat(weight) : weight;
+  if (isNaN(numWeight)) return '0 кг';
+  return `${numWeight.toFixed(1)} кг`;
+};
+
 const formatDate = (dateString: string) => {
   if (!dateString) return '-';
   try {
@@ -625,6 +679,7 @@ onMounted(() => {
   font-size: 2rem;
   font-weight: 700;
   margin: 0 0 24px 0;
+  padding: 0 !important;
   color: var(--ion-color-primary);
 }
 
@@ -638,7 +693,6 @@ onMounted(() => {
   font-weight: 600;
   margin: 0 0 20px 0;
   color: #ffffff;
-  padding: 0 4px;
 }
 
 /* KPI Cards */
@@ -652,11 +706,11 @@ onMounted(() => {
 .kpi-card {
   display: flex;
   align-items: center;
-  padding: 24px !important;
+  padding: 16px !important;
   background: var(--ion-color-light);
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  margin-bottom: 8px;
+  margin: 0 !important;
 }
 
 .kpi-icon {
@@ -680,8 +734,8 @@ onMounted(() => {
 
 /* Charts */
 .chart-container {
-  margin-bottom: 32px;
-  padding: 24px !important;
+  margin: 16px 0 0 0 !important;
+  padding: 16px !important;
 }
 
 .chart-container h3 {
@@ -695,6 +749,28 @@ onMounted(() => {
 .chart-wrapper {
   height: 300px;
   position: relative;
+}
+
+.balance-recommendation {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #8B5CF6;
+}
+
+.balance-recommendation h4 {
+  margin: 0 0 0.5rem 0;
+  color: #8B5CF6;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.balance-recommendation p {
+  margin: 0;
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 /* Tables */
@@ -738,6 +814,96 @@ onMounted(() => {
 
 .stats-table tr:hover {
   background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Cards instead of tables */
+.records-container,
+.metrics-container {
+  margin: 16px 0 0 0 !important;
+  padding: 16px !important;
+}
+
+.records-container h3,
+.metrics-container h3 {
+  margin: 0 0 16px 0 !important;
+}
+
+.records-grid,
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.record-card,
+.metric-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.record-card:hover,
+.metric-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+}
+
+.record-header,
+.metric-header {
+  margin-bottom: 12px;
+}
+
+.record-header h4,
+.metric-header h4 {
+  margin: 0 0 4px 0;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.muscle-group {
+  display: inline-block;
+  background: rgba(139, 92, 246, 0.2);
+  color: #8B5CF6;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.record-stats,
+.metric-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: #a0a0a0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 /* Balance Analysis */

@@ -3,8 +3,8 @@ import { ApiError, TimeAnalyticsResponse, RecordsResponse, MetricsResponse } fro
 
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
-  // baseURL: 'https://api-zenythium.ru/',
-  baseURL: 'http://localhost:8000/',
+  baseURL: 'https://api-zenythium.ru/',
+  // baseURL: 'http://localhost:8000/',
   timeout: 30000, // Increased timeout to 30 seconds
   headers: {
     'Content-Type': 'application/json',
