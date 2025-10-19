@@ -110,7 +110,6 @@
             @click="createNewPlan"
             class="modern-button"
           >
-            <i class="fas fa-plus"></i>
             Создать план
           </button>
         </div>
@@ -432,7 +431,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 16px !important;
 }
 
 .modern-button:hover {
@@ -586,6 +585,7 @@ onUnmounted(() => {
   background: var(--ion-color-primary);
   color: white;
   border: none;
+  border-top: none;
   border-radius: 10px;
   padding: 8px 16px;
   font-size: 12px;
@@ -597,11 +597,15 @@ onUnmounted(() => {
   gap: 6px;
   width: 100%;
   justify-content: center;
+  margin-top: 0;
+  box-shadow: none;
+  position: relative;
 }
 
-
-.modern-button i {
-  font-size: 12px;
+.modern-button::before,
+.modern-button::after {
+  display: none !important;
+  content: none !important;
 }
 
 .loading-state,

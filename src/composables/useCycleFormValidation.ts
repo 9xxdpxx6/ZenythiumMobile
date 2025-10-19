@@ -3,6 +3,7 @@ export interface CycleFormData {
   weeks: string;
   start_date: Date | null;
   end_date: Date | null;
+  plan_ids?: number[];
 }
 
 export interface ValidationErrors {
@@ -10,6 +11,7 @@ export interface ValidationErrors {
   weeks?: string | string[];
   start_date?: string | string[];
   end_date?: string | string[];
+  plan_ids?: string | string[];
 }
 
 export function useCycleFormValidation() {
@@ -59,6 +61,12 @@ export function useCycleFormValidation() {
       }
     }
 
+    // Валидация планов
+    if (formData.plan_ids && formData.plan_ids.length === 0) {
+      errors.plan_ids = 'Добавьте хотя бы один план тренировок';
+      isValid = false;
+    }
+
     return { isValid, errors };
   };
 
@@ -70,6 +78,7 @@ export function useCycleFormValidation() {
       weeks: '',
       start_date: null,
       end_date: null,
+      plan_ids: [],
       [field]: value
     };
 

@@ -104,6 +104,9 @@
               @plan-reorder="handlePlanReorder"
               @plan-delete="showDeleteConfirmation"
             />
+            
+            <!-- Отображение ошибки валидации для планов -->
+            <span v-if="errors.plan_ids" class="error-message">{{ getFirstError(errors.plan_ids) }}</span>
           </div>
 
           <div class="form-actions">
@@ -369,14 +372,21 @@ const fetchCycleData = async () => {
   }
 };
 
-const validateFormData = (): boolean => {
-  const { isValid, errors: validationErrors } = validateForm(formData.value);
+const validateFormData = (formDataWithPlans?: any): boolean => {
+  const dataToValidate = formDataWithPlans || formData.value;
+  const { isValid, errors: validationErrors } = validateForm(dataToValidate);
   errors.value = validationErrors;
   return isValid;
 };
 
 const handleSubmit = async () => {
-  if (!validateFormData()) {
+  // Добавляем plan_ids в данные формы для валидации
+  const formDataWithPlans = {
+    ...formData.value,
+    plan_ids: cyclePlans.value.map(cp => cp.plan_id)
+  };
+
+  if (!validateFormData(formDataWithPlans)) {
     const toast = await toastController.create({
       message: 'Пожалуйста, исправьте ошибки в форме',
       duration: 2000,
@@ -397,7 +407,7 @@ const handleSubmit = async () => {
       start_date: formData.value.start_date ? formData.value.start_date.toISOString().split('T')[0] : null,
       end_date: formData.value.end_date ? formData.value.end_date.toISOString().split('T')[0] : null,
       // Отправляем массив ID планов в порядке их расположения
-      plan_ids: cyclePlans.value.map(cp => cp.plan_id)
+      plan_ids: cyclePlans.value.map(cp => cp.plan_id).filter(id => typeof id === 'number' && !isNaN(id))
     };
 
     if (isEditMode.value) {

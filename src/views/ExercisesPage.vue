@@ -121,7 +121,6 @@
           <h2>Нет упражнений</h2>
           <p>У вас пока нет созданных упражнений</p>
           <ion-button @click="openCreateModal" class="create-button">
-            <i class="fas fa-plus"></i>
             Создать упражнение
           </ion-button>
         </div>
