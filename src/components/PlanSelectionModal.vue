@@ -43,7 +43,7 @@
             v-for="plan in filteredPlans"
             :key="plan.id"
             class="plan-card"
-            @click="$emit('selectPlan', plan)"
+            @click="handlePlanSelect(plan)"
           >
             <ion-card-header>
               <ion-card-title>{{ plan.name }}</ion-card-title>
@@ -119,6 +119,13 @@ const clearPlanSearch = () => {
   emit('search', '');
 };
 
+// Функция для выбора плана с сбросом поискового запроса
+const handlePlanSelect = (plan: Plan) => {
+  // Сбрасываем поисковый запрос при выборе плана
+  planSearchQuery.value = '';
+  emit('selectPlan', plan);
+};
+
 // Функция для создания нового плана с правильным управлением фокусом
 const handleCreateNewPlan = () => {
   // Убираем фокус с текущего элемента перед закрытием модального окна
@@ -143,6 +150,9 @@ const handleModalClose = () => {
   if (activeElement && activeElement.blur) {
     activeElement.blur();
   }
+  
+  // Сбрасываем поисковый запрос при закрытии модального окна
+  planSearchQuery.value = '';
   
   // Эмитим событие закрытия
   emit('close');

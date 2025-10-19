@@ -787,7 +787,7 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
 
 ion-toolbar ion-button i {
   font-size: 20px;
-  color: var(--ion-color-primary);
+  color: white !important;
 }
 
 /* Exercises Management Styles */

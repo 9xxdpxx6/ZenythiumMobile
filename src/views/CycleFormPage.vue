@@ -154,7 +154,7 @@
       :is-open="isPlanModalOpen"
       :available-plans="availablePlans"
       :loading-plans="loadingPlans"
-      @close="isPlanModalOpen = false"
+      @close="handlePlanModalClose"
       @select-plan="addPlanToCycle"
       @create-new-plan="createNewPlan"
       @search="handlePlanSearch"
@@ -491,14 +491,12 @@ const fetchAvailablePlans = async (searchTerm: string = '') => {
     
     // Фильтруем планы на клиенте:
     // 1. Только активные планы
-    // 2. Только standalone планы (без цикла)
-    // 3. Исключаем те, что уже добавлены в текущий цикл
+    // 2. Исключаем те, что уже добавлены в текущий цикл
     const addedPlanIds = cyclePlans.value.map(cp => cp.plan_id);
     const availablePlansFiltered = allPlans.filter((plan: Plan) => {
       const isActive = plan.is_active === true || (plan.is_active as any) === 1;
-      const isStandalone = !plan.cycle || plan.cycle === null;
       const notAdded = !addedPlanIds.includes(plan.id);
-      return isActive && isStandalone && notAdded;
+      return isActive && notAdded;
     });
     
     availablePlans.value = availablePlansFiltered;
@@ -557,8 +555,11 @@ const addPlanToCycle = (plan: Plan) => {
   cyclePlans.value.push(newCyclePlan);
   isPlanModalOpen.value = false;
   
+  // Очищаем поисковый запрос в модальном окне
+  handlePlanSearch('');
+  
   // Обновляем список доступных планов, чтобы исключить только что добавленный
-  fetchAvailablePlans();
+  fetchAvailablePlans('');
   
   // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
@@ -601,7 +602,8 @@ const confirmDeletePlan = () => {
   planToDeleteName.value = '';
   
   // Обновляем список доступных планов, чтобы вернуть удаленный план в список
-  fetchAvailablePlans();
+  // Вызываем без поискового запроса, чтобы получить все доступные планы
+  fetchAvailablePlans('');
   
   // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
@@ -708,6 +710,12 @@ const openPlanModal = async () => {
     await fetchAvailablePlans('');
   }
   isPlanModalOpen.value = true;
+};
+
+const handlePlanModalClose = () => {
+  isPlanModalOpen.value = false;
+  // Очищаем поисковый запрос при закрытии модального окна
+  handlePlanSearch('');
 };
 
 // Initialize original state for new cycles
@@ -961,7 +969,7 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
 
 ion-toolbar ion-button i {
   font-size: 20px;
-  color: var(--ion-color-primary);
+  color: white !important;
 }
 
 /* Vue Datepicker стили */

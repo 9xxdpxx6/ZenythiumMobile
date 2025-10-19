@@ -436,10 +436,10 @@ onUnmounted(() => {
   --border-width: 0 !important;
   --border-style: none !important;
   --border-color: transparent !important;
-  --color: var(--ion-color-primary) !important;
-  --color-hover: var(--ion-color-primary-shade) !important;
-  --color-focused: var(--ion-color-primary) !important;
-  --color-activated: var(--ion-color-primary-shade) !important;
+  --color: white !important;
+  --color-hover: rgba(255, 255, 255, 0.8) !important;
+  --color-focused: white !important;
+  --color-activated: rgba(255, 255, 255, 0.8) !important;
   --box-shadow: none !important;
   --padding-start: 8px !important;
   --padding-end: 8px !important;
@@ -452,6 +452,6 @@ onUnmounted(() => {
 
 .add-button i {
   font-size: 20px !important;
-  color: var(--ion-color-primary) !important;
+  color: white !important;
 }
 </style>
