@@ -152,6 +152,12 @@ const startWorkout = async () => {
     const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', requestData);
     
     const workoutId = response.data.data.id;
+    
+    // Уведомляем другие страницы о создании новой тренировки
+    window.dispatchEvent(new CustomEvent('workout-started', { 
+      detail: { workoutId: workoutId } 
+    }));
+    
     router.push(`/workout/${workoutId}`);
   } catch (err) {
     console.error('❌ SelectPlanPage: Error creating workout:', err);

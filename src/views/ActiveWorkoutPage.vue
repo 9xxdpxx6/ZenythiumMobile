@@ -521,6 +521,12 @@ const finishWorkout = async () => {
   
   try {
     await apiClient.post<FinishWorkoutResponse>(`/api/v1/workouts/${workoutId.value}/finish`);
+    
+    // Уведомляем другие страницы о завершении тренировки
+    window.dispatchEvent(new CustomEvent('workout-finished', { 
+      detail: { workoutId: workoutId.value } 
+    }));
+    
     router.push('/tabs/workouts');
   } catch (err) {
     error.value = (err as ApiError).message;

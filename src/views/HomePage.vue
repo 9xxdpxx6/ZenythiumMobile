@@ -7,6 +7,10 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+
       <div class="page-content">
         <div class="main-header">
           <h1 class="page-title">Zenythium</h1>
@@ -360,7 +364,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, onActivated } from 'vue';
+import { ref, onMounted, computed, nextTick, onActivated, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -372,6 +376,8 @@ import {
   IonSpinner,
   IonModal,
   IonButtons,
+  IonRefresher,
+  IonRefresherContent,
 } from '@ionic/vue';
 // Font Awesome icons - no imports needed, using CSS classes
 import apiClient from '@/services/api';
@@ -415,6 +421,9 @@ const isAddingMetric = ref(false);
 const isToastOpen = ref(false);
 const toastMessage = ref('');
 const toastColor = ref<'primary' | 'secondary' | 'success' | 'warning' | 'danger'>('primary');
+
+// Refresh state
+const isRefreshing = ref(false);
 
 // Exercise progress tracking
 const selectedExercises = ref<Array<{
@@ -864,6 +873,9 @@ const addMetric = async () => {
     
     await apiClient.post('/api/v1/metrics', metricData);
     
+    // Уведомляем другие страницы о добавлении метрики
+    window.dispatchEvent(new CustomEvent('metric-added'));
+    
     // Refresh data to update chart
     await fetchData();
     
@@ -1006,6 +1018,16 @@ const fetchData = async () => {
   }
 };
 
+const handleRefresh = async (event: CustomEvent) => {
+  isRefreshing.value = true;
+  try {
+    await fetchData();
+  } finally {
+    isRefreshing.value = false;
+    event.detail.complete();
+  }
+};
+
 const handleWorkoutClick = (workout: Workout) => {
   if (workout.status === 'active') {
     router.push(`/workout/${workout.id}`);
@@ -1062,13 +1084,65 @@ const getWeightChangeClass = (weightChange: any) => {
   return 'weight-stable';
 };
 
+// Обработчик для обновления данных при возврате на вкладку
+const handleVisibilityChange = () => {
+  if (!document.hidden) {
+    // Обновляем данные когда пользователь возвращается на вкладку
+    fetchData();
+  }
+};
+
+// Обработчики событий тренировок
+const handleWorkoutStarted = () => {
+  console.log('🏋️ Workout started - updating HomePage data');
+  fetchData();
+};
+
+const handleWorkoutFinished = () => {
+  console.log('🏁 Workout finished - updating HomePage data');
+  fetchData();
+};
+
+const handleWorkoutUpdated = () => {
+  console.log('✏️ Workout updated - updating HomePage data');
+  fetchData();
+};
+
+const handleMetricAdded = () => {
+  console.log('📊 Metric added - updating HomePage data');
+  fetchData();
+};
+
+const handleMetricUpdated = () => {
+  console.log('📊 Metric updated - updating HomePage data');
+  fetchData();
+};
+
 onMounted(() => {
   fetchData();
+  // Добавляем слушатели событий
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  window.addEventListener('workout-started', handleWorkoutStarted);
+  window.addEventListener('workout-finished', handleWorkoutFinished);
+  window.addEventListener('workout-updated', handleWorkoutUpdated);
+  window.addEventListener('metric-added', handleMetricAdded);
+  window.addEventListener('metric-updated', handleMetricUpdated);
 });
 
 // Обновляем данные при возврате на страницу
 onActivated(() => {
+  // Принудительно обновляем данные при возврате на страницу
   fetchData();
+});
+
+// Убираем слушатели при размонтировании компонента
+onBeforeUnmount(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
+  window.removeEventListener('workout-started', handleWorkoutStarted);
+  window.removeEventListener('workout-finished', handleWorkoutFinished);
+  window.removeEventListener('workout-updated', handleWorkoutUpdated);
+  window.removeEventListener('metric-added', handleMetricAdded);
+  window.removeEventListener('metric-updated', handleMetricUpdated);
 });
 </script>
 

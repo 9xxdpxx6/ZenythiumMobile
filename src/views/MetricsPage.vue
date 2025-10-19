@@ -478,9 +478,15 @@ const saveMetric = async () => {
     if (isEditing.value && selectedMetric.value) {
       await apiClient.put(`/api/v1/metrics/${selectedMetric.value.id}`, data);
       showSuccessToast('Запись успешно обновлена!');
+      
+      // Уведомляем другие страницы об обновлении метрики
+      window.dispatchEvent(new CustomEvent('metric-updated'));
     } else {
       await apiClient.post('/api/v1/metrics', data);
       showSuccessToast('Запись успешно добавлена!');
+      
+      // Уведомляем другие страницы о добавлении метрики
+      window.dispatchEvent(new CustomEvent('metric-added'));
     }
     
     closeModal();

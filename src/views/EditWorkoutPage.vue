@@ -372,6 +372,11 @@ const saveWorkout = async () => {
       }
     }
     
+    // Уведомляем другие страницы об обновлении тренировки
+    window.dispatchEvent(new CustomEvent('workout-updated', { 
+      detail: { workoutId: workoutId.value } 
+    }));
+    
     // Возвращаемся к списку тренировок
     router.push('/tabs/workouts');
   } catch (err) {
