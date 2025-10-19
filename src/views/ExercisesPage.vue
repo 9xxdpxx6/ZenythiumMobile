@@ -46,10 +46,18 @@
           </div>
 
           <div class="exercises-list">
+            <!-- Локальный спиннер для поиска -->
+            <div v-if="searchLoading" class="search-loading">
+              <ion-spinner name="crescent"></ion-spinner>
+              <p>Поиск упражнений...</p>
+            </div>
+            
+            <!-- Список упражнений (скрываем во время поиска) -->
             <div 
               v-for="exercise in exercises" 
               :key="exercise.id"
               class="exercise-card modern-card"
+              v-show="!searchLoading"
             >
               <div class="exercise-header">
                 <div class="exercise-icon">
@@ -88,8 +96,8 @@
             </div>
           </div>
 
-          <!-- Pagination -->
-          <div v-if="totalPages > 1" class="pagination">
+          <!-- Pagination (скрываем во время поиска) -->
+          <div v-if="totalPages > 1 && !searchLoading" class="pagination">
             <ion-button 
               fill="outline" 
               :disabled="currentPage === 1"
@@ -262,7 +270,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -296,6 +304,7 @@ const router = useRouter();
 const exercises = ref<ExerciseResource[]>([]);
 const muscleGroups = ref<MuscleGroupResource[]>([]);
 const loading = ref(false);
+const searchLoading = ref(false);
 const error = ref<string | null>(null);
 const successMessage = ref<string | null>(null);
 
@@ -307,6 +316,7 @@ const perPage = ref(100);
 
 // Search and filters
 const searchQuery = ref('');
+const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const filters = ref({
   is_active: null as boolean | null,
   muscle_group_id: null as number | null,
@@ -455,8 +465,14 @@ const deleteExercise = async () => {
   }
 };
 
-const fetchExercises = async (page: number = 1) => {
-  loading.value = true;
+const fetchExercises = async (page: number = 1, isSearch: boolean = false) => {
+  // Используем searchLoading для поиска, loading для обычной загрузки
+  if (isSearch) {
+    searchLoading.value = true;
+  } else {
+    loading.value = true;
+  }
+  
   try {
     const params: any = {
       page,
@@ -502,7 +518,11 @@ const fetchExercises = async (page: number = 1) => {
     error.value = apiError.message || 'Ошибка загрузки упражнений';
     console.error('Failed to fetch exercises:', err);
   } finally {
-    loading.value = false;
+    if (isSearch) {
+      searchLoading.value = false;
+    } else {
+      loading.value = false;
+    }
   }
 };
 
@@ -537,12 +557,24 @@ const prevPage = () => {
 // Search and filter methods
 const handleSearch = (query: string) => {
   searchQuery.value = query;
-  goToPage(1); // Reset to first page when searching
+  
+  // Очищаем предыдущий таймаут
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  
+  // Устанавливаем новый таймаут для дебаунса (300ms)
+  searchTimeout.value = setTimeout(() => {
+    fetchExercises(1, true); // Используем локальную загрузку для поиска
+  }, 300);
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
-  goToPage(1);
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+  fetchExercises(1, true); // Используем локальную загрузку для поиска
 };
 
 const handleFiltersChanged = (newFilters: any) => {
@@ -567,6 +599,13 @@ onMounted(async () => {
     fetchExercises(),
     fetchMuscleGroups()
   ]);
+});
+
+onUnmounted(() => {
+  // Очищаем таймаут при размонтировании компонента
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
 });
 </script>
 
@@ -650,6 +689,28 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.search-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--ion-color-medium);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin: 8px 0;
+}
+
+.search-loading ion-spinner {
+  margin-bottom: 1rem;
+}
+
+.search-loading p {
+  margin: 0;
+  font-size: 14px;
 }
 
 .exercise-card {
