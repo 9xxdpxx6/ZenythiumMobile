@@ -17,7 +17,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
+      <PageContainer>
         <!-- Filters Section -->
         <div class="filters-section">
           <div class="filter-row">
@@ -97,10 +97,7 @@
 
         <!-- Metrics List -->
         <div class="metrics-list">
-          <div v-if="loading" class="loading-state">
-            <ion-spinner name="crescent"></ion-spinner>
-            <p>Загрузка записей...</p>
-          </div>
+          <LoadingState v-if="loading" message="Загрузка записей..." />
           
           <div v-else-if="metrics.length === 0" class="no-data">
             <i class="fas fa-weight chart-icon"></i>
@@ -189,7 +186,7 @@
             <i class="fas fa-chevron-right"></i>
           </ion-button>
         </div>
-      </div>
+      </PageContainer>
     </ion-content>
 
     <!-- Add/Edit Modal -->
@@ -306,6 +303,8 @@ import CustomInput from '@/components/CustomInput.vue';
 import CustomTextarea from '@/components/CustomTextarea.vue';
 import CustomToast from '@/components/CustomToast.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 
@@ -636,11 +635,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 16px;
-  padding-bottom: 120px;
-}
-
 /* Filters Section */
 .filters-section {
   background: var(--ion-color-step-50);
@@ -752,30 +746,6 @@ onMounted(() => {
 /* Metrics List */
 .metrics-list {
   margin-bottom: 20px;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-  gap: 16px;
-  min-height: 120px;
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 0;
-  --color: var(--ion-color-primary);
-}
-
-.loading-state p {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ion-color-medium);
 }
 
 .no-data {

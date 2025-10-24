@@ -19,14 +19,11 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="page-content">
+      <PageContainer>
         <!-- <h1 class="page-title">Статистика</h1> -->
 
         <!-- Loading State -->
-        <div v-if="loading && !statistics" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка статистики...</p>
-        </div>
+        <LoadingState v-if="loading && !statistics" message="Загрузка статистики..." />
 
         <!-- Main Content -->
         <div v-else-if="statistics">
@@ -274,7 +271,7 @@
           <h2>Статистика недоступна</h2>
           <p>Начните тренировки для просмотра статистики</p>
         </div>
-      </div>
+      </PageContainer>
     </ion-content>
 
     <ion-toast
@@ -305,6 +302,8 @@ import {
 } from '@ionic/vue';
 import { refreshOutline } from 'ionicons/icons';
 import { Bar, Line, Doughnut } from 'vue-chartjs';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -668,12 +667,6 @@ onMounted(() => {
 
 <style scoped>
 /* Page layout */
-.page-content {
-  padding: 16px !important;
-  margin: 0 !important;
-  padding-top: 12px !important;
-  padding-bottom: 80px !important;
-}
 
 .page-title {
   font-size: 2rem;
@@ -681,6 +674,8 @@ onMounted(() => {
   margin: 0 0 24px 0;
   padding: 0 !important;
   color: var(--ion-color-primary);
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 /* Sections */
@@ -1020,27 +1015,6 @@ onMounted(() => {
 .balance-poor {
   color: var(--ion-color-danger);
   font-weight: 600;
-}
-
-/* Loading and empty states */
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
 }
 
 /* Responsive design */

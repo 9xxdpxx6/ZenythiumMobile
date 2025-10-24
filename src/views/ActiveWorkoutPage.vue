@@ -12,12 +12,10 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div v-if="loading" class="loading-state">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Загрузка тренировки...</p>
-      </div>
+      <PageContainer>
+        <LoadingState v-if="loading" message="Загрузка тренировки..." />
 
-      <div v-else-if="workout && exercises.length > 0" class="workout-container">
+        <div v-else-if="workout && exercises.length > 0" class="workout-container">
         <!-- Workout Title -->
         <div class="workout-title-section">
           <h1 class="workout-title">{{ workout?.plan?.name || 'Тренировка' }}</h1>
@@ -140,11 +138,12 @@
         </div>
       </div>
 
-      <div v-else class="empty-state">
-        <i class="fas fa-dumbbell" style="font-size: 3rem;"></i>
-        <h2>Тренировка не найдена</h2>
-        <p>Возможно, тренировка была удалена</p>
-      </div>
+        <div v-else class="empty-state">
+          <i class="fas fa-dumbbell" style="font-size: 3rem;"></i>
+          <h2>Тренировка не найдена</h2>
+          <p>Возможно, тренировка была удалена</p>
+        </div>
+      </PageContainer>
     </ion-content>
 
     <ion-toast
@@ -172,6 +171,8 @@ import {
   IonToast,
 } from '@ionic/vue';
 import CustomInput from '@/components/CustomInput.vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import apiClient from '@/services/api';
 import { 
   Workout, 
@@ -864,27 +865,6 @@ onMounted(() => {
   font-weight: 600;
   margin-top: 8px;
   box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Loading and Empty States */
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
 }
 
 /* Finish Button */
