@@ -17,7 +17,7 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
+      <PageContainer>
         <div v-if="loading" class="loading-state">
           <ion-spinner name="crescent"></ion-spinner>
           <p>Загрузка упражнений...</p>
@@ -45,12 +45,9 @@
             />
           </div>
 
-          <div class="exercises-list">
+          <div class="exercises-list card-list">
             <!-- Локальный спиннер для поиска -->
-            <div v-if="searchLoading" class="search-loading">
-              <ion-spinner name="crescent"></ion-spinner>
-              <p>Поиск упражнений...</p>
-            </div>
+            <SearchLoading v-if="searchLoading" message="Поиск упражнений..." />
             
             <!-- Список упражнений (скрываем во время поиска) -->
             <div 
@@ -124,15 +121,16 @@
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <i class="fas fa-dumbbell empty-icon"></i>
-          <h2>Нет упражнений</h2>
-          <p>У вас пока нет созданных упражнений</p>
-          <ion-button @click="openCreateModal" class="create-button">
-            Создать упражнение
-          </ion-button>
-        </div>
-      </div>
+        <EmptyState
+          v-else
+          icon="fas fa-dumbbell"
+          title="Нет упражнений"
+          message="У вас пока нет созданных упражнений"
+          action-text="Создать упражнение"
+          action-icon="fas fa-plus"
+          :action-handler="openCreateModal"
+        />
+      </PageContainer>
     </ion-content>
 
     <!-- Create/Edit Exercise Modal -->
@@ -289,6 +287,9 @@ import CustomSelect from '@/components/CustomSelect.vue';
 import CustomTextarea from '@/components/CustomTextarea.vue';
 import SearchInput from '@/components/SearchInput.vue';
 import ExercisesFilters from '@/components/ExercisesFilters.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import SearchLoading from '@/components/SearchLoading.vue';
+import PageContainer from '@/components/PageContainer.vue';
 import { DataService } from '@/services/data';
 import { 
   ExerciseResource, 
@@ -610,52 +611,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 4px !important;
-  margin: 0 !important;
-  padding-top: 4px !important;
-  padding-bottom: 80px !important;
-}
+/* Page content styles now handled by PageContainer component */
 
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-state h2 {
-  margin: 0 0 6px 0;
-  font-size: 1.3rem;
-  color: var(--ion-text-color);
-}
-
-.empty-state p {
-  margin: 0 0 1rem 0;
-  font-size: 0.9rem;
-}
+/* Loading and empty states now handled by LoadingState and EmptyState components */
 
 .create-button {
   margin-top: 1rem;
 }
 
-.exercises-container {
-  padding: 0 12px;
-}
 
 .exercises-header {
   margin-bottom: 20px;
@@ -676,7 +639,7 @@ onUnmounted(() => {
 .search-filters-section {
   display: flex;
   align-items: flex-start;
-  gap: 0;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -691,7 +654,8 @@ onUnmounted(() => {
   gap: 12px;
 }
 
-.search-loading {
+/* Search loading styles now handled by SearchLoading component */
+/* .search-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -711,7 +675,7 @@ onUnmounted(() => {
 .search-loading p {
   margin: 0;
   font-size: 14px;
-}
+} */
 
 .exercise-card {
   margin: 0 !important;

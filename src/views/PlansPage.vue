@@ -16,7 +16,7 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="page-content">
+      <PageContainer>
         <h1 class="page-title">Планы тренировок</h1>
         <p class="page-subtitle">Выберите план для своей тренировки</p>
         
@@ -37,19 +37,13 @@
           />
         </div>
 
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка планов...</p>
-        </div>
+        <LoadingState v-if="loading" message="Загрузка планов..." />
 
         <div v-else-if="plans.length > 0">
           <!-- Локальный спиннер для поиска -->
-          <div v-if="searchLoading" class="search-loading">
-            <ion-spinner name="crescent"></ion-spinner>
-            <p>Поиск планов...</p>
-          </div>
+          <SearchLoading v-if="searchLoading" message="Поиск планов..." />
           
-          <div class="plans-grid">
+          <div class="plans-grid card-grid">
             <div
               v-for="plan in plans"
               :key="plan.id"
@@ -109,18 +103,16 @@
           </div>
         </div>
 
-        <div v-else-if="!searchLoading" class="empty-state">
-          <i class="fas fa-list empty-icon"></i>
-          <h2>{{ searchQuery ? 'Планы не найдены' : 'Нет планов' }}</h2>
-          <p>{{ searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Планы тренировок будут доступны в ближайшее время' }}</p>
-          <button
-            @click="createNewPlan"
-            class="modern-button"
-          >
-            Создать план
-          </button>
-        </div>
-      </div>
+        <EmptyState
+          v-else-if="!searchLoading"
+          icon="fas fa-list"
+          title="Планы не найдены"
+          :message="searchQuery ? 'Попробуйте изменить поисковый запрос' : 'Планы тренировок будут доступны в ближайшее время'"
+          action-text="Создать план"
+          action-icon="fas fa-plus"
+          :action-handler="createNewPlan"
+        />
+      </PageContainer>
     </ion-content>
   </ion-page>
 </template>
@@ -142,6 +134,10 @@ import {
 } from '@ionic/vue';
 import SearchInput from '@/components/SearchInput.vue';
 import PlansFilters from '@/components/PlansFilters.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import SearchLoading from '@/components/SearchLoading.vue';
+import PageContainer from '@/components/PageContainer.vue';
 import apiClient from '@/services/api';
 import { Plan, ApiError, Exercise } from '@/types/api';
 
@@ -392,14 +388,20 @@ onUnmounted(() => {
 
 <style scoped>
 /* Minimal spacing for maximum screen usage */
-.page-content {
-  padding: 4px !important;
-  margin: 0 !important;
-  padding-top: 4px !important;
-  padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+/* Page content styles now handled by PageContainer component */
+
+.page-title {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .page-subtitle {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
   margin-bottom: 0 !important;
 }
 
@@ -408,7 +410,6 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   width: 100%;
-  padding-right: 16px !important;
 }
 
 .search-input {
@@ -662,7 +663,8 @@ onUnmounted(() => {
   content: none !important;
 }
 
-.loading-state,
+/* State styles now handled by utility classes */
+/* .loading-state,
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -692,5 +694,5 @@ onUnmounted(() => {
 .empty-state p {
   margin: 0;
   font-size: 1rem;
-}
+} */
 </style>

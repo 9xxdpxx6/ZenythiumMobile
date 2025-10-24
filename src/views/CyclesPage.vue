@@ -16,7 +16,7 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="page-content">
+      <PageContainer>
         <h1 class="page-title">Циклы тренировок</h1>
         <p class="page-subtitle">Управляйте своими тренировочными циклами</p>
 
@@ -28,13 +28,10 @@
           @clear="clearSearch"
         />
 
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка циклов...</p>
-        </div>
+        <LoadingState v-if="loading" message="Загрузка циклов..." />
 
         <div v-else-if="cycles.length > 0">
-          <div class="cycles-list">
+          <div class="cycles-list card-list">
             <div
               v-for="cycle in cycles"
               :key="cycle.id"
@@ -73,19 +70,16 @@
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <i class="fas fa-sync-alt empty-icon"></i>
-          <h2>Нет циклов</h2>
-          <p>Создайте свой первый тренировочный цикл</p>
-          <button
-            @click="createCycle"
-            class="modern-button"
-          >
-            <i class="fas fa-plus"></i>
-            Создать цикл
-          </button>
-        </div>
-      </div>
+        <EmptyState
+          v-else
+          icon="fas fa-sync-alt"
+          title="Нет циклов"
+          message="Создайте свой первый тренировочный цикл"
+          action-text="Создать цикл"
+          action-icon="fas fa-plus"
+          :action-handler="createCycle"
+        />
+      </PageContainer>
     </ion-content>
   </ion-page>
 </template>
@@ -110,6 +104,9 @@ import {
 import apiClient from '@/services/api';
 import { ApiError } from '@/types/api';
 import SearchInput from '@/components/SearchInput.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import PageContainer from '@/components/PageContainer.vue';
 
 interface Cycle {
   id: number;
@@ -264,11 +261,21 @@ onUnmounted(() => {
 
 <style scoped>
 /* Minimal spacing for maximum screen usage */
-.page-content {
-  padding: 4px !important;
-  margin: 0 !important;
-  padding-top: 4px !important;
-  padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
+/* Page content styles now handled by PageContainer component */
+
+.page-title {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.page-subtitle {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin-bottom: 0 !important;
 }
 
 .cycles-list {
@@ -362,7 +369,8 @@ onUnmounted(() => {
   transition: width 0.3s ease;
 }
 
-.loading-state,
+/* State styles now handled by utility classes */
+/* .loading-state,
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -392,7 +400,7 @@ onUnmounted(() => {
 .empty-state p {
   margin: 0 0 24px 0;
   font-size: 1rem;
-}
+} */
 
 .modern-button {
   background: var(--ion-color-primary);
