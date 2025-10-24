@@ -55,7 +55,7 @@ const clearSearch = () => {
 
 <style scoped>
 .search-container {
-  margin: 16px 16px 20px 16px;
+  margin: 16px 0 20px 0;
 }
 
 /* Для модалов - уменьшенные отступы */

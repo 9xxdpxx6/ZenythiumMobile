@@ -1,0 +1,133 @@
+/* UI Utilities - Clean and minimal */
+
+/* ============================================
+   PAGE CONTAINER
+   ============================================ */
+
+/* Main page container with consistent padding */
+.page-container {
+  padding-left: var(--spacing-page-x) !important;
+  padding-right: var(--spacing-page-x) !important;
+  padding-top: var(--spacing-page-top) !important;
+  padding-bottom: var(--spacing-page-bottom) !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+/* Card list - vertical card layout */
+.card-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--spacing-card) !important;
+}
+
+/* Card grid - responsive grid layout */
+.card-grid {
+  display: grid !important;
+  gap: var(--spacing-card) !important;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)) !important;
+}
+
+/* Card grid 2 columns */
+.card-grid-2 {
+  display: grid !important;
+  gap: var(--spacing-card) !important;
+  grid-template-columns: 1fr 1fr !important;
+}
+
+/* Modern card - override Ionic's ion-card */
+.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: var(--card-border-radius) !important;
+  padding: var(--card-padding) !important;
+  margin: 0 !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  backdrop-filter: blur(10px) !important;
+  transition: all 0.2s ease !important;
+}
+
+.modern-card:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ============================================
+   COMPONENT STATES
+   ============================================ */
+
+/* Loading state */
+.loading-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2rem !important;
+  text-align: center !important;
+  color: var(--ion-color-medium) !important;
+  gap: 16px !important;
+  min-height: 120px !important;
+}
+
+.loading-state ion-spinner {
+  margin-bottom: 0 !important;
+  --color: var(--ion-color-primary) !important;
+}
+
+.loading-state p {
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: var(--ion-color-medium) !important;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 2rem !important;
+  text-align: center !important;
+  color: var(--ion-color-medium) !important;
+  gap: 16px !important;
+  min-height: 120px !important;
+}
+
+.empty-state i {
+  font-size: 4rem !important;
+  margin-bottom: 0 !important;
+  color: var(--ion-color-primary) !important;
+}
+
+.empty-state h2 {
+  margin: 0 !important;
+  font-size: 1.5rem !important;
+  color: var(--ion-text-color) !important;
+}
+
+.empty-state p {
+  margin: 0 !important;
+  font-size: 1rem !important;
+  color: var(--ion-color-medium) !important;
+}
+
+.empty-state .modern-button {
+  margin-top: 16px !important;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .card-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* .card-grid-2 остается в 2 колонки даже на мобильных */
+}

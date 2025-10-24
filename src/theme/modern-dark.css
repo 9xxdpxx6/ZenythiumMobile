@@ -82,6 +82,19 @@
   --ion-card-border-radius: 16px;
   --ion-button-border-radius: 12px;
   --ion-item-border-radius: 12px;
+
+  /* Spacing System - Design Tokens */
+  --spacing-page-x: 16px;
+  --spacing-page-top: 70px;
+  --spacing-page-bottom: 100px;
+  --spacing-section: 24px;
+  --spacing-card: 16px;
+  --spacing-content: 12px;
+
+  /* Card spacing */
+  --card-border-radius: 12px;
+  --card-padding: 20px;
+  --card-gap: 16px;
 }
 
 /* Global styles for modern flat design */
@@ -107,25 +120,25 @@ ion-card-content {
 
 /* Content padding fixes - proper spacing for header */
 ion-content {
-  --padding-start: 16px !important;
-  --padding-end: 16px !important;
-  --padding-top: 16px !important;
-  --padding-bottom: 16px !important;
+  --padding-start: 0 !important;
+  --padding-end: 0 !important;
+  --padding-top: 0 !important;
+  --padding-bottom: 0 !important;
 }
 
-/* Page-specific content styling */
-ion-content .page-content {
+/* Page-specific content styling - now handled by utilities.css */
+/* ion-content .page-content {
   padding: 16px !important;
   margin: 0 !important;
-}
+} */
 
 /* Remove default Ionic padding but keep small top padding for header */
-ion-content {
+/* ion-content {
   --padding-start: 0 !important;
   --padding-end: 0 !important;
   --padding-top: 8px !important;
   --padding-bottom: 0 !important;
-}
+} */
 
 /* Remove padding from all Ionic components */
 ion-card {
@@ -140,13 +153,7 @@ ion-button {
   --padding-bottom: 4px;
 }
 
-/* Override modern-card class */
-.modern-card {
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-  border-radius: 8px;
-}
+/* Modern card styles now handled by utilities.css */
 
 /* Page titles and headers */
 .page-title {
@@ -376,16 +383,9 @@ ion-spinner {
   --color: var(--ion-color-primary) !important;
 }
 
-/* Custom utility classes */
-.modern-card {
-  background: var(--ion-card-background) !important;
-  border-radius: var(--ion-card-border-radius) !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  padding: 20px !important;
-  margin: 0 16px !important;
-}
+/* Custom utility classes now handled by utilities.css */
 
-.modern-button {
+/* .modern-button {
   --border-radius: 12px !important;
   border-radius: 12px !important;
   font-weight: 600 !important;
@@ -393,15 +393,15 @@ ion-spinner {
   box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
   height: 48px !important;
   font-size: 16px !important;
-}
+} */
 
-.modern-button::part(native) {
+/* .modern-button::part(native) {
   border-radius: 12px !important;
   height: 100% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-}
+} */
 
 .modern-input {
   --background: rgba(255, 255, 255, 0.05) !important;

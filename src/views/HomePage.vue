@@ -11,13 +11,13 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="page-content">
+      <PageContainer>
         <div class="main-header">
           <h1 class="page-title">Zenythium</h1>
         </div>
 
         <!-- Main Action Grid 3x2 -->
-        <div class="action-grid">
+        <div class="action-grid card-grid-2">
           <div class="grid-item" @click="$router.push('/select-plan')">
             <div class="grid-card modern-card">
               <i class="fas fa-play grid-icon"></i>
@@ -62,11 +62,11 @@
         </div>
 
         <!-- Statistics Section -->
-        <div class="statistics-section">
+        <div class="statistics-section content-section">
           <h2>Основные показатели</h2>
           
           <!-- Quick Stats Cards -->
-          <div class="quick-stats">
+          <div class="quick-stats card-grid-2">
             <div class="stat-card modern-card">
               <div class="stat-top">
                 <div class="stat-value">{{ weekWorkouts }}</div>
@@ -240,11 +240,11 @@
         </div>
 
         <!-- Additional Statistics Section -->
-        <div class="additional-statistics-section">
+        <div class="additional-statistics-section content-section">
           <h2>Дополнительные показатели</h2>
           
           <!-- Additional Stats Grid -->
-          <div class="additional-stats-grid">
+          <div class="additional-stats-grid card-grid-2">
             <!-- Общий объем тренировок -->
             <div class="additional-stat-card modern-card">
               <div class="additional-stat-header">
@@ -301,11 +301,8 @@
         </div>
 
         <!-- Loading State -->
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка данных...</p>
-        </div>
-      </div>
+        <LoadingState v-if="loading" message="Загрузка данных..." />
+      </PageContainer>
 
     </ion-content>
 
@@ -414,6 +411,8 @@ import {
 import CustomDatePicker from '@/components/CustomDatePicker.vue';
 import CustomInput from '@/components/CustomInput.vue';
 import CustomToast from '@/components/CustomToast.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import PageContainer from '@/components/PageContainer.vue';
 
 // Register Chart.js components
 ChartJS.register(
@@ -1169,12 +1168,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 /* Balanced layout with increased spacing */
-.page-content {
-  padding: 16px !important;
-  margin: 0 !important;
-  padding-top: 12px !important;
-  padding-bottom: 120px !important; /* Add more space for tab bar and scrolling */
-}
+/* Page content styles now handled by PageContainer component */
 
 /* Main Header */
 .main-header {
@@ -1191,9 +1185,6 @@ onBeforeUnmount(() => {
 
 /* Action Grid 2x2 - Increased spacing */
 .action-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
   margin-bottom: 32px;
 }
 
@@ -1216,57 +1207,39 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-/* Градиенты для разных плиток */
-.grid-item:nth-child(1) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(30, 50, 80, 0.9) 0%, 
-    rgba(50, 70, 100, 0.8) 50%, 
-    rgba(20, 40, 70, 0.9) 100%);
-  border: 2px solid rgba(59, 130, 246, 0.6);
+/* Градиенты для разных плиток - темный фон как в старой версии */
+.grid-item:nth-child(1) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(59, 130, 246, 0.6) !important;
 }
 
-.grid-item:nth-child(2) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(80, 30, 100, 0.9) 0%, 
-    rgba(100, 50, 120, 0.8) 50%, 
-    rgba(60, 20, 80, 0.9) 100%);
-  border: 2px solid rgba(168, 85, 247, 0.6);
+.grid-item:nth-child(2) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(168, 85, 247, 0.6) !important;
 }
 
-.grid-item:nth-child(3) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(30, 60, 40, 0.9) 0%, 
-    rgba(50, 80, 60, 0.8) 50%, 
-    rgba(20, 50, 30, 0.9) 100%);
-  border: 2px solid rgba(34, 197, 94, 0.6);
+.grid-item:nth-child(3) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(34, 197, 94, 0.6) !important;
 }
 
-.grid-item:nth-child(4) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(80, 70, 30, 0.9) 0%, 
-    rgba(100, 90, 50, 0.8) 50%, 
-    rgba(60, 50, 20, 0.9) 100%);
-  border: 2px solid rgba(245, 158, 11, 0.6);
+.grid-item:nth-child(4) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(245, 158, 11, 0.6) !important;
 }
 
-.grid-item:nth-child(5) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(100, 30, 50, 0.9) 0%, 
-    rgba(120, 50, 70, 0.8) 50%, 
-    rgba(80, 20, 40, 0.9) 100%);
-  border: 2px solid rgba(239, 68, 68, 0.6);
+.grid-item:nth-child(5) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(239, 68, 68, 0.6) !important;
 }
 
-.grid-item:nth-child(6) .grid-card {
-  background: linear-gradient(135deg, 
-    rgba(30, 80, 100, 0.9) 0%, 
-    rgba(50, 100, 120, 0.8) 50%, 
-    rgba(20, 60, 80, 0.9) 100%);
-  border: 2px solid rgba(6, 182, 212, 0.6);
+.grid-item:nth-child(6) .grid-card.modern-card {
+  background: var(--ion-card-background) !important;
+  border: 2px solid rgba(6, 182, 212, 0.6) !important;
 }
 
-/* Статичные пузыри */
-.grid-card::before {
+/* Статичные пузыри - убраны для темного фона */
+/* .grid-card::before {
   content: '';
   position: absolute;
   top: -50%;
@@ -1274,8 +1247,10 @@ onBeforeUnmount(() => {
   width: 200%;
   height: 200%;
   pointer-events: none;
-}
+} */
 
+/* Все ::before стили закомментированы для темного фона */
+/*
 .grid-item:nth-child(1) .grid-card::before {
   background: radial-gradient(circle at 30% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
               radial-gradient(circle at 70% 80%, rgba(124, 58, 237, 0.12) 0%, transparent 50%),
@@ -1311,9 +1286,10 @@ onBeforeUnmount(() => {
               radial-gradient(circle at 70% 75%, rgba(8, 145, 178, 0.12) 0%, transparent 50%),
               radial-gradient(circle at 25% 80%, rgba(14, 116, 144, 0.08) 0%, transparent 40%);
 }
+*/
 
-/* Статичные световые эффекты */
-.grid-card::after {
+/* Статичные световые эффекты - убраны для темного фона */
+/* .grid-card::after {
   content: '';
   position: absolute;
   top: 0;
@@ -1327,7 +1303,7 @@ onBeforeUnmount(() => {
     rgba(255, 255, 255, 0.03) 75%, 
     transparent 100%);
   pointer-events: none;
-}
+} */
 
 .grid-icon {
   font-size: 2rem;
@@ -1919,8 +1895,8 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-/* Loading State */
-.loading-state {
+/* Loading State - now handled by LoadingState component */
+/* .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1942,7 +1918,7 @@ onBeforeUnmount(() => {
   font-size: 14px;
   font-weight: 500;
   color: var(--ion-color-medium);
-}
+} */
 
 /* Modal Styles */
 .modal-content {

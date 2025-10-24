@@ -11,7 +11,7 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div class="page-content">
+      <PageContainer>
         <h1 class="page-title">История тренировок</h1>
         <p class="page-subtitle">Управляйте своими тренировками</p>
         
@@ -63,13 +63,10 @@
           </CustomButton>
         </div>
 
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка тренировок...</p>
-        </div>
+        <LoadingState v-if="loading" message="Загрузка тренировок..." />
 
         <div v-else-if="filteredWorkouts.length > 0">
-          <div class="workouts-list" :key="workoutsKey">
+          <div class="workouts-list card-list" :key="workoutsKey">
             <CustomCard
               v-for="workout in filteredWorkouts"
               :key="workout.id"
@@ -99,19 +96,16 @@
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <i class="fas fa-dumbbell empty-icon"></i>
-          <h2>{{ (dateFrom || dateTo) ? 'Тренировки не найдены' : 'Нет тренировок' }}</h2>
-          <p>{{ (dateFrom || dateTo) ? 'Попробуйте изменить диапазон дат' : 'Начните свою первую тренировку!' }}</p>
-          <CustomButton
-            @click="$router.push('/select-plan')"
-            class="modern-button"
-            icon="fas fa-plus"
-          >
-            Начать тренировку
-          </CustomButton>
-        </div>
-      </div>
+        <EmptyState
+          v-else
+          icon="fas fa-dumbbell"
+          :title="(dateFrom || dateTo) ? 'Тренировки не найдены' : 'Нет тренировок'"
+          :message="(dateFrom || dateTo) ? 'Попробуйте изменить диапазон дат' : 'Начните свою первую тренировку!'"
+          action-text="Начать тренировку"
+          action-icon="fas fa-plus"
+          :action-handler="() => $router.push('/select-plan')"
+        />
+      </PageContainer>
     </ion-content>
 
     <CustomToast
@@ -164,6 +158,9 @@ import CustomChip from '@/components/CustomChip.vue';
 import CustomToast from '@/components/CustomToast.vue';
 import WorkoutActionModal from '@/components/WorkoutActionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
+import PageContainer from '@/components/PageContainer.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import apiClient from '@/services/api';
@@ -408,12 +405,7 @@ watch(() => route.path, (newPath) => {
 
 <style scoped>
 /* Balanced layout with increased spacing - same as original WorkoutsPage */
-.page-content {
-  padding: 20px !important;
-  margin: 0 !important;
-  padding-top: 6px !important;
-  padding-bottom: 150px !important; /* Add space for fixed button + tab bar */
-}
+/* Page content styles now handled by PageContainer component */
 
 .page-title {
   padding-left: 0 !important;
@@ -566,7 +558,8 @@ watch(() => route.path, (newPath) => {
   color: var(--ion-text-color);
 }
 
-.loading-state,
+/* State styles now handled by utility classes */
+/* .loading-state,
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -596,7 +589,7 @@ watch(() => route.path, (newPath) => {
 .empty-state p {
   margin: 0 0 24px 0;
   font-size: 1rem;
-}
+} */
 
 .modern-button {
   background: var(--ion-color-primary);

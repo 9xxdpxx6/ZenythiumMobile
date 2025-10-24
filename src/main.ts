@@ -34,6 +34,7 @@ import '@ionic/vue/css/palettes/dark.system.css';
 /* Theme variables */
 import './theme/variables.css';
 import './theme/modern-dark.css';
+import './theme/utilities.css';
 
 /* Font Awesome */
 import '@fortawesome/fontawesome-free/css/all.css';
