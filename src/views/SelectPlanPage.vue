@@ -10,40 +10,39 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div v-if="loading" class="loading-state">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Подготовка тренировки...</p>
-      </div>
+      <PageContainer>
+        <LoadingState v-if="loading" message="Подготовка тренировки..." />
 
-      <div v-else class="start-workout-content">
-        <div class="workout-info">
-          <i class="fas fa-dumbbell workout-icon"></i>
-          <h2>Готовы начать тренировку?</h2>
-          <p v-if="selectedPlanId === 'auto'">Система автоматически выберет подходящий план на основе вашего прогресса и активного цикла.</p>
+        <div v-else class="start-workout-content">
+          <div class="workout-info">
+            <i class="fas fa-dumbbell workout-icon"></i>
+            <h2>Готовы начать тренировку?</h2>
+            <p v-if="selectedPlanId === 'auto'">Система автоматически выберет подходящий план на основе вашего прогресса и активного цикла.</p>
+          </div>
         </div>
-      </div>
 
-      <div v-if="!loading" class="plan-selection">
-        <CustomSelect
-          v-model="selectedPlanId"
-          :options="planOptions"
-          placeholder="Выберите план тренировки"
-          search-placeholder="Поиск планов..."
-          @change="onPlanChange"
-        />
-      </div>
+        <div v-if="!loading" class="plan-selection">
+          <CustomSelect
+            v-model="selectedPlanId"
+            :options="planOptions"
+            placeholder="Выберите план тренировки"
+            search-placeholder="Поиск планов..."
+            @change="onPlanChange"
+          />
+        </div>
 
-      <div v-if="!loading" class="ion-padding">
-        <ion-button
-          expand="block"
-          :disabled="starting || !selectedPlanId"
-          @click="startWorkout"
-          size="large"
-        >
-          <ion-spinner v-if="starting" name="crescent"></ion-spinner>
-          <span v-else>Начать тренировку</span>
-        </ion-button>
-      </div>
+        <div v-if="!loading" class="ion-padding">
+          <ion-button
+            expand="block"
+            :disabled="starting || !selectedPlanId"
+            @click="startWorkout"
+            size="large"
+          >
+            <ion-spinner v-if="starting" name="crescent"></ion-spinner>
+            <span v-else>Начать тренировку</span>
+          </ion-button>
+        </div>
+      </PageContainer>
     </ion-content>
 
     <ion-toast
@@ -70,6 +69,8 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
 import apiClient from '@/services/api';
 import { DataService } from '@/services/data';
@@ -177,15 +178,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Balanced layout with increased spacing - same as HomePage */
-.page-content {
-  padding: 16px !important;
-  margin: 0 !important;
-  padding-top: 12px !important;
-  padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
-}
-
-.loading-state,
 .start-workout-content {
   display: flex;
   flex-direction: column;
@@ -221,12 +213,4 @@ onMounted(() => {
   line-height: 1.5;
 }
 
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-}
 </style>
