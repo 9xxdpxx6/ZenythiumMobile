@@ -7,13 +7,10 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
+      <PageContainer>
         <h1 class="page-title">Профиль</h1>
 
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка профиля...</p>
-        </div>
+        <LoadingState v-if="loading" message="Загрузка профиля..." />
 
          <div v-else-if="user">
            <div class="profile-header modern-card">
@@ -145,7 +142,7 @@
            <h2>Профиль недоступен</h2>
            <p>Не удалось загрузить данные профиля</p>
          </div>
-      </div>
+      </PageContainer>
     </ion-content>
 
     <ion-toast
@@ -172,6 +169,8 @@ import {
 import { useAuth } from '@/composables/useAuth';
 import { DataService } from '@/services/data';
 import { User, Statistics } from '@/types/api';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 
 const router = useRouter();
 const { user, logout, fetchUser, loading, error, clearError } = useAuth();
@@ -251,43 +250,14 @@ onMounted(async () => {
 
 <style scoped>
 /* Minimal spacing for maximum screen usage */
-.page-content {
-  padding: 4px !important;
-  margin: 0 !important;
-  padding-top: 4px !important;
-  padding-bottom: 80px !important; /* Add space for tab bar (60px) + extra margin */
-}
 
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-state h2 {
-  margin: 0 0 6px 0;
-  font-size: 1.3rem;
+.page-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
   color: var(--ion-text-color);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.9rem;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .profile-header {

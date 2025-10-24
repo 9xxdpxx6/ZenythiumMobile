@@ -19,21 +19,19 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div v-if="loading" class="loading-state">
-        <ion-spinner name="crescent"></ion-spinner>
-        <p>Загрузка тренировки...</p>
-      </div>
+      <PageContainer>
+        <LoadingState v-if="loading" message="Загрузка тренировки..." />
 
-      <div v-else-if="error" class="error-state">
-        <i class="fas fa-exclamation-triangle error-icon"></i>
-        <h2>Ошибка загрузки</h2>
-        <p>{{ error }}</p>
-        <CustomButton @click="fetchWorkout" class="retry-button">
-          Попробовать снова
-        </CustomButton>
-      </div>
+        <div v-else-if="error" class="error-state">
+          <i class="fas fa-exclamation-triangle error-icon"></i>
+          <h2>Ошибка загрузки</h2>
+          <p>{{ error }}</p>
+          <CustomButton @click="fetchWorkout" class="retry-button">
+            Попробовать снова
+          </CustomButton>
+        </div>
 
-      <div v-else-if="workout" class="workout-details">
+        <div v-else-if="workout" class="workout-details">
         <!-- Заголовок тренировки -->
         <div class="workout-header">
           <h1 class="workout-title">{{ workout.plan.name }}</h1>
@@ -174,6 +172,7 @@
           </CustomButton>
         </div>
       </div>
+      </PageContainer>
     </ion-content>
 
 
@@ -215,6 +214,8 @@ import CustomButton from '@/components/CustomButton.vue';
 import CustomChip from '@/components/CustomChip.vue';
 import CustomToast from '@/components/CustomToast.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import apiClient from '@/services/api';
 import { DetailedWorkout, ApiError } from '@/types/api';
 
@@ -713,7 +714,6 @@ onMounted(() => {
   color: var(--ion-color-primary);
 }
 
-.loading-state,
 .error-state {
   display: flex;
   flex-direction: column;
@@ -723,10 +723,6 @@ onMounted(() => {
   text-align: center;
   color: var(--ion-color-medium);
   min-height: 50vh;
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
 }
 
 .error-icon {
