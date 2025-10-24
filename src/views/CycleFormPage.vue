@@ -12,14 +12,11 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
+      <PageContainer>
         <h1 class="page-title">{{ isEditMode ? 'Редактирование цикла' : 'Новый цикл' }}</h1>
         <p class="page-subtitle">{{ isEditMode ? 'Обновите информацию о цикле тренировок' : 'Создайте новый тренировочный цикл' }}</p>
 
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка...</p>
-        </div>
+        <LoadingState v-if="loading" message="Загрузка..." />
 
         <form v-else @submit.prevent="handleSubmit" class="cycle-form">
           <div class="form-group">
@@ -146,7 +143,7 @@
             </button>
           </div>
         </form>
-      </div>
+      </PageContainer>
     </ion-content>
 
     <!-- Plan Selection Modal -->
@@ -216,6 +213,8 @@ import {
   IonSearchbar,
   toastController,
 } from '@ionic/vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import CustomInput from '@/components/CustomInput.vue';
 import PlansList from '@/components/PlansList.vue';
 import PlanSelectionModal from '@/components/PlanSelectionModal.vue';
@@ -806,19 +805,14 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 16px !important;
-  padding-bottom: 120px !important;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
 .page-title {
   font-size: 22px !important;
   font-weight: 700 !important;
   color: var(--ion-text-color) !important;
   margin: 0 0 6px 0 !important;
   padding-left: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .page-subtitle {
@@ -826,20 +820,8 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   color: var(--ion-color-medium) !important;
   margin: 0 0 12px 0 !important;
   padding-left: 0 !important;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }
 
 .cycle-form {

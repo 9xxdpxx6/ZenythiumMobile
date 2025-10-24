@@ -12,11 +12,8 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка групп мышц...</p>
-        </div>
+      <PageContainer>
+        <LoadingState v-if="loading" message="Загрузка групп мышц..." />
 
         <div v-else-if="muscleGroups.length > 0" class="muscle-groups-container">
           <div class="muscle-groups-header">
@@ -42,12 +39,13 @@
           </div>
         </div>
 
-        <div v-else class="empty-state">
-          <i class="fas fa-muscle empty-icon"></i>
-          <h2>Нет групп мышц</h2>
-          <p>Группы мышц не найдены</p>
-        </div>
-      </div>
+        <EmptyState 
+          v-else
+          icon="fas fa-dumbbell"
+          title="Нет групп мышц"
+          message="Группы мышц не найдены"
+        />
+      </PageContainer>
     </ion-content>
 
     <ion-toast
@@ -73,6 +71,9 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import EmptyState from '@/components/EmptyState.vue';
 import { DataService } from '@/services/data';
 import { MuscleGroupResource } from '@/types/api';
 
@@ -104,45 +105,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 16px !important;
-  margin: 0 !important;
-  padding-top: 16px !important;
-  padding-bottom: 80px !important;
-}
-
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-state h2 {
-  margin: 0 0 6px 0;
-  font-size: 1.3rem;
-  color: var(--ion-text-color);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
 .muscle-groups-container {
   padding: 0;
 }

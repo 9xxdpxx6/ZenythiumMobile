@@ -10,11 +10,8 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <div class="page-content">
-        <div v-if="loading && !workout" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка тренировки...</p>
-        </div>
+      <PageContainer>
+        <LoadingState v-if="loading && !workout" message="Загрузка тренировки..." />
 
         <div v-else-if="workout">
           <!-- Информация о тренировке -->
@@ -142,7 +139,7 @@
             Попробовать снова
           </CustomButton>
         </div>
-      </div>
+      </PageContainer>
     </ion-content>
 
     <!-- Hotbar with action buttons -->
@@ -197,6 +194,8 @@ import {
   IonIcon,
 } from '@ionic/vue';
 import { trashOutline, addOutline } from 'ionicons/icons';
+import PageContainer from '@/components/PageContainer.vue';
+import LoadingState from '@/components/LoadingState.vue';
 import CustomButton from '@/components/CustomButton.vue';
 import CustomInput from '@/components/CustomInput.vue';
 import CustomToast from '@/components/CustomToast.vue';
@@ -488,12 +487,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-content {
-  padding: 20px;
-  padding-bottom: 140px; /* Увеличил отступ для хотбара */
-}
-
-.loading-state,
 .error-state {
   display: flex;
   flex-direction: column;
@@ -502,10 +495,6 @@ onMounted(() => {
   padding: 2rem;
   text-align: center;
   color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
 }
 
 .error-state i {
