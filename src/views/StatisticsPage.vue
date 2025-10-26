@@ -513,10 +513,7 @@ const muscleBalanceChartOptions = {
 // API calls
 const fetchStatistics = async () => {
   try {
-    console.log('🔍 Fetching statistics...');
     const response = await apiClient.get<StatisticsResponse>('/api/v1/user/statistics');
-    console.log('📊 Statistics API Response:', response);
-    console.log('📊 Statistics Data:', response.data);
     
     // Обрабатываем данные - конвертируем строки в числа и обрабатываем null
     const processedData = {
@@ -527,7 +524,6 @@ const fetchStatistics = async () => {
       weight_change_30_days: response.data.data.weight_change_30_days || 0,
     };
     
-    console.log('📊 Processed Statistics Data:', processedData);
     statistics.value = processedData;
   } catch (err) {
     console.error('❌ Error fetching statistics:', err);
@@ -666,18 +662,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* Page layout */
-
-.page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 24px 0;
-  padding: 0 !important;
-  color: var(--ion-color-primary);
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
 /* Sections */
 .stats-section {
   margin-bottom: 32px;

@@ -1521,17 +1521,7 @@ onBeforeUnmount(() => {
   font-weight: 600;
 }
 
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 18px !important;
-  text-align: center;
-  background: var(--ion-color-step-50);
-  border-radius: 12px;
-  margin: 0 !important;
-  min-height: 100px;
-}
+/* .stat-card now in utilities.css */
 
 .stat-top {
   display: flex;

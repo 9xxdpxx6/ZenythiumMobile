@@ -222,12 +222,27 @@ const formatWeight = (volume: number | string) => {
   const numVolume = typeof volume === 'string' ? parseFloat(volume) : volume;
   if (isNaN(numVolume)) return '0 кг';
   
-  if (numVolume >= 1000000) {
-    return `${(numVolume / 1000000).toFixed(1)}М кг`;
-  } else if (numVolume >= 1000) {
-    return `${(numVolume / 1000).toFixed(1)}К кг`;
+  const absVolume = Math.abs(numVolume);
+  
+  // B = Billion (миллиард)
+  if (absVolume >= 1000000000) {
+    const value = absVolume / 1000000000;
+    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
+    return `${floored.toFixed(floored >= 10 ? 0 : 2)}B кг`;
+  } 
+  // M = Million (миллион)
+  else if (absVolume >= 1000000) {
+    const value = absVolume / 1000000;
+    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
+    return `${floored.toFixed(floored >= 10 ? 0 : 2)}M кг`;
+  } 
+  // K = Thousand (тысяча)
+  else if (absVolume >= 1000) {
+    const value = absVolume / 1000;
+    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
+    return `${floored.toFixed(floored >= 10 ? 0 : 2)}K кг`;
   }
-  return `${numVolume} кг`;
+  return `${Math.round(numVolume)} кг`;
 };
 
 const fetchStatistics = async () => {
@@ -250,15 +265,6 @@ onMounted(async () => {
 
 <style scoped>
 /* Minimal spacing for maximum screen usage */
-
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin: 0 0 20px 0;
-  color: var(--ion-text-color);
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
 
 .profile-header {
   text-align: center;
@@ -291,7 +297,8 @@ onMounted(async () => {
 }
 
 .profile-info {
-  margin-top: 16px;
+  margin: 0 0 24px 0 !important;
+  padding: 0 16px !important;
 }
 
 .info-item {
@@ -326,49 +333,24 @@ onMounted(async () => {
 }
 
 .logout-section {
-  margin-top: 20px;
-  padding: 0 12px;
-}
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  justify-content: center;
-}
-
-
-.modern-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  margin: 0;
 }
 
 .logout-button {
   background: var(--ion-color-danger);
 }
 
-
-.modern-button i {
-  font-size: 14px;
+.modern-button.logout-button:hover:not(:disabled) {
+  background: var(--ion-color-danger-shade);
 }
 
 /* Statistics section */
 .statistics-section {
-  margin: 16px;
+  margin: 0 0 24px 0;
 }
 
 .section-title {
-  margin: 0 0 16px 0;
+  margin: 24px 0 16px 0;
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--ion-text-color);
@@ -378,20 +360,10 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin-bottom: 24px;
+  margin: 0 0 0 0;
 }
 
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 18px !important;
-  text-align: center;
-  background: var(--ion-color-step-50);
-  border-radius: 12px;
-  margin: 0 !important;
-  min-height: 100px;
-}
+/* .stat-card now in utilities.css */
 
 .stat-top {
   display: flex;
@@ -479,7 +451,8 @@ onMounted(async () => {
 
 /* Navigation section */
 .navigation-section {
-  margin: 16px;
+  margin: 0;
+  margin-bottom: 24px;
   display: flex;
   flex-direction: column;
   gap: 12px;

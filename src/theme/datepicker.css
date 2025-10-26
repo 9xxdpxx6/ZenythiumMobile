@@ -1,0 +1,75 @@
+/* VueDatePicker Global Styles */
+
+.dp__input_wrap {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.dp__input {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+  color: var(--ion-text-color) !important;
+  padding: 8px 40px 12px 40px !important;
+  height: 48px !important;
+  font-size: 16px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.dp__input::placeholder {
+  color: var(--ion-color-medium) !important;
+}
+
+.dp__input:focus {
+  border-color: var(--ion-color-primary) !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+  outline: none !important;
+}
+
+.dp__input_icon {
+  position: absolute !important;
+  left: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+.dp__input_clear {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 2 !important;
+}
+
+.dp__menu {
+  background: var(--ion-background-color) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 12px !important;
+}
+
+.dp__calendar_header {
+  background: var(--ion-background-color) !important;
+}
+
+.dp__calendar_header_item {
+  color: var(--ion-text-color) !important;
+}
+
+.dp__calendar_item {
+  color: var(--ion-text-color) !important;
+}
+
+.dp__date_selected {
+  background: var(--ion-color-primary) !important;
+  color: white !important;
+}
+
+.dp__input:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+

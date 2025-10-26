@@ -387,24 +387,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Minimal spacing for maximum screen usage */
-/* Page content styles now handled by PageContainer component */
-
-.page-title {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-.page-subtitle {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin-bottom: 0 !important;
-}
-
 /* Search input spacing */
 .search-filters-row {
   display: flex;
@@ -448,27 +430,6 @@ onUnmounted(() => {
 .add-button i {
   font-size: 20px !important;
   color: white !important;
-}
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 16px !important;
-}
-
-.modern-button:hover {
-  background: var(--ion-color-primary-shade);
 }
 
 .plans-grid {
@@ -634,33 +595,6 @@ onUnmounted(() => {
 
 .duplicate-button i {
   font-size: 12px;
-}
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-top: none;
-  border-radius: 10px;
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  justify-content: center;
-  margin-top: 0;
-  box-shadow: none;
-  position: relative;
-}
-
-.modern-button::before,
-.modern-button::after {
-  display: none !important;
-  content: none !important;
 }
 
 /* State styles now handled by utility classes */

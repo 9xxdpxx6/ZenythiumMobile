@@ -125,12 +125,13 @@
           </div>
         </div>
 
-        <div class="ion-padding">
+        <div style="margin-top: 16px;">
           <ion-button
             expand="block"
             color="success"
             @click="finishWorkout"
             :disabled="finishing || !canFinishWorkout"
+            style="--border-radius: 12px; --padding-top: 12px; --padding-bottom: 12px; font-weight: 600; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);"
           >
             <ion-spinner v-if="finishing" name="crescent"></ion-spinner>
             <span v-else>Завершить тренировку</span>
@@ -582,7 +583,7 @@ onMounted(() => {
 <style scoped>
 /* Container */
 .workout-container {
-  padding: 16px;
+  padding: 0;
   max-width: 100%;
   background: var(--ion-background-color);
 }
@@ -616,6 +617,10 @@ onMounted(() => {
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.exercise-card:last-child {
+  margin-bottom: 0;
 }
 
 /* Exercise Header */
@@ -688,47 +693,11 @@ onMounted(() => {
   gap: 4px;
 }
 
-/* Vertical Fraction Styles */
-.vertical-fraction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* vertical-fraction, numerator, denominator, multiplier, simple-reps now in utilities.css */
+
+/* Override line-height for current sets */
+.current-set-item .vertical-fraction {
   line-height: 2;
-  position: relative;
-}
-
-.numerator {
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.denominator {
-  font-size: 1.1rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.vertical-fraction::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background-color: currentColor;
-  opacity: 0.6;
-}
-
-.multiplier {
-  font-size: 1.1rem;
-  font-weight: 500;
-  opacity: 0.8;
-}
-
-.simple-reps {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--ion-text-color);
 }
 
 /* Current Sets */
@@ -762,49 +731,16 @@ onMounted(() => {
   gap: 4px;
 }
 
-.current-set-item .vertical-fraction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 2;
-  position: relative;
-}
-
-.current-set-item .numerator {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
-}
-
-.current-set-item .denominator {
-  font-size: 1.1rem;
-  font-weight: 500;
-  opacity: 0.9;
+/* Override colors for current sets */
+.current-set-item .numerator,
+.current-set-item .denominator,
+.current-set-item .multiplier,
+.current-set-item .simple-reps {
   color: white;
 }
 
 .current-set-item .vertical-fraction::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
   background-color: white;
-  opacity: 0.8;
-}
-
-.current-set-item .multiplier {
-  font-size: 1.1rem;
-  font-weight: 500;
-  opacity: 0.9;
-  color: white;
-}
-
-.current-set-item .simple-reps {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: white;
 }
 
 .delete-button {
@@ -864,19 +800,6 @@ onMounted(() => {
   --padding-bottom: 12px;
   font-weight: 600;
   margin-top: 8px;
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
-}
-
-/* Finish Button */
-.ion-padding {
-  padding: 16px;
-}
-
-.ion-padding ion-button {
-  --border-radius: 12px;
-  --padding-top: 12px;
-  --padding-bottom: 12px;
-  font-weight: 600;
   box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);
 }
 

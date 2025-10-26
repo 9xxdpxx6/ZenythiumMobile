@@ -725,37 +725,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* Hotbar styles */
-.form-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--ion-background-color);
-  padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  z-index: 1000;
-}
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 48px;
-}
+/* Hotbar styles - unique styles for EditWorkoutPage */
 
 /* Когда есть изменения - кнопки делят ширину пополам */
 .form-actions:has(.warning-button) .modern-button {
@@ -767,31 +737,12 @@ onMounted(() => {
   width: 100%;
 }
 
-.modern-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.modern-button.primary-button {
-  background: var(--ion-color-primary);
-}
-
-.modern-button.secondary-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-text-color);
-}
-
 .modern-button.warning-button {
   background: var(--ion-color-warning);
   color: white;
 }
 
-.modern-button i {
-  font-size: 16px;
-}
-
-.modern-button ion-spinner {
-  width: 20px;
-  height: 20px;
+.modern-button.warning-button:hover:not(:disabled) {
+  background: var(--ion-color-warning-shade);
 }
 </style>

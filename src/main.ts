@@ -35,6 +35,7 @@ import '@ionic/vue/css/palettes/dark.system.css';
 import './theme/variables.css';
 import './theme/modern-dark.css';
 import './theme/utilities.css';
+import './theme/datepicker.css';
 
 /* Font Awesome */
 import '@fortawesome/fontawesome-free/css/all.css';

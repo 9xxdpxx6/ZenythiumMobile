@@ -416,7 +416,7 @@ onMounted(() => {
 
 <style scoped>
 .workout-details {
-  padding: 20px;
+  padding: 0;
 }
 
 .workout-header {
@@ -651,50 +651,7 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.vertical-fraction {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.2;
-  position: relative;
-}
-
-.numerator {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.denominator {
-  font-size: 1rem;
-  font-weight: 500;
-  opacity: 0.8;
-  color: var(--ion-text-color);
-}
-
-.vertical-fraction::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background-color: currentColor;
-  opacity: 0.6;
-}
-
-.multiplier {
-  font-size: 0.9rem;
-  font-weight: 500;
-  opacity: 0.8;
-  color: var(--ion-text-color);
-}
-
-.simple-reps {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
+/* vertical-fraction, numerator, denominator, multiplier, simple-reps now in utilities.css */
 
 .no-history {
   text-align: center;
@@ -760,7 +717,7 @@ onMounted(() => {
 
 /* Кнопки действий в конце страницы */
 .bottom-actions {
-  padding: 16px 20px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -773,11 +730,11 @@ onMounted(() => {
 
 @media (max-width: 768px) {
   .workout-details {
-    padding: 16px;
+    padding: 0;
   }
   
   .bottom-actions {
-    padding: 12px 0;
+    padding: 0;
     gap: 8px;
     margin-top: 20px;
   }
@@ -828,19 +785,6 @@ onMounted(() => {
   
   .set-fraction {
     padding: 4px 8px;
-  }
-  
-  .vertical-fraction {
-    line-height: 1.1;
-  }
-  
-  .numerator,
-  .denominator {
-    font-size: 0.9rem;
-  }
-  
-  .multiplier {
-    font-size: 0.8rem;
   }
 }
 </style>
