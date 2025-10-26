@@ -805,100 +805,10 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
 </script>
 
 <style scoped>
-.page-title {
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  color: var(--ion-text-color) !important;
-  margin: 0 0 6px 0 !important;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-.page-subtitle {
-  font-size: 13px !important;
-  color: var(--ion-color-medium) !important;
-  margin: 0 0 12px 0 !important;
-  padding-left: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
 .cycle-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 0;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.error-message {
-  font-size: 12px;
-  color: var(--ion-color-danger);
-  margin-top: 4px;
-}
-
-.field-hint {
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  margin-top: 4px;
-}
-
-.form-actions {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--ion-background-color);
-  padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  z-index: 1000;
-}
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 48px;
-}
-
-.modern-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.modern-button.primary-button {
-  background: var(--ion-color-primary);
-}
-
-.modern-button.secondary-button {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-text-color);
 }
 
 /* Delete Cycle Button Styles */
@@ -940,99 +850,13 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   font-size: 14px;
 }
 
-.modern-button i {
-  font-size: 16px;
-}
-
-.modern-button ion-spinner {
-  width: 20px;
-  height: 20px;
-}
-
 ion-toolbar ion-button i {
   font-size: 20px;
   color: white !important;
 }
 
-/* Vue Datepicker стили */
-:deep(.dp__input_wrap) {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-:deep(.dp__input) {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  color: var(--ion-text-color) !important;
-  padding: 12px 40px 12px 40px !important;
-  height: 48px !important;
-  font-size: 16px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-:deep(.dp__input::placeholder) {
-  color: var(--ion-color-medium) !important;
-}
-
-:deep(.dp__input:focus) {
-  border-color: var(--ion-color-primary) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-}
-
 .datepicker-error :deep(.dp__input) {
   border-color: var(--ion-color-danger) !important;
-}
-
-/* Иконки */
-:deep(.dp__input_icon) {
-  position: absolute !important;
-  left: 6px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-}
-
-:deep(.dp__input_clear) {
-  position: absolute !important;
-  right: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2 !important;
-}
-
-:deep(.dp__menu) {
-  background: var(--ion-background-color) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-}
-
-:deep(.dp__calendar_header) {
-  background: var(--ion-background-color) !important;
-}
-
-:deep(.dp__calendar_header_item) {
-  color: var(--ion-text-color) !important;
-}
-
-:deep(.dp__calendar_item) {
-  color: var(--ion-text-color) !important;
-}
-
-:deep(.dp__calendar_item:hover) {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-:deep(.dp__date_hover) {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-:deep(.dp__date_selected) {
-  background: var(--ion-color-primary) !important;
-  color: white !important;
 }
 
 /* Кастомные отступы для CustomInput в форме цикла */

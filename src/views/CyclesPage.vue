@@ -260,24 +260,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Minimal spacing for maximum screen usage */
-/* Page content styles now handled by PageContainer component */
-
-.page-title {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-}
-
-.page-subtitle {
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-  padding-left: 0 !important;
-  padding-right: 0 !important;
-  margin-bottom: 0 !important;
-}
-
 .cycles-list {
   display: flex;
   flex-direction: column;

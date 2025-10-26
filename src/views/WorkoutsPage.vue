@@ -404,23 +404,6 @@ watch(() => route.path, (newPath) => {
 </script>
 
 <style scoped>
-/* Balanced layout with increased spacing - same as original WorkoutsPage */
-/* Page content styles now handled by PageContainer component */
-
-.page-title {
-  padding-left: 0 !important;
-  margin: 0 0 4px 0;
-  font-size: 1.5rem;
-  color: var(--ion-text-color);
-  font-weight: 600;
-}
-
-.page-subtitle {
-  padding-left: 0 !important;
-  margin: 0 0 8px 0;
-  font-size: 1rem;
-  color: var(--ion-color-medium);
-}
 
 /* Фиксированная кнопка внизу экрана */
 .fixed-bottom-action {
@@ -442,75 +425,6 @@ watch(() => route.path, (newPath) => {
 
 .date-filter-group {
   flex: 1;
-}
-
-/* Vue Datepicker стили */
-:deep(.dp__input_wrap) {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-:deep(.dp__input) {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-  color: var(--ion-text-color) !important;
-  padding: 12px 40px 12px 40px !important;
-  height: 48px !important;
-  font-size: 16px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
-
-:deep(.dp__input::placeholder) {
-  color: var(--ion-color-medium) !important;
-}
-
-:deep(.dp__input:focus) {
-  border-color: var(--ion-color-primary) !important;
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
-}
-
-/* Иконки */
-:deep(.dp__input_icon) {
-  position: absolute !important;
-  left: 6px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2 !important;
-  pointer-events: none !important;
-}
-
-:deep(.dp__input_clear) {
-  position: absolute !important;
-  right: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  z-index: 2 !important;
-}
-
-:deep(.dp__menu) {
-  background: var(--ion-background-color) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 12px !important;
-}
-
-:deep(.dp__calendar_header) {
-  background: var(--ion-background-color) !important;
-}
-
-:deep(.dp__calendar_header_item) {
-  color: var(--ion-text-color) !important;
-}
-
-:deep(.dp__calendar_item) {
-  color: var(--ion-text-color) !important;
-}
-
-:deep(.dp__date_selected) {
-  background: var(--ion-color-primary) !important;
-  color: white !important;
 }
 
 .workouts-list {
@@ -559,56 +473,4 @@ watch(() => route.path, (newPath) => {
 }
 
 /* State styles now handled by utility classes */
-/* .loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-state h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.5rem;
-  color: var(--ion-text-color);
-}
-
-.empty-state p {
-  margin: 0 0 24px 0;
-  font-size: 1rem;
-} */
-
-.modern-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 24px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  justify-content: center;
-}
-
-.modern-button i {
-  font-size: 14px;
-}
 </style>
