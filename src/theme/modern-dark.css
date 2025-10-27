@@ -107,6 +107,7 @@ ion-card {
   border-radius: var(--ion-card-border-radius) !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   margin: 16px !important;
+  padding: 0 !important;
   background: var(--ion-card-background) !important;
 }
 
@@ -126,50 +127,7 @@ ion-content {
   --padding-bottom: 0 !important;
 }
 
-/* Page-specific content styling - now handled by utilities.css */
-/* ion-content .page-content {
-  padding: 16px !important;
-  margin: 0 !important;
-} */
-
-/* Remove default Ionic padding but keep small top padding for header */
-/* ion-content {
-  --padding-start: 0 !important;
-  --padding-end: 0 !important;
-  --padding-top: 8px !important;
-  --padding-bottom: 0 !important;
-} */
-
-/* Remove padding from all Ionic components */
-ion-card {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-ion-button {
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --padding-top: 4px;
-  --padding-bottom: 4px;
-}
-
-/* Modern card styles now handled by utilities.css */
-
-/* Page titles and headers */
-.page-title {
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  color: var(--ion-text-color) !important;
-  margin: 0 0 6px 0 !important;
-  padding-left: 16px !important;
-}
-
-.page-subtitle {
-  font-size: 13px !important;
-  color: var(--ion-color-medium) !important;
-  margin: 0 0 12px 0 !important;
-  padding-left: 16px !important;
-}
+/* Page titles and headers are handled by utilities.css */
 
 /* Tab bar styling */
 ion-tab-button i {
@@ -197,6 +155,10 @@ ion-tab-button {
 
 /* Buttons with rounded corners - matching input radius */
 ion-button {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  --padding-top: 4px;
+  --padding-bottom: 4px;
   --border-radius: 12px !important;
   border-radius: 12px !important;
   font-weight: 600 !important;
@@ -384,24 +346,6 @@ ion-spinner {
 }
 
 /* Custom utility classes now handled by utilities.css */
-
-/* .modern-button {
-  --border-radius: 12px !important;
-  border-radius: 12px !important;
-  font-weight: 600 !important;
-  text-transform: none !important;
-  box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1) !important;
-  height: 48px !important;
-  font-size: 16px !important;
-} */
-
-/* .modern-button::part(native) {
-  border-radius: 12px !important;
-  height: 100% !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-} */
 
 .modern-input {
   --background: rgba(255, 255, 255, 0.05) !important;

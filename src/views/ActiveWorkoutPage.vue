@@ -106,7 +106,7 @@
               <div class="input-field">
                 <CustomInput
                   :modelValue="newSets[exercise.id].reps?.toString() || ''"
-                  label="Повт"
+                  label="Повторения"
                   type="number"
                   :placeholder="getPlaceholderValue(exercise.id, 'reps')"
                   @update:modelValue="(value) => validateInput(value, exercise.id, 'reps')"

@@ -438,27 +438,6 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.search-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  margin: 8px 16px;
-}
-
-.search-loading ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.search-loading p {
-  margin: 0;
-  font-size: 14px;
-}
 
 .plan-card {
   padding: 20px !important;
@@ -597,36 +576,4 @@ onUnmounted(() => {
   font-size: 12px;
 }
 
-/* State styles now handled by utility classes */
-/* .loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-}
-
-.loading-state ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.empty-state i {
-  font-size: 4rem;
-  margin-bottom: 1rem;
-  color: var(--ion-color-primary);
-}
-
-.empty-state h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.5rem;
-  color: var(--ion-text-color);
-}
-
-.empty-state p {
-  margin: 0;
-  font-size: 1rem;
-} */
 </style>

@@ -1,6 +1,6 @@
 <template>
   <div class="empty-state">
-    <i v-if="icon" :class="icon" class="empty-icon"></i>
+    <i v-if="icon" :class="icon"></i>
     <h2 v-if="title">{{ title }}</h2>
     <p v-if="message">{{ message }}</p>
     <slot name="action">
