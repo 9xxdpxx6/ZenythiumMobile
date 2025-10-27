@@ -285,7 +285,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -369,6 +369,10 @@ const modalError = ref('');
 const isToastOpen = ref(false);
 const toastMessage = ref('');
 const toastColor = ref<'primary' | 'secondary' | 'success' | 'warning' | 'danger'>('primary');
+
+// Debounce timer for search and weight filters
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let weightDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Methods
 const fetchMetrics = async (page = 1) => {
@@ -567,10 +571,30 @@ const deleteMetric = async () => {
 };
 
 const applyFilters = () => {
+  // Clear any pending debounce timers
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = null;
+  }
+  if (weightDebounceTimer) {
+    clearTimeout(weightDebounceTimer);
+    weightDebounceTimer = null;
+  }
+  // Apply filters immediately
   fetchMetrics(1);
 };
 
 const resetFilters = () => {
+  // Clear any pending debounce timers
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = null;
+  }
+  if (weightDebounceTimer) {
+    clearTimeout(weightDebounceTimer);
+    weightDebounceTimer = null;
+  }
+  
   filters.value = {
     search: '',
     dateFrom: null,
@@ -591,6 +615,26 @@ const handleDateFilterChange = () => {
 const changePage = (page: number) => {
   fetchMetrics(page);
 };
+
+// Watch for search filter changes with debounce
+watch(() => filters.value.search, (newValue) => {
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+  searchDebounceTimer = setTimeout(() => {
+    fetchMetrics(1);
+  }, 500); // 500ms debounce
+});
+
+// Watch for weight filter changes with debounce
+watch(() => [filters.value.weightFrom, filters.value.weightTo], () => {
+  if (weightDebounceTimer) {
+    clearTimeout(weightDebounceTimer);
+  }
+  weightDebounceTimer = setTimeout(() => {
+    fetchMetrics(1);
+  }, 500); // 500ms debounce
+});
 
 // Utility functions
 const formatDate = (dateString: string) => {
