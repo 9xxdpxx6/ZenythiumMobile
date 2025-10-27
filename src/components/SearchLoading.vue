@@ -1,5 +1,5 @@
 <template>
-  <div class="state-search-loading">
+  <div class="loading-state">
     <ion-spinner name="crescent"></ion-spinner>
     <p>{{ message || 'Поиск...' }}</p>
   </div>

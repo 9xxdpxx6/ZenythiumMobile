@@ -118,6 +118,12 @@
 
 .empty-state .modern-button {
   margin-top: 16px !important;
+  padding: 12px 20px !important;
+}
+
+.empty-state .modern-button i {
+  font-size: 14px !important;
+  color: white !important;
 }
 
 /* ============================================
@@ -160,7 +166,7 @@
   color: white;
   border: none;
   border-radius: 12px;
-  padding: 14px 24px;
+  padding: 12px 20px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
@@ -170,7 +176,7 @@
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
 }
 
 .modern-button:disabled {
@@ -205,7 +211,8 @@
 }
 
 .modern-button i {
-  font-size: 16px;
+  font-size: 14px;
+  color: white;
 }
 
 .modern-button ion-spinner {

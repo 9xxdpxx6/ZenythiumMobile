@@ -434,7 +434,7 @@ onMounted(() => {
 .workout-status-header {
   display: flex;
   align-items: center;
-  padding-right: 8px;
+  padding-right: 16px;
 }
 
 .section-title {
