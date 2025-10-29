@@ -76,7 +76,7 @@
 import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { addOutline, trashOutline } from 'ionicons/icons';
-import CustomInput from './CustomInput.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
 import type { WorkoutSet } from '@/types/api';
 
 interface Props {

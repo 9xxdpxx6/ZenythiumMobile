@@ -97,9 +97,9 @@ import {
 import { useAuth } from '@/composables/useAuth';
 import { useDataFetching, useToast } from '@/composables';
 import { statisticsService } from '@/services';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import ProfileStatistics from '@/components/ProfileStatistics.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import ProfileStatistics from '@/components/charts/ProfileStatistics.vue';
 
 const router = useRouter();
 const { user, logout, fetchUser, loading } = useAuth();

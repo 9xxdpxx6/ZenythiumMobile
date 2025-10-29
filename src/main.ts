@@ -45,7 +45,7 @@ import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 
 /* Import CustomInput component */
-import CustomInput from './components/CustomInput.vue';
+import CustomInput from './components/ui/CustomInput.vue';
 
 const app = createApp(App)
   .use(IonicVue)

@@ -110,14 +110,14 @@ import {
   IonBackButton,
   IonButtons,
 } from '@ionic/vue';
-import CustomButton from '@/components/CustomButton.vue';
-import CustomChip from '@/components/CustomChip.vue';
-import CustomToast from '@/components/CustomToast.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import WorkoutSummary from '@/components/WorkoutSummary.vue';
-import WorkoutExerciseHistory from '@/components/WorkoutExerciseHistory.vue';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import CustomChip from '@/components/ui/CustomChip.vue';
+import CustomToast from '@/components/ui/CustomToast.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import WorkoutSummary from '@/components/workout/WorkoutSummary.vue';
+import WorkoutExerciseHistory from '@/components/workout/WorkoutExerciseHistory.vue';
 import { useViewWorkout } from '@/composables/useViewWorkout';
 import type { DetailedWorkout } from '@/types/api';
 

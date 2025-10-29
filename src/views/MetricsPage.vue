@@ -114,12 +114,12 @@ import {
   IonButtons,
 } from '@ionic/vue';
 import { useMetrics } from '@/composables/useMetrics';
-import MetricCard from '@/components/MetricCard.vue';
-import MetricFilters from '@/components/MetricFilters.vue';
-import MetricFormModal from '@/components/MetricFormModal.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
+import MetricCard from '@/components/cards/MetricCard.vue';
+import MetricFilters from '@/components/filters/MetricFilters.vue';
+import MetricFormModal from '@/components/modals/MetricFormModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
 
 const router = useRouter();
 

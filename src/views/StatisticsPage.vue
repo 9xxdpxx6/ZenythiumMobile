@@ -103,14 +103,14 @@ import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
 import apiClient from '@/services/api';
 import { statisticsApi } from '@/services/api';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import StatisticsFilters from '@/components/StatisticsFilters.vue';
-import KPICardsWidget from '@/components/KPICardsWidget.vue';
-import WorkoutVolumeChart from '@/components/WorkoutVolumeChart.vue';
-import MuscleGroupDistributionChart from '@/components/MuscleGroupDistributionChart.vue';
-import PersonalRecordsTable from '@/components/PersonalRecordsTable.vue';
-import ProgressByExerciseChart from '@/components/ProgressByExerciseChart.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import StatisticsFilters from '@/components/filters/StatisticsFilters.vue';
+import KPICardsWidget from '@/components/widgets/KPICardsWidget.vue';
+import WorkoutVolumeChart from '@/components/charts/WorkoutVolumeChart.vue';
+import MuscleGroupDistributionChart from '@/components/charts/MuscleGroupDistributionChart.vue';
+import PersonalRecordsTable from '@/components/shared/PersonalRecordsTable.vue';
+import ProgressByExerciseChart from '@/components/charts/ProgressByExerciseChart.vue';
 import type { 
   Statistics, 
   StatisticsResponse,

@@ -131,13 +131,13 @@ import {
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import PlanBasicInfo from '@/components/PlanBasicInfo.vue';
-import PlanExercisesList from '@/components/PlanExercisesList.vue';
-import ExerciseSelectionModal from '@/components/ExerciseSelectionModal.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import PlanBasicInfo from '@/components/plan/PlanBasicInfo.vue';
+import PlanExercisesList from '@/components/plan/PlanExercisesList.vue';
+import ExerciseSelectionModal from '@/components/modals/ExerciseSelectionModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import UnsavedChangesModal from '@/components/modals/UnsavedChangesModal.vue';
 import { plansService } from '@/services/plans.service';
 import { useToast, useModal } from '@/composables';
 import { ApiError, Exercise } from '@/types/api';

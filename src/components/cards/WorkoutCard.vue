@@ -26,8 +26,8 @@
 </template>
 
 <script setup lang="ts">
-import CustomCard from '@/components/CustomCard.vue';
-import CustomChip from '@/components/CustomChip.vue';
+import CustomCard from '@/components/ui/CustomCard.vue';
+import CustomChip from '@/components/ui/CustomChip.vue';
 
 interface Props {
   workout: any;

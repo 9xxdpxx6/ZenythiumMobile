@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
-import CustomInput from './CustomInput.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
 
 interface Props {
   name: string;

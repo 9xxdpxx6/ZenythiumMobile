@@ -71,9 +71,9 @@ import {
 } from '@ionic/vue';
 import { useDataFetching, useToast } from '@/composables';
 import { plansService, workoutsService } from '@/services';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import CustomSelect from '@/components/CustomSelect.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import CustomSelect from '@/components/ui/CustomSelect.vue';
 import type { Plan } from '@/types/api';
 
 const router = useRouter();

@@ -16,6 +16,11 @@ export interface Cycle {
   started_at: string;
   finished_at?: string;
   progress?: number;
+  // Additional fields for backward compatibility and form usage
+  weeks?: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  plans?: any[];
 }
 
 export interface CreateCycleDto {

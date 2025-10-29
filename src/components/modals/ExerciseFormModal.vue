@@ -90,9 +90,9 @@ import {
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
-import CustomInput from '@/components/CustomInput.vue';
-import CustomSelect from '@/components/CustomSelect.vue';
-import CustomTextarea from '@/components/CustomTextarea.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
+import CustomSelect from '@/components/ui/CustomSelect.vue';
+import CustomTextarea from '@/components/ui/CustomTextarea.vue';
 
 interface Props {
   isOpen: boolean;

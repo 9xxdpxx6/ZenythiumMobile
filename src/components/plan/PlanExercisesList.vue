@@ -23,7 +23,7 @@
 
 <script setup lang="ts">
 import { Exercise } from '@/types/api';
-import ExercisesList from './ExercisesList.vue';
+import ExercisesList from '@/components/shared/ExercisesList.vue';
 
 interface Props {
   exercises: Exercise[];

@@ -86,8 +86,8 @@ import {
   IonButtons,
   IonSpinner,
 } from '@ionic/vue';
-import CustomInput from '@/components/CustomInput.vue';
-import CustomTextarea from '@/components/CustomTextarea.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
+import CustomTextarea from '@/components/ui/CustomTextarea.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 import type { MetricFormData } from '@/composables/useMetrics';
