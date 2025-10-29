@@ -1,12 +1,15 @@
 <template>
   <CustomCard
     clickable
-    @click="$emit('click', workout)"
-    @touchstart="$emit('press-start', workout)"
-    @touchend="$emit('press-end')"
-    @mousedown="$emit('press-start', workout)"
-    @mouseup="$emit('press-end')"
-    @mouseleave="$emit('press-end')"
+    @click="handleClick"
+    @touchstart="longPress.handleTouchStart"
+    @touchend="longPress.handleTouchEnd"
+    @touchmove="longPress.handleTouchMove"
+    @touchcancel="longPress.handleTouchEnd"
+    @mousedown="longPress.handleMouseDown"
+    @mouseup="longPress.handleMouseUp"
+    @mouseleave="longPress.handleMouseLeave"
+    @mousemove="longPress.handleMouseMove"
     class="workout-card"
   >
     <div class="workout-header">
@@ -21,24 +24,43 @@
     
     <div class="workout-info">
       <p><strong>План:</strong> {{ (workout as any).plan?.name || (workout as any).name || 'План не найден' }}</p>
+      <p v-if="getDuration" class="workout-duration">
+        <i class="fas fa-clock"></i> {{ getDuration }}
+      </p>
     </div>
   </CustomCard>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
 import CustomCard from '@/components/ui/CustomCard.vue';
 import CustomChip from '@/components/ui/CustomChip.vue';
+import { useLongPress } from '@/composables';
 
 interface Props {
   workout: any;
 }
 
-defineProps<Props>();
-defineEmits<{
+const props = defineProps<Props>();
+const emit = defineEmits<{
   click: [workout: any];
   'press-start': [workout: any];
   'press-end': [];
 }>();
+
+// Use long press composable with swipe detection
+const longPress = useLongPress({
+  threshold: 10,
+  onPressStart: () => emit('press-start', props.workout),
+  onPressEnd: () => emit('press-end'),
+});
+
+// Handle click with swipe detection
+const handleClick = () => {
+  longPress.handleClick(() => {
+    emit('click', props.workout);
+  });
+};
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -50,6 +72,62 @@ const formatDate = (dateString: string) => {
     minute: '2-digit',
   });
 };
+
+const isCompleted = computed(() => {
+  const workoutData = props.workout as any;
+  return workoutData?.finished_at || workoutData?.completedAt;
+});
+
+const getDuration = computed(() => {
+  const workoutData = props.workout as any;
+  
+  if (!isCompleted.value) {
+    return null;
+  }
+  
+  // Try to get duration_minutes if available
+  if (workoutData?.duration_minutes !== undefined && workoutData?.duration_minutes !== null) {
+    return formatDuration(workoutData.duration_minutes);
+  }
+  
+  // Calculate from dates
+  const startedAt = workoutData?.started_at || workoutData?.startDate;
+  const finishedAt = workoutData?.finished_at || workoutData?.completedAt;
+  
+  if (!startedAt || !finishedAt) {
+    return null;
+  }
+  
+  try {
+    const start = new Date(startedAt);
+    const end = new Date(finishedAt);
+    const diffMs = end.getTime() - start.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
+    
+    if (diffMinutes < 0) {
+      return null;
+    }
+    
+    return formatDuration(diffMinutes);
+  } catch {
+    return null;
+  }
+});
+
+const formatDuration = (minutes: number): string => {
+  if (isNaN(minutes) || minutes < 0) {
+    return '';
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  
+  if (hours > 0) {
+    return `${hours}ч ${mins}м`;
+  }
+  return `${mins}м`;
+};
+
 </script>
 
 <style scoped>
@@ -78,8 +156,8 @@ const formatDate = (dateString: string) => {
 
 .workout-info {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .workout-info p {
@@ -90,6 +168,19 @@ const formatDate = (dateString: string) => {
 
 .workout-info strong {
   color: var(--ion-text-color);
+}
+
+.workout-duration {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+.workout-duration i {
+  font-size: 12px;
+  opacity: 0.7;
 }
 </style>
 

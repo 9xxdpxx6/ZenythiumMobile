@@ -63,9 +63,50 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    */
   async complete(id: string, data: CompleteWorkoutDto): Promise<Workout> {
     try {
-      const response = await apiClient.post<{ data: Workout }>(
-        API_ENDPOINTS.WORKOUT_COMPLETE(id),
-        data
+      // Get current workout via direct API call to ensure we get raw API response
+      const workoutResponse = await apiClient.get<{ data: any }>(
+        API_ENDPOINTS.WORKOUT_BY_ID(id)
+      );
+      const currentWorkout = workoutResponse.data.data;
+      
+      // Extract plan_id from various possible locations (API uses snake_case)
+      const planId = currentWorkout?.plan_id 
+        || currentWorkout?.planId 
+        || (currentWorkout?.plan && typeof currentWorkout.plan === 'object' ? currentWorkout.plan.id : null);
+      
+      // Extract started_at (required by API for update)
+      const startedAt = currentWorkout?.started_at 
+        || currentWorkout?.startedAt
+        || currentWorkout?.start_date;
+      
+      if (!planId) {
+        throw new Error(`Не удалось определить plan_id для тренировки ${id}`);
+      }
+      
+      if (!startedAt) {
+        throw new Error(`Не удалось определить started_at для тренировки ${id}`);
+      }
+      
+      // Prepare request body with all required fields
+      const requestBody: {
+        plan_id: number;
+        started_at: string;
+        finished_at: string;
+        notes?: string;
+      } = {
+        plan_id: Number(planId),
+        started_at: startedAt,
+        finished_at: new Date().toISOString()
+      };
+      
+      if (data.notes) {
+        requestBody.notes = data.notes;
+      }
+      
+      // Transform to API format: use PUT /workouts/{id} with finished_at and required fields
+      const response = await apiClient.put<{ data: Workout }>(
+        API_ENDPOINTS.WORKOUT_BY_ID(id),
+        requestBody
       );
       logger.info('WorkoutsService: Workout completed successfully');
       return response.data.data;
@@ -101,7 +142,7 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    */
   async updateSet(setId: number, data: UpdateSetDto): Promise<void> {
     try {
-      await apiClient.put(`/api/v1/workout-sets/${setId}`, data);
+      await apiClient.put(`/workout-sets/${setId}`, data);
       logger.info('WorkoutsService: Set updated successfully');
     } catch (error) {
       errorHandler.log(error, 'WorkoutsService.updateSet');
@@ -114,7 +155,7 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    */
   async deleteSet(setId: number): Promise<void> {
     try {
-      await apiClient.delete(`/api/v1/workout-sets/${setId}`);
+      await apiClient.delete(`/workout-sets/${setId}`);
       logger.info('WorkoutsService: Set deleted successfully');
     } catch (error) {
       errorHandler.log(error, 'WorkoutsService.deleteSet');
@@ -127,7 +168,7 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    */
   async createSet(data: any): Promise<any> {
     try {
-      const response = await apiClient.post('/api/v1/workout-sets', data);
+      const response = await apiClient.post('/workout-sets', data);
       logger.info('WorkoutsService: Set created successfully');
       return response.data.data;
     } catch (error) {
