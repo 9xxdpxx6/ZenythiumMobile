@@ -11,7 +11,7 @@
     <ion-modal :is-open="isFiltersOpen" @did-dismiss="closeFilters">
       <ion-header>
         <ion-toolbar>
-          <ion-title>Фильтры</ion-title>
+          <ion-title>Фильтры упражнений</ion-title>
           <ion-buttons slot="end">
             <ion-button @click="closeFilters">
               <i class="fas fa-times"></i>
@@ -37,57 +37,42 @@
             </div>
           </div>
 
-          <!-- Фильтр по типу планов -->
+          <!-- Фильтр по группе мышц -->
           <div class="filter-section">
-            <h3>Тип планов</h3>
-            <div class="toggle-group">
-              <button 
-                v-for="option in standaloneOptions" 
-                :key="String(option.value)"
-                @click="localFilters.standalone = option.value"
-                :class="['toggle-button', { active: localFilters.standalone === option.value }]"
-              >
-                {{ option.label }}
-              </button>
-            </div>
+            <h3>Группа мышц</h3>
+            <CustomSelect
+              v-model="localFilters.muscle_group_id"
+              :options="muscleGroupOptions"
+              placeholder="Все группы мышц"
+              search-placeholder="Поиск групп мышц..."
+              @change="onFilterChange"
+            />
           </div>
 
-           <!-- Фильтр по циклу -->
-           <div class="filter-section" v-if="cycles.length > 0">
-             <h3>Конкретный цикл</h3>
-             <CustomSelect
-               v-model="localFilters.cycle_id"
-               :options="cycleOptions"
-               placeholder="Все циклы"
-               search-placeholder="Поиск циклов..."
-               @change="onFilterChange"
-             />
-           </div>
-
-           <!-- Сортировка -->
-           <div class="filter-section">
-             <h3>Сортировка</h3>
-             <CustomSelect
-               v-model="localFilters.sort_by"
-               :options="sortByOptions"
-               placeholder="Выберите поле сортировки"
-               search-placeholder="Поиск полей..."
-               @change="onFilterChange"
-             />
-             
-             <div class="sort-order-section">
-               <div class="toggle-group">
-                 <button 
-                   v-for="option in sortOrderOptions" 
-                   :key="option.value"
-                   @click="localFilters.sort_order = option.value"
-                   :class="['toggle-button', { active: localFilters.sort_order === option.value }]"
-                 >
-                   {{ option.label }}
-                 </button>
-               </div>
-             </div>
-           </div>
+          <!-- Сортировка -->
+          <div class="filter-section">
+            <h3>Сортировка</h3>
+            <CustomSelect
+              v-model="localFilters.sort_by"
+              :options="sortByOptions"
+              placeholder="Выберите поле сортировки"
+              search-placeholder="Поиск полей..."
+              @change="onFilterChange"
+            />
+            
+            <div class="sort-order-section">
+              <div class="toggle-group">
+                <button 
+                  v-for="option in sortOrderOptions" 
+                  :key="option.value"
+                  @click="localFilters.sort_order = option.value"
+                  :class="['toggle-button', { active: localFilters.sort_order === option.value }]"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+          </div>
 
           <!-- Кнопки действий -->
           <div class="filter-actions">
@@ -111,7 +96,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -121,34 +106,36 @@ import {
   IonButtons,
   IonButton,
 } from '@ionic/vue';
-import CustomSelect from '@/components/CustomSelect.vue';
-import apiClient from '@/services/api';
-import { Cycle } from '@/types/api';
+import CustomSelect from '@/components/ui/CustomSelect.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
+import { MuscleGroupResource } from '@/types/api';
 
-interface Filters {
+interface ExerciseFilters {
   is_active: boolean | null;
-  standalone: boolean | null;
-  cycle_id: number | null;
+  muscle_group_id: number | null;
+  date_from: string;
+  date_to: string;
   sort_by: string;
   sort_order: string;
 }
 
 const props = defineProps<{
-  filters: Filters;
+  filters: ExerciseFilters;
+  muscleGroups: MuscleGroupResource[];
 }>();
 
 const emit = defineEmits<{
-  'filters-changed': [filters: Filters];
+  'filters-changed': [filters: ExerciseFilters];
   'reset-filters': [];
 }>();
 
 const isFiltersOpen = ref(false);
-const cycles = ref<Cycle[]>([]);
 
-const localFilters = reactive<Filters>({
+const localFilters = reactive<ExerciseFilters>({
   is_active: props.filters.is_active,
-  standalone: props.filters.standalone,
-  cycle_id: props.filters.cycle_id,
+  muscle_group_id: props.filters.muscle_group_id,
+  date_from: props.filters.date_from,
+  date_to: props.filters.date_to,
   sort_by: props.filters.sort_by,
   sort_order: props.filters.sort_order,
 });
@@ -159,17 +146,10 @@ const activityOptions = [
   { value: false, label: 'Неактивные' }
 ];
 
-const standaloneOptions = [
-  { value: null, label: 'Все' },
-  { value: true, label: 'Без цикла' },
-  { value: false, label: 'С циклом' }
-];
-
 const sortByOptions = computed(() => [
   { value: 'created_at', label: 'Дате создания' },
   { value: 'name', label: 'Названию' },
-  { value: 'order', label: 'Порядку' },
-  { value: 'exercise_count', label: 'Количеству упражнений' },
+  { value: 'muscle_group_id', label: 'Группе мышц' },
   { value: 'is_active', label: 'Активности' }
 ]);
 
@@ -178,10 +158,10 @@ const sortOrderOptions = [
   { value: 'asc', label: 'По возрастанию' }
 ];
 
-const cycleOptions = computed(() => {
-  const options: Array<{ value: number | null; label: string }> = [{ value: null, label: 'Все циклы' }];
-  cycles.value.forEach((cycle: Cycle) => {
-    options.push({ value: cycle.id, label: cycle.name });
+const muscleGroupOptions = computed(() => {
+  const options: Array<{ value: number | null; label: string }> = [{ value: null, label: 'Все группы мышц' }];
+  props.muscleGroups.forEach((group: MuscleGroupResource) => {
+    options.push({ value: group.id, label: group.name });
   });
   return options;
 });
@@ -204,10 +184,11 @@ const resetFilters = () => {
 };
 
 const applyFilters = () => {
-  const filtersToApply: Filters = {
+  const filtersToApply: ExerciseFilters = {
     is_active: localFilters.is_active,
-    standalone: localFilters.standalone,
-    cycle_id: localFilters.cycle_id,
+    muscle_group_id: localFilters.muscle_group_id,
+    date_from: localFilters.date_from,
+    date_to: localFilters.date_to,
     sort_by: localFilters.sort_by,
     sort_order: localFilters.sort_order,
   };
@@ -216,27 +197,15 @@ const applyFilters = () => {
   closeFilters();
 };
 
-const fetchCycles = async () => {
-  try {
-    const response = await apiClient.get('/cycles');
-    cycles.value = response.data.data || response.data || [];
-  } catch (error) {
-    console.error('Error fetching cycles:', error);
-  }
-};
-
 // Синхронизация localFilters с props.filters
 watch(() => props.filters, (newFilters) => {
   localFilters.is_active = newFilters.is_active;
-  localFilters.standalone = newFilters.standalone;
-  localFilters.cycle_id = newFilters.cycle_id;
+  localFilters.muscle_group_id = newFilters.muscle_group_id;
+  localFilters.date_from = newFilters.date_from;
+  localFilters.date_to = newFilters.date_to;
   localFilters.sort_by = newFilters.sort_by;
   localFilters.sort_order = newFilters.sort_order;
 }, { deep: true });
-
-onMounted(() => {
-  fetchCycles();
-});
 </script>
 
 <style scoped>
@@ -328,11 +297,11 @@ onMounted(() => {
   color: white;
 }
 
-/* Кастомный селект - убираем старые стили */
-.select-wrapper,
-.custom-select,
-.select-icon {
-  display: none;
+/* Диапазон дат */
+.date-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 /* Кнопки действий */

@@ -98,7 +98,7 @@ import {
 } from '@ionic/vue';
 import { useAuth, useForm, useToast } from '@/composables';
 import { RegisterRequest } from '@/types/api';
-import CustomInput from '@/components/CustomInput.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
 import { validators } from '@/utils/validators';
 
 const router = useRouter();

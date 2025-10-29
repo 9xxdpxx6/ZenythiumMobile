@@ -6,30 +6,30 @@
     <div class="cycle-header">
       <h3>{{ cycle.name }}</h3>
       <div
-        :class="['cycle-status', cycle.status === 'active' ? 'status-active' : 'status-completed']"
+        :class="['cycle-status', cycle.status === CycleStatus.ACTIVE ? 'status-active' : 'status-completed']"
       >
-        {{ cycle.status === 'active' ? 'Активен' : 'Завершен' }}
+        {{ cycle.status === CycleStatus.ACTIVE ? 'Активен' : 'Завершен' }}
       </div>
     </div>
     
     <div class="cycle-info">
-      <p><strong>Планов:</strong> {{ (cycle as any).plans_count || 0 }}</p>
-      <p><strong>Тренировок:</strong> {{ (cycle as any).workouts_count || 0 }}</p>
-      <p><strong>Начало:</strong> {{ formatDate((cycle as any).started_at) }}</p>
-      <p v-if="(cycle as any).status === 'completed' && (cycle as any).finished_at">
-        <strong>Завершение:</strong> {{ formatDate((cycle as any).finished_at) }}
+      <p><strong>Планов:</strong> {{ cycle.plans_count || 0 }}</p>
+      <p><strong>Тренировок:</strong> {{ cycle.workouts_count || 0 }}</p>
+      <p><strong>Начало:</strong> {{ formatDate(cycle.started_at) }}</p>
+      <p v-if="cycle.status === CycleStatus.COMPLETED && cycle.finished_at">
+        <strong>Завершение:</strong> {{ formatDate(cycle.finished_at) }}
       </p>
     </div>
 
     <div class="cycle-progress">
       <div class="progress-label">
         <span>Прогресс</span>
-        <span>{{ Math.round((cycle as any).progress || 0) }}%</span>
+        <span>{{ Math.round(cycle.progress || 0) }}%</span>
       </div>
       <div class="progress-bar">
         <div 
           class="progress-fill" 
-          :style="{ width: ((cycle as any).progress || 0) + '%' }"
+          :style="{ width: (cycle.progress || 0) + '%' }"
         ></div>
       </div>
     </div>
@@ -38,6 +38,7 @@
 
 <script setup lang="ts">
 import type { Cycle } from '@/types/models/cycle.types';
+import { CycleStatus } from '@/types/models/cycle.types';
 
 interface Props {
   cycle: Cycle;
@@ -48,8 +49,14 @@ defineEmits<{
   click: [cycle: Cycle];
 }>();
 
-const formatDate = (dateString: string) => {
+const formatDate = (dateString: string | undefined) => {
+  if (!dateString || dateString.trim() === '') {
+    return 'Не указано';
+  }
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) {
+    return 'Неверная дата';
+  }
   return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',

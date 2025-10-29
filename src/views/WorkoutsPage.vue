@@ -135,14 +135,14 @@ import {
 } from '@ionic/vue';
 import { useDataFetching, useToast, useModal } from '@/composables';
 import { workoutsService } from '@/services';
-import CustomButton from '@/components/CustomButton.vue';
-import CustomToast from '@/components/CustomToast.vue';
-import WorkoutActionModal from '@/components/WorkoutActionModal.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import WorkoutCard from '@/components/WorkoutCard.vue';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import CustomToast from '@/components/ui/CustomToast.vue';
+import WorkoutActionModal from '@/components/modals/WorkoutActionModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import WorkoutCard from '@/components/cards/WorkoutCard.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
 

@@ -54,7 +54,7 @@ import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
 import apiClient from '@/services/api';
 import { workoutsService } from '@/services/workouts.service';
-import LoadingState from '@/components/LoadingState.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
 import type { Statistics } from '@/types/api';
 import type { Workout } from '@/types/models/workout.types';
 

@@ -25,7 +25,7 @@
 
 <script setup lang="ts">
 import { Plan } from '@/types/api';
-import PlansList from './PlansList.vue';
+import PlansList from '@/components/shared/PlansList.vue';
 
 interface ValidationErrors {
   [key: string]: string | string[] | undefined;

@@ -95,12 +95,12 @@ import {
   IonIcon,
 } from '@ionic/vue';
 import { trashOutline, addOutline } from 'ionicons/icons';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import CustomButton from '@/components/CustomButton.vue';
-import CustomToast from '@/components/CustomToast.vue';
-import WorkoutBasicInfo from '@/components/WorkoutBasicInfo.vue';
-import WorkoutSetsEditor from '@/components/WorkoutSetsEditor.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import CustomToast from '@/components/ui/CustomToast.vue';
+import WorkoutBasicInfo from '@/components/workout/WorkoutBasicInfo.vue';
+import WorkoutSetsEditor from '@/components/workout/WorkoutSetsEditor.vue';
 import { workoutsService } from '@/services/workouts.service';
 import { useToast } from '@/composables/useToast';
 import { Workout, WorkoutSet, ApiError } from '@/types/api';

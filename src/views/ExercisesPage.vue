@@ -143,14 +143,14 @@ import {
 } from '@ionic/vue';
 import { useDataFetching, useToast, usePagination, useModal } from '@/composables';
 import { exercisesService, muscleGroupsService } from '@/services';
-import SearchInput from '@/components/SearchInput.vue';
-import ExercisesFilters from '@/components/ExercisesFilters.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import ExerciseCard from '@/components/ExerciseCard.vue';
-import ExerciseFormModal from '@/components/ExerciseFormModal.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import LoadingState from '@/components/LoadingState.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
+import ExercisesFilters from '@/components/filters/ExercisesFilters.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import ExerciseCard from '@/components/cards/ExerciseCard.vue';
+import ExerciseFormModal from '@/components/modals/ExerciseFormModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
 import type { ExerciseResource } from '@/types/api';
 
 const router = useRouter();

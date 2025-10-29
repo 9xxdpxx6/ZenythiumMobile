@@ -37,7 +37,7 @@ import { useRouter } from 'vue-router';
 import { IonButton } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { workoutsService } from '@/services/workouts.service';
-import LoadingState from '@/components/LoadingState.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
 import type { Workout } from '@/types/models/workout.types';
 
 const router = useRouter();

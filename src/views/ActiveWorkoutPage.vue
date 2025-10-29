@@ -170,9 +170,9 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import CustomInput from '@/components/CustomInput.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
+import CustomInput from '@/components/ui/CustomInput.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
 import { useActiveWorkout } from '@/composables/useActiveWorkout';
 
 const route = useRoute();

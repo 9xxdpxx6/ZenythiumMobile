@@ -69,9 +69,9 @@ import {
   IonButton,
   IonToast,
 } from '@ionic/vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
 import { useDataFetching } from '@/composables';
 import { muscleGroupsService } from '@/services';
 

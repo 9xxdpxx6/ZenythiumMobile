@@ -86,13 +86,13 @@ import {
 } from '@ionic/vue';
 import { useDataFetching, useToast } from '@/composables';
 import { plansService } from '@/services';
-import SearchInput from '@/components/SearchInput.vue';
-import PlansFilters from '@/components/PlansFilters.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import SearchLoading from '@/components/SearchLoading.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import PlanCard from '@/components/PlanCard.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
+import PlansFilters from '@/components/filters/PlansFilters.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import SearchLoading from '@/components/ui/SearchLoading.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import PlanCard from '@/components/cards/PlanCard.vue';
 import type { Plan } from '@/types/api';
 
 const router = useRouter();

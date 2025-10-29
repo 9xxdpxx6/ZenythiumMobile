@@ -2,7 +2,7 @@
   <ion-modal :is-open="isOpen" @did-dismiss="handleModalClose">
     <ion-header>
       <ion-toolbar>
-        <ion-title>Выберите упражнение</ion-title>
+        <ion-title>Выберите план</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="handleModalClose">
             <i class="fas fa-times"></i>
@@ -14,55 +14,50 @@
     <ion-content>
       <div class="modal-content">
         <SearchInput
-          v-model="exerciseSearchQuery"
-          placeholder="Поиск упражнений..."
-          @search="handleExerciseSearch"
-          @clear="clearExerciseSearch"
+          v-model="planSearchQuery"
+          placeholder="Поиск планов..."
+          @search="handlePlanSearch"
+          @clear="clearPlanSearch"
         />
         
-        <div v-if="loadingExercises" class="loading-state">
+        <div v-if="loadingPlans" class="loading-state">
           <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка упражнений...</p>
+          <p>Загрузка планов...</p>
         </div>
         
-        <div v-else-if="filteredExercises.length === 0" class="empty-state">
-          <i class="fas fa-dumbbell"></i>
-          <h3>Упражнения не найдены</h3>
-          <p>{{ exerciseSearchQuery ? 'Попробуйте изменить поисковый запрос' : 'Все доступные упражнения уже добавлены' }}</p>
+        <div v-else-if="filteredPlans.length === 0" class="empty-state">
+          <i class="fas fa-search"></i>
+          <h3>Планы не найдены</h3>
+          <p>{{ planSearchQuery ? 'Попробуйте изменить поисковый запрос' : 'Все доступные планы уже добавлены' }}</p>
           <button
-            @click="handleCreateNewExercise"
+            @click="handleCreateNewPlan"
             class="modern-button"
           >
             <i class="fas fa-plus"></i>
-            Добавить упражнение
+            Добавить план
           </button>
         </div>
         
-        <div v-else class="exercises-grid">
-          <ion-card
-            v-for="exercise in filteredExercises"
-            :key="exercise.id"
-            class="exercise-card"
-            @click="$emit('selectExercise', exercise)"
+        <div v-else class="plans-grid">
+          <div
+            v-for="plan in filteredPlans"
+            :key="plan.id"
+            class="plan-card modern-card"
+            @click="handlePlanSelect(plan)"
           >
-            <ion-card-header>
-              <ion-card-title>{{ exercise.name }}</ion-card-title>
-            </ion-card-header>
+            <div class="plan-header">
+              <h3>{{ plan.name }}</h3>
+            </div>
             
-            <ion-card-content>
-              <div class="exercise-meta">
-                <div class="exercise-stats">
-                  <span v-if="exercise.muscle_group">
-                    <i class="fa-solid fa-bolt"></i>
-                    {{ exercise.muscle_group.name }}
-                  </span>
-                </div>
-                <p v-if="exercise.description" class="exercise-description">
-                  {{ exercise.description }}
-                </p>
+            <div class="plan-meta">
+              <div class="plan-stats">
+                <span>
+                  <i class="fas fa-dumbbell"></i>
+                  {{ plan.exercise_count }} упражнений
+                </span>
               </div>
-            </ion-card-content>
-          </ion-card>
+            </div>
+          </div>
         </div>
       </div>
     </ion-content>
@@ -80,61 +75,53 @@ import {
   IonButtons,
   IonButton,
   IonSpinner,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
 } from '@ionic/vue';
-import SearchInput from '@/components/SearchInput.vue';
-
-interface Exercise {
-  id: number;
-  name: string;
-  description?: string;
-  muscle_group?: {
-    id: number;
-    name: string;
-  };
-  created_at: string;
-  updated_at: string;
-}
+import SearchInput from '@/components/ui/SearchInput.vue';
+import { Plan } from '@/types/api';
 
 interface Props {
   isOpen: boolean;
-  availableExercises: Exercise[];
-  loadingExercises: boolean;
+  availablePlans: Plan[];
+  loadingPlans: boolean;
 }
 
 interface Emits {
   close: [];
-  selectExercise: [exercise: Exercise];
-  createNewExercise: [];
+  selectPlan: [plan: Plan];
+  createNewPlan: [];
   search: [query: string];
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
-const exerciseSearchQuery = ref('');
+const planSearchQuery = ref('');
 
-const filteredExercises = computed(() => {
+const filteredPlans = computed(() => {
   // Фильтрация происходит в родительском компоненте
-  return props.availableExercises;
+  return props.availablePlans;
 });
 
-// Exercise search functions
-const handleExerciseSearch = (value: string) => {
-  exerciseSearchQuery.value = value;
+// Plan search functions
+const handlePlanSearch = (value: string) => {
+  planSearchQuery.value = value;
   emit('search', value);
 };
 
-const clearExerciseSearch = () => {
-  exerciseSearchQuery.value = '';
+const clearPlanSearch = () => {
+  planSearchQuery.value = '';
   emit('search', '');
 };
 
-// Функция для создания нового упражнения с правильным управлением фокусом
-const handleCreateNewExercise = () => {
+// Функция для выбора плана с сбросом поискового запроса
+const handlePlanSelect = (plan: Plan) => {
+  // Сбрасываем поисковый запрос при выборе плана
+  planSearchQuery.value = '';
+  emit('selectPlan', plan);
+};
+
+// Функция для создания нового плана с правильным управлением фокусом
+const handleCreateNewPlan = () => {
   // Убираем фокус с текущего элемента перед закрытием модального окна
   const activeElement = document.activeElement as HTMLElement;
   if (activeElement && activeElement.blur) {
@@ -146,8 +133,8 @@ const handleCreateNewExercise = () => {
     document.body.blur();
   }
   
-  // Эмитим событие создания нового упражнения (переход обрабатывается в родительском компоненте)
-  emit('createNewExercise');
+  // Эмитим событие создания нового плана (переход обрабатывается в родительском компоненте)
+  emit('createNewPlan');
 };
 
 // Функция для обработки закрытия модального окна
@@ -157,6 +144,9 @@ const handleModalClose = () => {
   if (activeElement && activeElement.blur) {
     activeElement.blur();
   }
+  
+  // Сбрасываем поисковый запрос при закрытии модального окна
+  planSearchQuery.value = '';
   
   // Эмитим событие закрытия
   emit('close');
@@ -168,73 +158,59 @@ const handleModalClose = () => {
   padding: 16px;
 }
 
-.exercises-grid {
+.plans-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
   margin-top: 16px;
 }
 
-.modal-content .exercise-card {
+.modal-content .plan-card {
+  padding: 16px;
   cursor: pointer;
   transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
-.modal-content .exercise-card:hover {
+.modal-content .plan-card:hover {
   transform: translateY(-2px);
 }
 
-.modal-content .exercise-card ion-card-header {
-  padding-bottom: 8px;
+.modal-content .plan-header {
+  margin-bottom: 8px;
 }
 
-.modal-content .exercise-card ion-card-title {
-  font-size: 1.4rem;
+.modal-content .plan-header h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
+  color: var(--ion-text-color);
 }
 
-.modal-content .exercise-card ion-card-content {
-  padding-top: 0;
-}
-
-.modal-content .exercise-card ion-card-content p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-.modal-content .exercise-meta {
+.modal-content .plan-meta {
   display: flex;
   flex-direction: column;
   gap: 8px;
   align-items: flex-start;
 }
 
-.modal-content .exercise-stats {
+.modal-content .plan-stats {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
 }
 
-.modal-content .exercise-stats span {
+.modal-content .plan-stats span {
   display: flex;
   align-items: center;
-  font-size: 1.2rem;
-  color: #fff
-}
-
-.modal-content .exercise-stats i {
-  margin-right: 4px;
-  font-size: 1.2rem;
-  color: var(--ion-color-primary);
-}
-
-.modal-content .exercise-description {
   font-size: 12px;
   color: var(--ion-color-medium);
-  font-style: italic;
-  margin: 0;
+}
+
+.modal-content .plan-stats i {
+  margin-right: 4px;
+  color: var(--ion-color-primary);
 }
 
 /* Loading state styles */

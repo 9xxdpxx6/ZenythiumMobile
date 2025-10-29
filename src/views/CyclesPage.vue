@@ -71,11 +71,11 @@ import {
 } from '@ionic/vue';
 import { useDataFetching, useFilters, useToast } from '@/composables';
 import { cyclesService } from '@/services';
-import SearchInput from '@/components/SearchInput.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import EmptyState from '@/components/EmptyState.vue';
-import PageContainer from '@/components/PageContainer.vue';
-import CycleCard from '@/components/CycleCard.vue';
+import SearchInput from '@/components/ui/SearchInput.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import EmptyState from '@/components/ui/EmptyState.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import CycleCard from '@/components/cards/CycleCard.vue';
 import type { Cycle } from '@/types/models/cycle.types';
 
 const router = useRouter();

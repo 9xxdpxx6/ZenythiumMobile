@@ -131,13 +131,13 @@ import {
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
-import PageContainer from '@/components/PageContainer.vue';
-import LoadingState from '@/components/LoadingState.vue';
-import PlanSelectionModal from '@/components/PlanSelectionModal.vue';
-import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
-import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
-import CycleBasicInfo from '@/components/CycleBasicInfo.vue';
-import CyclePlanSelection from '@/components/CyclePlanSelection.vue';
+import PageContainer from '@/components/ui/PageContainer.vue';
+import LoadingState from '@/components/ui/LoadingState.vue';
+import PlanSelectionModal from '@/components/modals/PlanSelectionModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import UnsavedChangesModal from '@/components/modals/UnsavedChangesModal.vue';
+import CycleBasicInfo from '@/components/cycle/CycleBasicInfo.vue';
+import CyclePlanSelection from '@/components/cycle/CyclePlanSelection.vue';
 import { cyclesService } from '@/services/cycles.service';
 import { plansService } from '@/services/plans.service';
 import { useToast, useModal } from '@/composables';
