@@ -66,33 +66,15 @@
         <LoadingState v-if="loading" message="Загрузка тренировок..." />
 
         <div v-else-if="filteredWorkouts.length > 0">
-          <div class="workouts-list card-list" :key="workoutsKey">
-            <CustomCard
+          <div class="workouts-list card-list">
+            <WorkoutCard
               v-for="workout in filteredWorkouts"
               :key="workout.id"
-              clickable
-              @click="handleWorkoutClick(workout)"
-              @touchstart="handleWorkoutPressStart(workout)"
-              @touchend="handleWorkoutPressEnd"
-              @mousedown="handleWorkoutPressStart(workout)"
-              @mouseup="handleWorkoutPressEnd"
-              @mouseleave="handleWorkoutPressEnd"
-              class="workout-card"
-            >
-              <div class="workout-header">
-                <h3>{{ formatDate(workout.started_at) }}</h3>
-                <CustomChip
-                  :color="workout.finished_at ? 'success' : 'warning'"
-                  size="small"
-                >
-                  {{ workout.finished_at ? 'Завершена' : 'Активна' }}
-                </CustomChip>
-              </div>
-              
-              <div class="workout-info">
-                <p><strong>План:</strong> {{ workout.plan?.name || 'План не найден' }}</p>
-              </div>
-            </CustomCard>
+              :workout="workout"
+              @click="handleWorkoutClick"
+              @press-start="handleWorkoutPressStart"
+              @press-end="handleWorkoutPressEnd"
+            />
           </div>
         </div>
 
@@ -117,8 +99,8 @@
 
     <!-- Модальное окно действий с тренировкой -->
     <WorkoutActionModal
-      :is-open="showActionModal"
-      :workout="selectedWorkout || undefined"
+      :is-open="actionModal.isOpen.value"
+      :workout="actionModal.data.value || undefined"
       :is-deleting="isDeleting"
       @edit="handleActionEdit"
       @delete="handleActionDelete"
@@ -127,10 +109,10 @@
 
     <!-- Модальное окно подтверждения удаления -->
     <DeleteConfirmationModal
-      :is-open="showDeleteModal"
+      :is-open="deleteModal.isOpen.value"
       title="Удалить тренировку"
       message="Вы уверены, что хотите удалить эту тренировку?"
-      :item-name="selectedWorkout?.plan?.name"
+      :item-name="deleteModal.data.value?.plan?.name"
       warning-text="Это действие нельзя отменить."
       :is-deleting="isDeleting"
       @confirm="handleDeleteConfirm"
@@ -140,126 +122,87 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick, onActivated, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   IonPage,
   IonHeader,
   IonToolbar,
   IonTitle,
   IonContent,
-  IonSpinner,
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
+import { useDataFetching, useToast, useModal } from '@/composables';
+import { workoutsService } from '@/services';
 import CustomButton from '@/components/CustomButton.vue';
-import CustomCard from '@/components/CustomCard.vue';
-import CustomChip from '@/components/CustomChip.vue';
 import CustomToast from '@/components/CustomToast.vue';
 import WorkoutActionModal from '@/components/WorkoutActionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import PageContainer from '@/components/PageContainer.vue';
+import WorkoutCard from '@/components/WorkoutCard.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
-import apiClient from '@/services/api';
-import { Workout, ApiError } from '@/types/api';
 
 const router = useRouter();
-const route = useRoute();
-const workouts = ref<Workout[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
 const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
-const workoutsKey = ref(0);
-const isInitialized = ref(false);
 
-// Переменные для долгого нажатия
-const longPressTimer = ref<NodeJS.Timeout | null>(null);
-const longPressDelay = 500; // 500ms для долгого нажатия
-const isLongPressing = ref(false);
-
-// Переменные для модальных окон
-const showActionModal = ref(false);
-const showDeleteModal = ref(false);
-const selectedWorkout = ref<Workout | null>(null);
-const isDeleting = ref(false);
-const isUserCancelling = ref(false);
-const isTransitioningToDelete = ref(false);
-const isDeletionCompleted = ref(false);
-
-// Все тренировки (фильтрация теперь происходит на сервере)
-const filteredWorkouts = computed(() => workouts.value);
-
-const fetchWorkouts = async () => {
-  loading.value = true;
-  error.value = null;
-  
-  try {
-    const params: Record<string, string> = {};
-    
-    // Добавляем параметры фильтрации по датам
+// Use composables
+const { data: workouts, loading, error, execute, refresh } = useDataFetching(
+  () => {
+    const filters: any = {};
     if (dateFrom.value) {
-      // Для даты "с" устанавливаем время 00:00:00
       const dateFromWithTime = new Date(dateFrom.value);
       dateFromWithTime.setHours(0, 0, 0, 0);
-      params.started_at_from = dateFromWithTime.toISOString();
+      filters.started_at_from = dateFromWithTime.toISOString();
     }
     if (dateTo.value) {
-      // Для даты "по" устанавливаем время 23:59:59
       const dateToWithTime = new Date(dateTo.value);
       dateToWithTime.setHours(23, 59, 59, 999);
-      params.started_at_to = dateToWithTime.toISOString();
+      filters.started_at_to = dateToWithTime.toISOString();
     }
-    
-    const response = await apiClient.get('/api/v1/workouts', { params });
-    
-    workouts.value = response.data.data || [];
-    
-    workouts.value = [...workouts.value];
-    
-    workoutsKey.value++;
-    
-    await nextTick();
-    
-  } catch (err) {
-    console.error('Workouts fetch error:', err);
-    error.value = (err as ApiError).message;
-  } finally {
-    loading.value = false;
-  }
-};
+    return workoutsService.getAll(filters);
+  },
+  { immediate: true }
+);
+
+const { showError, showSuccess } = useToast();
+
+// Variables for long press
+const longPressTimer = ref<NodeJS.Timeout | null>(null);
+const longPressDelay = 500;
+const isLongPressing = ref(false);
+
+// Modal variables
+const actionModal = useModal<any>();
+const deleteModal = useModal<any>();
+const isDeleting = ref(false);
+
+const filteredWorkouts = computed(() => workouts.value || []);
 
 const handleRefresh = async (event: CustomEvent) => {
-  await fetchWorkouts();
+  await execute();
   event.detail.complete();
 };
 
-const handleWorkoutClick = (workout: Workout) => {
-  if (isLongPressing.value) {
-    isLongPressing.value = false;
+const handleWorkoutClick = (workout: any) => {
+  if (!workout || isLongPressing.value) {
+    if (isLongPressing.value) isLongPressing.value = false;
     return;
   }
-  
-  // Проверяем статус тренировки
-  if (workout.finished_at === null) {
-    // Активная тренировка - переходим на ActiveWorkoutPage
-    router.push(`/workout/${workout.id}`);
-  } else {
-    // Завершенная тренировка - переходим на ViewWorkoutPage
-    router.push(`/view-workout/${workout.id}`);
-  }
+  const finishedAt = (workout as any).finished_at || (workout as any).completedAt;
+  const route = finishedAt === null || !finishedAt ? `/workout/${(workout as any).id}` : `/view-workout/${(workout as any).id}`;
+  router.push(route);
 };
 
-// Функции для долгого нажатия
-const handleWorkoutPressStart = (workout: Workout) => {
+const handleWorkoutPressStart = (workout: any) => {
   isLongPressing.value = false;
   longPressTimer.value = setTimeout(() => {
     isLongPressing.value = true;
-    selectedWorkout.value = workout;
-    showActionModal.value = true;
+    actionModal.open(workout);
   }, longPressDelay);
 };
 
@@ -270,137 +213,48 @@ const handleWorkoutPressEnd = () => {
   }
 };
 
-// Функции для модальных окон
 const handleActionEdit = () => {
-  showActionModal.value = false;
-  if (selectedWorkout.value) {
-    router.push(`/edit-workout/${selectedWorkout.value.id}`);
+  actionModal.close();
+  if (actionModal.data.value) {
+    router.push(`/edit-workout/${actionModal.data.value.id}`);
   }
 };
 
 const handleActionDelete = () => {
-  isUserCancelling.value = false;
-  isTransitioningToDelete.value = true;
-  isDeletionCompleted.value = false;
-  
-  showActionModal.value = false;
-  showDeleteModal.value = true;
-  
+  actionModal.close();
+  if (actionModal.data.value) {
+    deleteModal.open(actionModal.data.value);
+  }
 };
 
 const handleActionCancel = () => {
-  if (isTransitioningToDelete.value) {
-    isTransitioningToDelete.value = false;
-    return;
-  }
-  
-  showActionModal.value = false;
-  selectedWorkout.value = null;
+  actionModal.close();
 };
 
 const handleDeleteConfirm = async () => {
-  if (!selectedWorkout.value) {
-    console.error('No workout selected for deletion');
-    return;
-  }
-  
-  if (isUserCancelling.value) {
-    return;
-  }
-  
-  
+  if (!deleteModal.data.value) return;
   isDeleting.value = true;
   try {
-    const response = await apiClient.delete(`/api/v1/workouts/${selectedWorkout.value.id}`);
-    
-    // Обновляем список
-    await fetchWorkouts();
-    
-    // Закрываем модальные окна
-    showDeleteModal.value = false;
-    selectedWorkout.value = null;
-    isUserCancelling.value = false;
-    isTransitioningToDelete.value = false;
-    isDeletionCompleted.value = true;
-    
+    await workoutsService.delete(deleteModal.data.value.id.toString());
+    await execute();
+    await showSuccess('Тренировка удалена');
+    deleteModal.close();
   } catch (err) {
-    console.error('❌ Delete workout error:', err);
-    console.error('❌ Error details:', {
-      message: (err as ApiError).message,
-      errors: (err as ApiError).errors,
-      status: (err as any).response?.status,
-      statusText: (err as any).response?.statusText,
-      data: (err as any).response?.data
-    });
-    error.value = (err as ApiError).message;
+    await showError('Не удалось удалить тренировку');
   } finally {
     isDeleting.value = false;
-    isUserCancelling.value = false;
-    isTransitioningToDelete.value = false;
-    isDeletionCompleted.value = false;
   }
 };
 
 const handleDeleteCancel = () => {
-  
-  if (isDeletionCompleted.value) {
-    isDeletionCompleted.value = false;
-    return;
-  }
-  
-  isUserCancelling.value = true;
-  showDeleteModal.value = false;
-  selectedWorkout.value = null;
-  isTransitioningToDelete.value = false;
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  deleteModal.close();
 };
 
 const clearError = () => {
   error.value = null;
 };
 
-// Функции фильтрации по датам
-const handleDateFilterChange = () => {
-  fetchWorkouts();
-};
-
-// Обновляем список тренировок при возврате на страницу
-onActivated(async () => {
-  if (!isInitialized.value) {
-    return;
-  }
-  
-  // Ждем следующий тик, чтобы убедиться, что компонент готов
-  await nextTick();
-  
-  fetchWorkouts();
-});
-
-// Экспортируем для тестирования в консоли браузера
-(window as any).testFetchWorkouts = fetchWorkouts;
-(window as any).workouts = workouts;
-
-onMounted(async () => {
-  await fetchWorkouts();
-  isInitialized.value = true;
-});
-
-// Дополнительно отслеживаем изменения роутера для надежности
-watch(() => route.path, (newPath) => {
-  if (newPath === '/tabs/workouts' && isInitialized.value) {
-    fetchWorkouts();
-  }
-});
+const handleDateFilterChange = () => execute();
 </script>
 
 <style scoped>
@@ -432,45 +286,4 @@ watch(() => route.path, (newPath) => {
   flex-direction: column;
   gap: 16px;
 }
-
-.workout-card {
-  padding: 20px !important;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-
-.workout-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-  gap: 12px;
-}
-
-.workout-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-  flex: 1;
-  line-height: 1.3;
-}
-
-.workout-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.workout-info p {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-}
-
-.workout-info strong {
-  color: var(--ion-text-color);
-}
-
-/* State styles now handled by utility classes */
 </style>

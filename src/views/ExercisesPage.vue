@@ -18,15 +18,10 @@
 
     <ion-content :fullscreen="true">
       <PageContainer>
-        <div v-if="loading" class="loading-state">
-          <ion-spinner name="crescent"></ion-spinner>
-          <p>Загрузка упражнений...</p>
-        </div>
-
-        <div v-else-if="exercises.length > 0" class="exercises-container">
+        <div class="exercises-container">
           <div class="exercises-header">
             <h1>Мои упражнения</h1>
-            <p>{{ totalExercises }} упражнений</p>
+            <p>{{ exercises?.length || 0 }} упражнений</p>
           </div>
 
           <!-- Search and Filters -->
@@ -37,82 +32,57 @@
               @search="handleSearch"
               @clear="clearSearch"
             />
-            <ExercisesFilters
-              :filters="filters"
-              :muscle-groups="muscleGroups"
-              @filters-changed="handleFiltersChanged"
-              @reset-filters="resetFilters"
-            />
+          <ExercisesFilters
+            :filters="filters"
+            :muscle-groups="(muscleGroups || []) as any"
+            @filters-changed="handleFiltersChanged"
+            @reset-filters="resetFilters"
+          />
           </div>
 
-          <div class="exercises-list card-list">
-            <!-- Локальный спиннер для поиска -->
-            <SearchLoading v-if="searchLoading" message="Поиск упражнений..." />
-            
-            <!-- Список упражнений (скрываем во время поиска) -->
-            <div 
-              v-for="exercise in exercises" 
-              :key="exercise.id"
-              class="exercise-card modern-card"
-              v-show="!searchLoading"
-            >
-              <div class="exercise-header">
-                <div class="exercise-icon">
-                  <i class="fas fa-dumbbell"></i>
-                </div>
-                <div class="exercise-info">
-                  <h3 class="exercise-name">{{ exercise.name }}</h3>
-                  <div class="exercise-muscle-group">
-                    {{ exercise.muscle_group.name }}
-                    <span v-if="!exercise.is_active" class="inactive-badge">неактивен</span>
-                  </div>
-                </div>
-                <div class="exercise-actions">
-                  <ion-button 
-                    fill="clear" 
-                    size="small" 
-                    @click="openEditModal(exercise)"
-                    class="action-button"
-                  >
-                    <i class="fas fa-edit"></i>
-                  </ion-button>
-                  <ion-button 
-                    fill="clear" 
-                    size="small" 
-                    @click="confirmDelete(exercise)"
-                    class="action-button delete-button"
-                  >
-                    <i class="fas fa-trash"></i>
-                  </ion-button>
-                </div>
-              </div>
-              
-              <div v-if="exercise.description" class="exercise-description">
-                {{ exercise.description }}
-              </div>
+          <LoadingState v-if="searchLoading || loading" :message="searchLoading ? 'Поиск упражнений...' : 'Загрузка упражнений...'" />
+          
+          <template v-else-if="exercises && exercises.length > 0">
+            <div class="exercises-list card-list">
+              <ExerciseCard
+                v-for="exercise in exercises"
+                :key="exercise.id"
+                :exercise="exercise"
+                @edit="openEditModal"
+                @delete="confirmDelete"
+              />
             </div>
+          </template>
+          
+          <div v-else class="no-results">
+            <div class="no-results-icon">
+              <i class="fas fa-search"></i>
+            </div>
+            <p class="no-results-title">Упражнения не найдены</p>
+            <p class="no-results-message">
+              {{ searchQuery || filters.is_active !== null || filters.muscle_group_id !== null 
+                ? 'Попробуйте изменить поисковый запрос или фильтры' 
+                : 'Создайте первое упражнение' }}
+            </p>
           </div>
 
-          <!-- Pagination (скрываем во время поиска) -->
-          <div v-if="totalPages > 1 && !searchLoading" class="pagination">
+          <div v-if="totalPages > 1 && exercises && exercises.length > 0" class="pagination">
             <ion-button 
               fill="outline" 
               :disabled="currentPage === 1"
-              @click="prevPage"
+              @click="() => { prevPage(); fetchData(); }"
               class="pagination-button"
             >
               <i class="fas fa-chevron-left"></i>
               Предыдущая
             </ion-button>
-            
             <div class="pagination-info">
               Страница {{ currentPage }} из {{ totalPages }}
             </div>
-            
             <ion-button 
               fill="outline" 
               :disabled="currentPage === totalPages"
-              @click="nextPage"
+              @click="() => { nextPage(); fetchData(); }"
               class="pagination-button"
             >
               Следующая
@@ -121,8 +91,9 @@
           </div>
         </div>
 
+        <!-- Empty state only when there are no exercises at all -->
         <EmptyState
-          v-else
+          v-if="(!exercises || exercises.length === 0) && !loading && !searchLoading && !searchQuery && filters.is_active === null && filters.muscle_group_id === null"
           icon="fas fa-dumbbell"
           title="Нет упражнений"
           message="У вас пока нет созданных упражнений"
@@ -133,142 +104,33 @@
       </PageContainer>
     </ion-content>
 
-    <!-- Create/Edit Exercise Modal -->
-    <ion-modal :is-open="isModalOpen" @didDismiss="closeModal">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>{{ isEditing ? 'Редактировать упражнение' : 'Создать упражнение' }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button @click="closeModal">
-              <i class="fas fa-times"></i>
-            </ion-button>
-          </ion-buttons>
-        </ion-toolbar>
-      </ion-header>
-      
-      <ion-content class="modal-content">
-        <form @submit.prevent="submitForm" class="exercise-form">
-          <CustomInput
-            v-model="form.name"
-            label="Название упражнения *"
-            placeholder="Введите название упражнения"
-            :error="!!errors.name"
-            :error-message="errors.name?.[0]"
-            required
-          />
+    <ExerciseFormModal
+      :is-open="formModal.isOpen.value"
+      :form="form"
+      :errors="errors"
+      :muscle-group-options="muscleGroupOptions"
+      :is-editing="isEditing"
+      :submitting="submitting"
+      @close="closeModal"
+      @submit="submitForm"
+    />
 
-          <div class="form-group">
-            <label class="form-label">Группа мышц *</label>
-            <CustomSelect
-              v-model="form.muscle_group_id"
-              :options="muscleGroupOptions"
-              placeholder="Выберите группу мышц"
-              search-placeholder="Поиск группы мышц..."
-            />
-            <div v-if="errors.muscle_group_id" class="error-message">{{ errors.muscle_group_id[0] }}</div>
-          </div>
+    <DeleteConfirmationModal
+      :is-open="deleteModal.isOpen.value"
+      title="Удалить упражнение"
+      message="Вы уверены, что хотите удалить упражнение"
+      :item-name="deleteModal.data.value?.name"
+      warning-text="Это действие нельзя отменить. Все связанные записи в планах тренировок также будут удалены."
+      :is-deleting="deleting"
+      @confirm="deleteExercise"
+      @cancel="closeDeleteModal"
+    />
 
-          <CustomTextarea
-            v-model="form.description"
-            label="Описание"
-            placeholder="Описание упражнения (необязательно)"
-            :rows="3"
-          />
-
-          <div class="form-group">
-            <label class="form-label">Статус</label>
-            <div class="checkbox-container">
-              <label class="checkbox-label">
-                <input
-                  type="checkbox"
-                  v-model="form.is_active"
-                  class="checkbox-input"
-                />
-                <span class="checkbox-text">Активное упражнение</span>
-              </label>
-            </div>
-          </div>
-
-          <div class="form-actions">
-            <ion-button 
-              type="button" 
-              fill="outline" 
-              @click="closeModal"
-              :disabled="submitting"
-              expand="block"
-            >
-              Отмена
-            </ion-button>
-            <ion-button 
-              type="submit" 
-              :disabled="submitting"
-              class="submit-button"
-              expand="block"
-            >
-              <ion-spinner v-if="submitting" name="crescent"></ion-spinner>
-              {{ isEditing ? 'Сохранить' : 'Создать' }}
-            </ion-button>
-          </div>
-        </form>
-      </ion-content>
-    </ion-modal>
-
-    <!-- Delete Confirmation Modal -->
-    <ion-modal :is-open="isDeleteModalOpen" @didDismiss="closeDeleteModal">
-      <ion-header>
-        <ion-toolbar>
-          <ion-title>Подтверждение удаления</ion-title>
-        </ion-toolbar>
-      </ion-header>
-      
-      <ion-content class="modal-content">
-        <div class="delete-confirmation">
-          <i class="fas fa-exclamation-triangle warning-icon"></i>
-          <h3>Удалить упражнение?</h3>
-          <p>Вы уверены, что хотите удалить упражнение <strong>"{{ exerciseToDelete?.name }}"</strong>?</p>
-          <p class="warning-text">Это действие нельзя отменить. Все связанные записи в планах тренировок также будут удалены.</p>
-          
-          <div class="delete-actions">
-            <ion-button 
-              fill="outline" 
-              @click="closeDeleteModal"
-              :disabled="deleting"
-              expand="block"
-            >
-              Отмена
-            </ion-button>
-            <ion-button 
-              color="danger" 
-              @click="deleteExercise"
-              :disabled="deleting"
-              expand="block"
-            >
-              <ion-spinner v-if="deleting" name="crescent"></ion-spinner>
-              Удалить
-            </ion-button>
-          </div>
-        </div>
-      </ion-content>
-    </ion-modal>
-
-    <ion-toast
-      :is-open="!!error"
-      :message="error"
-      duration="3000"
-      @didDismiss="clearError"
-    ></ion-toast>
-
-    <ion-toast
-      :is-open="!!successMessage"
-      :message="successMessage"
-      duration="3000"
-      @didDismiss="clearSuccess"
-    ></ion-toast>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -278,46 +140,25 @@ import {
   IonContent,
   IonButtons,
   IonButton,
-  IonSpinner,
-  IonToast,
-  IonModal,
 } from '@ionic/vue';
-import CustomInput from '@/components/CustomInput.vue';
-import CustomSelect from '@/components/CustomSelect.vue';
-import CustomTextarea from '@/components/CustomTextarea.vue';
+import { useDataFetching, useToast, usePagination, useModal } from '@/composables';
+import { exercisesService, muscleGroupsService } from '@/services';
 import SearchInput from '@/components/SearchInput.vue';
 import ExercisesFilters from '@/components/ExercisesFilters.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import SearchLoading from '@/components/SearchLoading.vue';
 import PageContainer from '@/components/PageContainer.vue';
-import { DataService } from '@/services/data';
-import { 
-  ExerciseResource, 
-  MuscleGroupResource, 
-  CreateExerciseRequest, 
-  UpdateExerciseRequest,
-  ApiError 
-} from '@/types/api';
+import ExerciseCard from '@/components/ExerciseCard.vue';
+import ExerciseFormModal from '@/components/ExerciseFormModal.vue';
+import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
+import LoadingState from '@/components/LoadingState.vue';
+import type { ExerciseResource } from '@/types/api';
 
 const router = useRouter();
 
-// Data
-const exercises = ref<ExerciseResource[]>([]);
-const muscleGroups = ref<MuscleGroupResource[]>([]);
-const loading = ref(false);
-const searchLoading = ref(false);
-const error = ref<string | null>(null);
-const successMessage = ref<string | null>(null);
-
-// Pagination
-const currentPage = ref(1);
-const totalPages = ref(1);
-const totalExercises = ref(0);
-const perPage = ref(100);
-
-// Search and filters
 const searchQuery = ref('');
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
+const searchLoading = ref(false);
+const { currentPage, totalPages, setTotalItems, nextPage, prevPage } = usePagination(1, 100);
 const filters = ref({
   is_active: null as boolean | null,
   muscle_group_id: null as number | null,
@@ -327,9 +168,46 @@ const filters = ref({
   sort_order: 'desc'
 });
 
+// Composables
+const { showSuccess, showError } = useToast();
+
+// Fetch muscle groups
+const { data: muscleGroups, execute: fetchMuscleGroups } = useDataFetching(
+  async () => await muscleGroupsService.getAll(),
+  { immediate: true }
+);
+
+// Fetch exercises with manual control
+const exercises = ref<any[]>([]);
+const loading = ref(false);
+
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    const params: any = { page: currentPage.value, per_page: 100 };
+    const f = filters.value;
+    if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+    if (f.is_active !== null) params.is_active = f.is_active ? '1' : '0';
+    if (f.muscle_group_id !== null) params.muscle_group_id = f.muscle_group_id;
+    if (f.date_from) params.date_from = f.date_from;
+    if (f.date_to) params.date_to = f.date_to;
+    if (f.sort_by) params.sort_by = f.sort_by;
+    if (f.sort_order) params.sort_order = f.sort_order;
+    const response = await exercisesService.getPaginated(params);
+    if (response.pagination) {
+      setTotalItems(response.pagination.totalItems);
+    }
+    exercises.value = response.data;
+  } catch (err) {
+    await showError('Ошибка загрузки упражнений');
+  } finally {
+    loading.value = false;
+  }
+};
+
 // Modal states
-const isModalOpen = ref(false);
-const isDeleteModalOpen = ref(false);
+const formModal = useModal<ExerciseResource>();
+const deleteModal = useModal<ExerciseResource>();
 const isEditing = ref(false);
 const submitting = ref(false);
 const deleting = ref(false);
@@ -348,25 +226,17 @@ const form = ref<{
 });
 
 const errors = ref<Record<string, string[]>>({});
-const exerciseToDelete = ref<ExerciseResource | null>(null);
 const exerciseToEdit = ref<ExerciseResource | null>(null);
 
 // Computed
 const muscleGroupOptions = computed(() => {
-  return muscleGroups.value.map(group => ({
+  return (muscleGroups.value || []).map((group: any) => ({
     value: group.id,
     label: group.name
   }));
 });
 
 // Methods
-const clearError = () => {
-  error.value = null;
-};
-
-const clearSuccess = () => {
-  successMessage.value = null;
-};
 
 const resetForm = () => {
   form.value = {
@@ -381,10 +251,11 @@ const resetForm = () => {
 const openCreateModal = () => {
   resetForm();
   isEditing.value = false;
-  isModalOpen.value = true;
+  formModal.open();
 };
 
 const openEditModal = (exercise: ExerciseResource) => {
+  formModal.open(exercise);
   exerciseToEdit.value = exercise;
   form.value = {
     name: exercise.name,
@@ -393,23 +264,20 @@ const openEditModal = (exercise: ExerciseResource) => {
     is_active: (exercise as any).is_active ?? true
   };
   isEditing.value = true;
-  isModalOpen.value = true;
 };
 
 const closeModal = () => {
-  isModalOpen.value = false;
+  formModal.close();
   resetForm();
   exerciseToEdit.value = null;
 };
 
 const confirmDelete = (exercise: ExerciseResource) => {
-  exerciseToDelete.value = exercise;
-  isDeleteModalOpen.value = true;
+  deleteModal.open(exercise);
 };
 
 const closeDeleteModal = () => {
-  isDeleteModalOpen.value = false;
-  exerciseToDelete.value = null;
+  deleteModal.close();
 };
 
 const submitForm = async () => {
@@ -417,7 +285,6 @@ const submitForm = async () => {
   errors.value = {};
 
   try {
-    // Convert muscle_group_id to number if it's a string
     const formData = {
       ...form.value,
       muscle_group_id: typeof form.value.muscle_group_id === 'string' 
@@ -426,23 +293,21 @@ const submitForm = async () => {
     };
 
     if (isEditing.value && exerciseToEdit.value) {
-      // Update existing exercise
-      await DataService.updateExercise(exerciseToEdit.value.id, formData);
-      successMessage.value = 'Упражнение успешно обновлено';
+      await exercisesService.update(exerciseToEdit.value.id.toString(), formData as any);
+      await showSuccess('Упражнение успешно обновлено');
     } else {
-      // Create new exercise
-      await DataService.createExercise(formData);
-      successMessage.value = 'Упражнение успешно создано';
+      await exercisesService.create(formData as any);
+      await showSuccess('Упражнение успешно создано');
     }
     
     closeModal();
-    await fetchExercises(currentPage.value);
+    await fetchData();
   } catch (err: any) {
-    const apiError = err as ApiError;
+    const apiError = err;
     if (apiError.errors) {
       errors.value = apiError.errors;
     } else {
-      error.value = apiError.message || 'Произошла ошибка при сохранении упражнения';
+      await showError('Произошла ошибка при сохранении упражнения');
     }
   } finally {
     submitting.value = false;
@@ -450,137 +315,46 @@ const submitForm = async () => {
 };
 
 const deleteExercise = async () => {
-  if (!exerciseToDelete.value) return;
-  
+  if (!deleteModal.data.value) return;
   deleting.value = true;
   try {
-    await DataService.deleteExercise(exerciseToDelete.value.id);
-    successMessage.value = 'Упражнение успешно удалено';
+    await exercisesService.delete(deleteModal.data.value.id.toString());
+    await showSuccess('Упражнение успешно удалено');
     closeDeleteModal();
-    await fetchExercises(currentPage.value);
+    await fetchData();
   } catch (err: any) {
-    const apiError = err as ApiError;
-    error.value = apiError.message || 'Произошла ошибка при удалении упражнения';
+    await showError('Произошًا ошибка при удалении упражнения');
   } finally {
     deleting.value = false;
   }
 };
 
-const fetchExercises = async (page: number = 1, isSearch: boolean = false) => {
-  // Используем searchLoading для поиска, loading для обычной загрузки
-  if (isSearch) {
-    searchLoading.value = true;
-  } else {
-    loading.value = true;
-  }
-  
-  try {
-    const params: any = {
-      page,
-      per_page: perPage.value
-    };
+watch(currentPage, () => fetchData());
 
-    // Add search query
-    if (searchQuery.value.trim()) {
-      params.search = searchQuery.value.trim();
-    }
-
-    // Add filters
-    if (filters.value.is_active !== null) {
-      params.is_active = filters.value.is_active ? '1' : '0';
-    }
-    if (filters.value.muscle_group_id !== null) {
-      params.muscle_group_id = filters.value.muscle_group_id;
-    }
-    if (filters.value.date_from) {
-      params.date_from = filters.value.date_from;
-    }
-    if (filters.value.date_to) {
-      params.date_to = filters.value.date_to;
-    }
-    if (filters.value.sort_by) {
-      params.sort_by = filters.value.sort_by;
-    }
-    if (filters.value.sort_order) {
-      params.sort_order = filters.value.sort_order;
-    }
-
-    const response = await DataService.getExercises(page, perPage.value, params);
-    exercises.value = response.data;
-    
-    // Update pagination info
-    if (response.meta) {
-      currentPage.value = response.meta.current_page;
-      totalPages.value = response.meta.last_page;
-      totalExercises.value = response.meta.total;
-    }
-  } catch (err: any) {
-    const apiError = err as ApiError;
-    error.value = apiError.message || 'Ошибка загрузки упражнений';
-    console.error('Failed to fetch exercises:', err);
-  } finally {
-    if (isSearch) {
-      searchLoading.value = false;
-    } else {
-      loading.value = false;
-    }
-  }
-};
-
-const fetchMuscleGroups = async () => {
-  try {
-    const response = await DataService.getMuscleGroups();
-    muscleGroups.value = response.data;
-  } catch (err: any) {
-    console.error('Failed to fetch muscle groups:', err);
-  }
-};
-
-// Pagination methods
-const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
-    fetchExercises(page);
-  }
-};
-
-const nextPage = () => {
-  if (currentPage.value < totalPages.value) {
-    goToPage(currentPage.value + 1);
-  }
-};
-
-const prevPage = () => {
-  if (currentPage.value > 1) {
-    goToPage(currentPage.value - 1);
-  }
-};
-
-// Search and filter methods
 const handleSearch = (query: string) => {
   searchQuery.value = query;
-  
-  // Очищаем предыдущий таймаут
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
-  
-  // Устанавливаем новый таймаут для дебаунса (300ms)
-  searchTimeout.value = setTimeout(() => {
-    fetchExercises(1, true); // Используем локальную загрузку для поиска
+  if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  searchLoading.value = true;
+  searchTimeout.value = setTimeout(async () => {
+    currentPage.value = 1;
+    await fetchData();
+    searchLoading.value = false;
   }, 300);
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
-  fetchExercises(1, true); // Используем локальную загрузку для поиска
+  if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  currentPage.value = 1;
+  searchLoading.value = true;
+  fetchData();
+  setTimeout(() => { searchLoading.value = false; }, 300);
 };
 
 const handleFiltersChanged = (newFilters: any) => {
   filters.value = { ...newFilters };
-  goToPage(1); // Reset to first page when filtering
+  currentPage.value = 1;
+  fetchData();
 };
 
 const resetFilters = () => {
@@ -592,34 +366,21 @@ const resetFilters = () => {
     sort_by: 'created_at',
     sort_order: 'desc'
   };
-  goToPage(1);
+  currentPage.value = 1;
+  fetchData();
 };
 
 onMounted(async () => {
-  await Promise.all([
-    fetchExercises(),
-    fetchMuscleGroups()
-  ]);
+  await fetchData();
+  await fetchMuscleGroups();
 });
 
 onUnmounted(() => {
-  // Очищаем таймаут при размонтировании компонента
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
+  if (searchTimeout.value) clearTimeout(searchTimeout.value);
 });
 </script>
 
 <style scoped>
-/* Page content styles now handled by PageContainer component */
-
-/* Loading and empty states now handled by LoadingState and EmptyState components */
-
-.create-button {
-  margin-top: 1rem;
-}
-
-
 .exercises-header {
   margin-bottom: 20px;
 }
@@ -643,236 +404,12 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
-.search-container {
-  margin-left: 0 !important;
-  width: 100%;
-}
-
 .exercises-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-/* Search loading styles now handled by SearchLoading component */
-/* .search-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  text-align: center;
-  color: var(--ion-color-medium);
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  margin: 8px 16px;
-}
-
-.search-loading ion-spinner {
-  margin-bottom: 1rem;
-}
-
-.search-loading p {
-  margin: 0;
-  font-size: 14px;
-} */
-
-.exercise-card {
-  margin: 0 !important;
-}
-
-.exercise-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.exercise-icon {
-  width: 40px;
-  height: 40px;
-  background: var(--ion-color-primary);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-}
-
-.exercise-icon i {
-  font-size: 16px;
-  color: white;
-}
-
-.exercise-info {
-  flex: 1;
-}
-
-.exercise-name {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.exercise-muscle-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-}
-
-.exercise-muscle-group i {
-  font-size: 12px;
-}
-
-.inactive-badge {
-  background: var(--ion-color-medium);
-  color: var(--ion-color-light);
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  font-weight: 500;
-}
-
-.exercise-actions {
-  display: flex;
-  gap: 4px;
-}
-
-.action-button {
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-  margin: 0;
-}
-
-.action-button i {
-  font-size: 16px;
-}
-
-.delete-button {
-  color: var(--ion-color-danger);
-}
-
-.exercise-description {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-/* Modal Styles */
-.modal-content {
-  padding: 20px;
-}
-
-.exercise-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin: 0 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label {
-  font-weight: 600;
-  color: var(--ion-text-color);
-  font-size: 14px;
-}
-
-.error-message {
-  color: var(--ion-color-danger);
-  font-size: 12px;
-  margin-top: 4px;
-}
-
-/* Checkbox styles */
-.checkbox-container {
-  margin-top: 8px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  gap: 12px;
-}
-
-.checkbox-input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--ion-color-primary);
-  cursor: pointer;
-}
-
-.checkbox-text {
-  font-size: 14px;
-  color: var(--ion-text-color);
-  user-select: none;
-}
-
-.form-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 20px;
-  width: 100%;
-}
-
-.submit-button {
-  --padding-start: 24px;
-  --padding-end: 24px;
-}
-
-/* Delete Confirmation Modal */
-.delete-confirmation {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 20px;
-}
-
-.warning-icon {
-  font-size: 3rem;
-  color: var(--ion-color-warning);
-  margin-bottom: 1rem;
-}
-
-.delete-confirmation h3 {
-  margin: 0 0 1rem 0;
-  color: var(--ion-text-color);
-}
-
-.delete-confirmation p {
-  margin: 0 0 1rem 0;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
-}
-
-.warning-text {
-  font-size: 0.9rem;
-  color: var(--ion-color-danger);
-  font-weight: 500;
-}
-
-.delete-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 2rem;
-  width: 100%;
-}
 
 /* Pagination Styles */
 .pagination {
@@ -896,5 +433,46 @@ onUnmounted(() => {
   color: var(--ion-color-medium);
   font-size: 14px;
   font-weight: 500;
+}
+
+/* No results styles */
+.no-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.no-results-icon {
+  width: 80px;
+  height: 80px;
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.no-results-icon i {
+  font-size: 2rem;
+  color: var(--ion-color-primary);
+}
+
+.no-results-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ion-text-color);
+}
+
+.no-results-message {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  line-height: 1.5;
+  max-width: 300px;
 }
 </style>

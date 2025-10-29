@@ -35,8 +35,16 @@ export function useAuth() {
     error.value = null;
     
     try {
-      await AuthService.register(userData);
-      await fetchUser();
+      const response = await AuthService.register(userData);
+      
+      // If user data is in response, use it immediately
+      if (response.user) {
+        user.value = response.user;
+      } else {
+        // Otherwise fetch it
+        await fetchUser();
+      }
+      
       return true;
     } catch (err) {
       error.value = (err as ApiError).message;

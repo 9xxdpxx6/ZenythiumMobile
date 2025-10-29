@@ -16,7 +16,7 @@ export class DataService {
   // User statistics
   static async getUserStatistics(): Promise<StatisticsResponse> {
     try {
-      const response = await apiClient.get<StatisticsResponse>('/api/v1/user/statistics');
+      const response = await apiClient.get<StatisticsResponse>('/user/statistics');
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -33,7 +33,7 @@ export class DataService {
       };
       
       
-      const response = await apiClient.get<ExercisesResponse>('/api/v1/exercises', {
+      const response = await apiClient.get<ExercisesResponse>('/exercises', {
         params
       });
       
@@ -45,7 +45,7 @@ export class DataService {
 
   static async getExercise(id: number): Promise<ApiResponse<ExerciseResource>> {
     try {
-      const response = await apiClient.get<ApiResponse<ExerciseResource>>(`/api/v1/exercises/${id}`);
+      const response = await apiClient.get<ApiResponse<ExerciseResource>>(`/exercises/${id}`);
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -54,7 +54,7 @@ export class DataService {
 
   static async createExercise(data: CreateExerciseRequest): Promise<ApiResponse<ExerciseResource>> {
     try {
-      const response = await apiClient.post<ApiResponse<ExerciseResource>>('/api/v1/exercises', data);
+      const response = await apiClient.post<ApiResponse<ExerciseResource>>('/exercises', data);
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -63,7 +63,7 @@ export class DataService {
 
   static async updateExercise(id: number, data: UpdateExerciseRequest): Promise<ApiResponse<ExerciseResource>> {
     try {
-      const response = await apiClient.put<ApiResponse<ExerciseResource>>(`/api/v1/exercises/${id}`, data);
+      const response = await apiClient.put<ApiResponse<ExerciseResource>>(`/exercises/${id}`, data);
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -72,7 +72,7 @@ export class DataService {
 
   static async deleteExercise(id: number): Promise<ApiResponse<null>> {
     try {
-      const response = await apiClient.delete<ApiResponse<null>>(`/api/v1/exercises/${id}`);
+      const response = await apiClient.delete<ApiResponse<null>>(`/exercises/${id}`);
       return response.data;
     } catch (error) {
       throw error as ApiError;
@@ -82,7 +82,7 @@ export class DataService {
   // Muscle Groups
   static async getMuscleGroups(page: number = 1, perPage: number = 15): Promise<MuscleGroupsResponse> {
     try {
-      const response = await apiClient.get<MuscleGroupsResponse>('/api/v1/muscle-groups', {
+      const response = await apiClient.get<MuscleGroupsResponse>('/muscle-groups', {
         params: {
           page,
           per_page: perPage
@@ -97,7 +97,7 @@ export class DataService {
   // Cycles
   static async getCycles(page: number = 1, perPage: number = 100): Promise<ApiResponse<Cycle[]>> {
     try {
-      const response = await apiClient.get<ApiResponse<Cycle[]>>('/api/v1/cycles', {
+      const response = await apiClient.get<ApiResponse<Cycle[]>>('/cycles', {
         params: {
           page,
           per_page: perPage
@@ -121,7 +121,7 @@ export class DataService {
         params.cycle_id = cycleId;
       }
       
-      const response = await apiClient.get<ApiResponse<Plan[]>>('/api/v1/plans', {
+      const response = await apiClient.get<ApiResponse<Plan[]>>('/plans', {
         params
       });
       return response.data;

@@ -15,10 +15,10 @@
       <PageContainer>
         <LoadingState v-if="loading" message="Загрузка групп мышц..." />
 
-        <div v-else-if="muscleGroups.length > 0" class="muscle-groups-container">
+        <div v-else-if="muscleGroups && muscleGroups.length > 0" class="muscle-groups-container">
           <div class="muscle-groups-header">
             <h1>Группы мышц</h1>
-            <p>{{ muscleGroups.length }} групп мышц</p>
+            <p>{{ muscleGroups?.length || 0 }} групп мышц</p>
           </div>
 
           <div class="muscle-groups-list">
@@ -31,7 +31,7 @@
                 <div class="muscle-group-info">
                   <h3 class="muscle-group-name">{{ muscleGroup.name }}</h3>
                   <div class="muscle-group-count">
-                    {{ (muscleGroup as any).exercises_count || 0 }} упражнений
+                    упражнений
                   </div>
                 </div>
               </div>
@@ -58,7 +58,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -68,40 +67,24 @@ import {
   IonContent,
   IonButtons,
   IonButton,
-  IonSpinner,
   IonToast,
 } from '@ionic/vue';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
-import { DataService } from '@/services/data';
-import { MuscleGroupResource } from '@/types/api';
+import { useDataFetching } from '@/composables';
+import { muscleGroupsService } from '@/services';
 
 const router = useRouter();
-const muscleGroups = ref<MuscleGroupResource[]>([]);
-const loading = ref(false);
-const error = ref<string | null>(null);
+
+// Use composables
+const { data: muscleGroups, loading, error, refresh } = useDataFetching(
+  () => muscleGroupsService.getAll()
+);
 
 const clearError = () => {
   error.value = null;
 };
-
-const fetchMuscleGroups = async () => {
-  loading.value = true;
-  try {
-    const response = await DataService.getMuscleGroups();
-    muscleGroups.value = response.data;
-  } catch (err: any) {
-    error.value = err.message || 'Ошибка загрузки групп мышц';
-    console.error('Failed to fetch muscle groups:', err);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(() => {
-  fetchMuscleGroups();
-});
 </script>
 
 <style scoped>

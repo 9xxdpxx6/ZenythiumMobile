@@ -14,121 +14,22 @@
         <LoadingState v-if="loading && !workout" message="Загрузка тренировки..." />
 
         <div v-else-if="workout">
-          <!-- Информация о тренировке -->
-          <div class="workout-info">
-            <h2>{{ workout.plan?.name || 'Тренировка' }}</h2>
-            <p class="workout-date">{{ formatDate(workout.started_at) }}</p>
-          </div>
+          <WorkoutBasicInfo
+            :workout-name="workout.plan?.name || 'Тренировка'"
+            :workout-date="formatDate(workout.started_at)"
+            :started-at="editData.started_at"
+            :finished-at="editData.finished_at"
+            @update:startedAt="editData.started_at = $event"
+            @update:finishedAt="editData.finished_at = $event"
+          />
 
-          <!-- Поля редактирования -->
-          <div class="edit-fields">
-            <!-- Дата и время начала -->
-            <div class="field-group">
-              <label class="field-label">Дата и время начала</label>
-               <VueDatePicker
-                 v-model="editData.started_at"
-                 format="dd.MM.yyyy HH:mm"
-                 :enable-time-picker="true"
-                 auto-apply
-                 :dark="true"
-                 locale="ru"
-                 :week-start="1"
-                 :month-name-format="'long'"
-                 :year-range="[2020, 2030]"
-               />
-            </div>
-
-            <!-- Дата и время окончания -->
-            <div class="field-group">
-              <label class="field-label">Дата и время окончания</label>
-               <VueDatePicker
-                 v-model="editData.finished_at"
-                 format="dd.MM.yyyy HH:mm"
-                 :enable-time-picker="true"
-                 auto-apply
-                 :dark="true"
-                 :min-date="editData.started_at || undefined"
-                 locale="ru"
-                 :week-start="1"
-                 :month-name-format="'long'"
-                 :year-range="[2020, 2030]"
-               />
-            </div>
-          </div>
-
-          <!-- Подходы -->
-          <div class="sets-section">
-            <div class="section-header">
-              <h3>Подходы</h3>
-            </div>
-
-            <div v-if="!workout?.exercises || workout.exercises.length === 0" class="empty-sets">
-              <p>Нет упражнений в плане</p>
-            </div>
-
-            <div v-else class="sets-list">
-              <div
-                v-for="(exerciseSets, exerciseName) in groupedSets"
-                :key="exerciseName"
-                class="exercise-group"
-              >
-                <div class="exercise-header">
-                  <h4>{{ exerciseName }}</h4>
-                  <ion-button
-                    @click="addSetToExercise(String(exerciseName))"
-                    fill="clear"
-                    color="primary"
-                    size="small"
-                  >
-                    <ion-icon :icon="addOutline"></ion-icon>
-                  </ion-button>
-                </div>
-                
-                <div class="sets-in-exercise">
-                  <div
-                    v-for="(set, index) in exerciseSets"
-                    :key="set.id || `new-${index}`"
-                    class="set-item"
-                  >
-                    <div class="set-info">
-                      <div class="set-values">
-                        <CustomInput
-                          :model-value="set.weight?.toString() || ''"
-                          @update:model-value="set.weight = $event && !isNaN(parseFloat($event)) && parseFloat($event) >= 0 ? parseFloat($event) : null"
-                          type="number"
-                          placeholder="Вес"
-                          class="weight-input"
-                        />
-                        <span v-if="set.weight !== 0" class="separator">x</span>
-                        <CustomInput
-                          :model-value="set.reps?.toString() || ''"
-                          @update:model-value="set.reps = $event && !isNaN(parseInt($event)) && parseInt($event) > 0 ? parseInt($event) : null"
-                          type="number"
-                          placeholder="Повт."
-                          class="reps-input"
-                        />
-                      </div>
-                    </div>
-                    <div class="set-actions">
-                      <ion-button
-                        @click="deleteSet(String(exerciseName), index)"
-                        fill="clear"
-                        color="danger"
-                        size="small"
-                      >
-                        <ion-icon :icon="trashOutline"></ion-icon>
-                      </ion-button>
-                    </div>
-                  </div>
-                  
-                  <!-- Показываем сообщение если нет подходов к упражнению -->
-                  <div v-if="exerciseSets.length === 0" class="no-sets-message">
-                    <p>Нет подходов к этому упражнению</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <WorkoutSetsEditor
+            :sets="sets"
+            :grouped-sets="groupedSets"
+            :has-exercises="!!workout?.exercises && workout.exercises.length > 0"
+            @add-set="addSetToExercise"
+            @delete-set="deleteSet"
+          />
         </div>
 
         <div v-else class="error-state">
@@ -197,15 +98,16 @@ import { trashOutline, addOutline } from 'ionicons/icons';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import CustomButton from '@/components/CustomButton.vue';
-import CustomInput from '@/components/CustomInput.vue';
 import CustomToast from '@/components/CustomToast.vue';
-import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css';
-import apiClient from '@/services/api';
+import WorkoutBasicInfo from '@/components/WorkoutBasicInfo.vue';
+import WorkoutSetsEditor from '@/components/WorkoutSetsEditor.vue';
+import { workoutsService } from '@/services/workouts.service';
+import { useToast } from '@/composables/useToast';
 import { Workout, WorkoutSet, ApiError } from '@/types/api';
 
 const route = useRoute();
 const router = useRouter();
+const { showSuccess, showError } = useToast();
 
 const workout = ref<Workout | null>(null);
 const loading = ref(false);
@@ -258,8 +160,7 @@ const loadWorkout = async () => {
   
   try {
     // Загружаем тренировку (она уже содержит упражнения с историей подходов)
-    const response = await apiClient.get(`/api/v1/workouts/${workoutId.value}`);
-    workout.value = response.data.data;
+    workout.value = await workoutsService.getById(workoutId.value.toString()) as any;
     
     // Инициализируем данные для редактирования
     if (workout.value) {
@@ -345,28 +246,28 @@ const saveWorkout = async () => {
       workoutData.finished_at = formatLocalDateTime(editData.value.finished_at);
     }
     
-    await apiClient.put(`/api/v1/workouts/${workoutId.value}`, workoutData);
+    await workoutsService.update(workoutId.value.toString(), workoutData);
     
     // Удаляем помеченные подходы
     for (const setId of setsToDelete.value) {
-      await apiClient.delete(`/api/v1/workout-sets/${setId}`);
+      await workoutsService.deleteSet(setId);
     }
     
     // Обновляем подходы
     for (const set of sets.value) {
       if (set.id && set.id > 0) {
         // Обновляем существующий подход
-        await apiClient.put(`/api/v1/workout-sets/${set.id}`, {
-          weight: set.weight || 0, // Если null, то 0
-          reps: set.reps || 0, // Если null, то 0
+        await workoutsService.updateSet(set.id, {
+          weight: set.weight || 0,
+          reps: set.reps || 0,
         });
       } else {
         // Создаем новый подход
-        await apiClient.post('/api/v1/workout-sets', {
+        await workoutsService.createSet({
           workout_id: workoutId.value,
           plan_exercise_id: set.plan_exercise_id,
-          weight: set.weight || 0, // Если null, то 0
-          reps: set.reps || 0, // Если null, то 0
+          weight: set.weight || 0,
+          reps: set.reps || 0,
         });
       }
     }

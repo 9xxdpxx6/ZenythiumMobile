@@ -39,67 +39,20 @@
 
         <LoadingState v-if="loading" message="Загрузка планов..." />
 
-        <div v-else-if="plans.length > 0">
+        <div v-else-if="plans && plans.length > 0">
           <!-- Локальный спиннер для поиска -->
           <SearchLoading v-if="searchLoading" message="Поиск планов..." />
           
           <div class="plans-grid card-grid">
-            <div
+            <PlanCard
               v-for="plan in plans"
               :key="plan.id"
-              class="plan-card modern-card"
-              @click="handlePlanClick(plan)"
+              :plan="plan"
+              :is-duplicating="duplicatingPlanId === plan.id"
+              @click="handlePlanClick"
+              @duplicate="duplicatePlan"
               v-show="!searchLoading"
-            >
-              <div class="plan-header">
-                <h3>{{ plan.name }}</h3>
-                <div v-if="!plan.is_active" class="inactive-label">
-                  не активен
-                </div>
-              </div>
-              
-              <div class="plan-stats">
-                <div class="stat">
-                  <div class="stat-content">
-                    <div v-if="plan.cycle" class="cycle-info">
-                      <i class="fas fa-sync-alt cycle-icon"></i>
-                      <span>{{ plan.cycle.name }}</span>
-                    </div>
-                    <div class="exercise-count">
-                      <i class="fas fa-dumbbell"></i>
-                      <span>{{ plan.exercise_count || 0 }} упражнений</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="exercises-list" v-if="plan.exercises && plan.exercises.length > 0">
-                <div 
-                  v-for="exercise in getSortedExercises(plan.exercises)" 
-                  :key="exercise.id"
-                  class="exercise-item"
-                >
-                  {{ exercise.order }}. {{ exercise.name }}
-                </div>
-              </div>
-              
-              <div class="plan-footer">
-                <div class="created-date">
-                  {{ formatDate(plan.created_at) }}
-                </div>
-                <div class="plan-actions">
-                  <button 
-                    @click.stop="duplicatePlan(plan)"
-                    class="duplicate-button"
-                    :disabled="duplicatingPlanId === plan.id"
-                    title="Дублировать план"
-                  >
-                    <i v-if="duplicatingPlanId === plan.id" class="fas fa-spinner fa-spin"></i>
-                    <i v-else class="fas fa-copy"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
+            />
           </div>
         </div>
 
@@ -118,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, computed, onUnmounted } from 'vue';
+import { ref, onMounted, onActivated, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -126,184 +79,120 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
-  IonSpinner,
   IonRefresher,
   IonRefresherContent,
   IonButtons,
   IonButton,
 } from '@ionic/vue';
+import { useDataFetching, useToast } from '@/composables';
+import { plansService } from '@/services';
 import SearchInput from '@/components/SearchInput.vue';
 import PlansFilters from '@/components/PlansFilters.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import SearchLoading from '@/components/SearchLoading.vue';
 import PageContainer from '@/components/PageContainer.vue';
-import apiClient from '@/services/api';
-import { Plan, ApiError, Exercise } from '@/types/api';
+import PlanCard from '@/components/PlanCard.vue';
+import type { Plan } from '@/types/api';
 
 const router = useRouter();
-const plans = ref<Plan[]>([]);
-const loading = ref(false);
-const searchLoading = ref(false);
-const error = ref<string | null>(null);
 const searchQuery = ref('');
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const duplicatingPlanId = ref<number | null>(null);
-// Функции для работы с localStorage
 const FILTERS_STORAGE_KEY = 'plans-filters';
 
-const saveFiltersToStorage = (filters: any) => {
+const saveFilters = (filters: any) => {
   try {
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
-  } catch (error) {
-    console.warn('Failed to save filters to localStorage:', error);
+  } catch (e) {
+    console.warn('Failed to save filters:', e);
   }
 };
 
-const loadFiltersFromStorage = () => {
+const loadFilters = () => {
   try {
     const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch (error) {
-    console.warn('Failed to load filters from localStorage:', error);
-  }
-  return null;
-};
-
-const clearFiltersFromStorage = () => {
-  try {
-    localStorage.removeItem(FILTERS_STORAGE_KEY);
-  } catch (error) {
-    console.warn('Failed to clear filters from localStorage:', error);
+    return saved ? JSON.parse(saved) : null;
+  } catch (e) {
+    return null;
   }
 };
 
-// Инициализация фильтров с загрузкой из localStorage
 const defaultFilters = {
-  is_active: true, // По умолчанию показываем только активные планы
+  is_active: true,
   standalone: null,
   cycle_id: null,
   sort_by: 'created_at',
   sort_order: 'desc'
 };
 
-const savedFilters = loadFiltersFromStorage();
-const currentFilters = ref(savedFilters || defaultFilters);
+const currentFilters = ref(loadFilters() || defaultFilters);
 
-// Теперь используем API поиск, локальная фильтрация не нужна
-
-const fetchPlans = async (isSearch: boolean = false) => {
-  // Используем searchLoading для поиска, loading для обычной загрузки
-  if (isSearch) {
-    searchLoading.value = true;
-  } else {
-    loading.value = true;
-  }
-  error.value = null;
-  
-  try {
+const { showSuccess, showError } = useToast();
+const { data: plans, loading, execute: fetchData } = useDataFetching(
+  async () => {
     const params: Record<string, string> = {};
+    const f = currentFilters.value;
     
-    // Добавляем параметр поиска
-    if (searchQuery.value.trim()) {
-      params.search = searchQuery.value.trim();
-    }
+    if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
+    if (f.is_active !== null) params.is_active = String(f.is_active);
+    if (f.standalone !== null) params.standalone = String(f.standalone);
+    if (f.cycle_id !== null) params.cycle_id = String(f.cycle_id);
+    if (f.sort_by) params.sort_by = f.sort_by;
+    if (f.sort_order) params.sort_order = f.sort_order;
     
-    // Добавляем параметры фильтрации
-    if (currentFilters.value.is_active !== null) {
-      params.is_active = String(currentFilters.value.is_active);
-    }
-    if (currentFilters.value.standalone !== null) {
-      params.standalone = String(currentFilters.value.standalone);
-    }
-    if (currentFilters.value.cycle_id !== null) {
-      params.cycle_id = String(currentFilters.value.cycle_id);
-    }
-    if (currentFilters.value.sort_by) {
-      params.sort_by = currentFilters.value.sort_by;
-    }
-    if (currentFilters.value.sort_order) {
-      params.sort_order = currentFilters.value.sort_order;
-    }
-    
-    const response = await apiClient.get('/api/v1/plans', { params });
-    plans.value = response.data.data || [];
-  } catch (err) {
-    console.error('Plans fetch error:', err);
-    error.value = (err as ApiError).message;
-  } finally {
-    if (isSearch) {
-      searchLoading.value = false;
-    } else {
-      loading.value = false;
-    }
-  }
-};
+    return await plansService.getAll(params) || [];
+  },
+  { immediate: true }
+);
+
+const searchLoading = ref(false);
 
 const handleRefresh = async (event: CustomEvent) => {
-  await fetchPlans();
+  await fetchData();
   event.detail.complete();
 };
 
 const handlePlanClick = (plan: Plan) => {
-  // Убираем фокус с текущего элемента перед навигацией
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
   router.push(`/plan/${plan.id}`);
 };
 
-const getSortedExercises = (exercises: Exercise[]) => {
-  return exercises.sort((a, b) => a.order - b.order);
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
-};
-
-// Функции поиска
 const handleSearch = (value: string) => {
   searchQuery.value = value;
-  
-  // Очищаем предыдущий таймаут
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
-  
-  // Устанавливаем новый таймаут для дебаунса (300ms)
-  searchTimeout.value = setTimeout(() => {
-    fetchPlans(true); // Используем локальную загрузку для поиска
+  if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  searchLoading.value = true;
+  searchTimeout.value = setTimeout(async () => {
+    await fetchData();
+    searchLoading.value = false;
   }, 300);
 };
 
 const handleFiltersChanged = (filters: any) => {
   currentFilters.value = { ...filters };
-  saveFiltersToStorage(filters);
-  fetchPlans();
+  saveFilters(filters);
+  fetchData();
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
-  fetchPlans(true); // Используем локальную загрузку для поиска
+  if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  searchLoading.value = true;
+  fetchData();
+  setTimeout(() => { searchLoading.value = false; }, 300);
 };
 
 const resetFilters = () => {
   currentFilters.value = { ...defaultFilters };
-  clearFiltersFromStorage();
-  fetchPlans();
+  try {
+    localStorage.removeItem(FILTERS_STORAGE_KEY);
+  } catch (e) {}
+  fetchData();
 };
 
 const createNewPlan = () => {
-  // Убираем фокус с текущего элемента перед навигацией
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
@@ -311,75 +200,35 @@ const createNewPlan = () => {
 };
 
 const duplicatePlan = async (plan: Plan) => {
-  if (duplicatingPlanId.value) return; // Prevent multiple simultaneous duplications
-  
+  if (duplicatingPlanId.value) return;
   duplicatingPlanId.value = plan.id;
-  
   try {
-    const requestBody: any = {
-      name: `${plan.name} (копия)`,
-      is_active: false // По умолчанию копия неактивна
-    };
-    
-    // Если у плана есть цикл, сохраняем его
-    if (plan.cycle?.id) {
-      requestBody.cycle_id = plan.cycle.id;
-    }
-    
-    const response = await apiClient.post(`/api/v1/plans/${plan.id}/duplicate`, requestBody);
-    
-    // Показываем уведомление об успехе
-    const event = new CustomEvent('show-toast', {
-      detail: {
-        message: 'План успешно скопирован',
-        type: 'success',
-        duration: 3000
-      }
-    });
-    window.dispatchEvent(event);
-    
-    // Обновляем список планов
-    await fetchPlans();
-    
+    await plansService.duplicate(plan.id.toString());
+    await showSuccess('План успешно скопирован');
+    await fetchData();
   } catch (err) {
-    console.error('Plan duplication error:', err);
-    const errorMessage = (err as ApiError).message || 'Ошибка при копировании плана';
-    
-    // Показываем уведомление об ошибке
-    const event = new CustomEvent('show-toast', {
-      detail: {
-        message: errorMessage,
-        type: 'error',
-        duration: 5000
-      }
-    });
-    window.dispatchEvent(event);
+    await showError('Ошибка при копировании плана');
   } finally {
     duplicatingPlanId.value = null;
   }
 };
 
 onActivated(() => {
-  // Обновляем данные при возвращении на страницу (например, после создания/редактирования плана)
-  fetchPlans();
+  fetchData();
 });
 
-// Обработчик события обновления планов
 const handlePlansUpdated = () => {
-  fetchPlans();
+  fetchData();
 };
 
 onMounted(() => {
-  fetchPlans();
-  // Добавляем обработчик события
+  fetchData();
   window.addEventListener('plans-updated', handlePlansUpdated);
 });
 
 onUnmounted(() => {
-  // Удаляем обработчик события при размонтировании компонента
   window.removeEventListener('plans-updated', handlePlansUpdated);
   
-  // Очищаем таймаут при размонтировании компонента
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
   }
@@ -387,7 +236,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Search input spacing */
 .search-filters-row {
   display: flex;
   align-items: flex-start;
@@ -404,7 +252,6 @@ onUnmounted(() => {
   flex-shrink: 0;
 }
 
-/* Кнопка добавления в заголовке */
 .add-button {
   --background: transparent !important;
   --background-hover: transparent !important;
@@ -437,143 +284,4 @@ onUnmounted(() => {
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 16px;
 }
-
-
-.plan-card {
-  padding: 20px !important;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-  display: flex;
-  flex-direction: column;
-}
-
-
-.plan-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 12px;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.cycle-info {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-  margin-bottom: 4px;
-}
-
-.cycle-icon {
-  font-size: 12px;
-  color: var(--ion-color-primary);
-  margin-right: 6px;
-}
-
-.exercise-count {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: var(--ion-color-medium);
-}
-
-.exercise-count i {
-  font-size: 12px;
-  margin-right: 6px;
-  color: var(--ion-color-primary);
-}
-
-.plan-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--ion-text-color);
-  flex: 1;
-}
-
-.inactive-label {
-  background: var(--ion-color-medium);
-  color: white;
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-
-.plan-stats {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.stat {
-  display: flex;
-  align-items: flex-start;
-}
-
-.exercise-item {
-  font-size: 13px;
-  color: var(--ion-color-medium);
-  margin-bottom: 4px;
-  padding: 2px 0;
-  line-height: 1.3;
-}
-
-.plan-footer {
-  margin-top: auto;
-  padding-top: 12px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.created-date {
-  font-size: 11px;
-  color: var(--ion-color-medium);
-  opacity: 0.7;
-}
-
-.plan-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.duplicate-button {
-  background: transparent;
-  border: 1px solid var(--ion-color-primary);
-  color: var(--ion-color-primary);
-  border-radius: 8px;
-  padding: 6px 8px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 28px;
-}
-
-.duplicate-button:hover:not(:disabled) {
-  background: var(--ion-color-primary);
-  color: white;
-}
-
-.duplicate-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.duplicate-button i {
-  font-size: 12px;
-}
-
 </style>

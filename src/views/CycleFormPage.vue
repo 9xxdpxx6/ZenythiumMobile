@@ -19,92 +19,26 @@
         <LoadingState v-if="loading" message="Загрузка..." />
 
         <form v-else @submit.prevent="handleSubmit" class="cycle-form">
-          <div class="form-group">
-            <CustomInput
-              v-model="formData.name"
-              label="Название цикла *"
-              type="text"
-              placeholder="Например: Набор массы"
-              :error="!!errors.name"
-              :error-message="getFirstError(errors.name)"
-              required
-            />
-          </div>
+          <CycleBasicInfo
+            v-model:name="formData.name"
+            v-model:weeks="formData.weeks"
+            v-model:startDate="formData.start_date"
+            v-model:endDate="formData.end_date"
+            :errors="errors"
+            @update:name="formData.name = $event"
+            @update:weeks="formData.weeks = $event"
+            @update:startDate="formData.start_date = $event"
+            @update:endDate="formData.end_date = $event"
+          />
 
-          <div class="form-group">
-            <CustomInput
-              v-model="formData.weeks"
-              label="Количество недель *"
-              type="number"
-              placeholder="Например: 6"
-              :error="!!errors.weeks"
-              :error-message="getFirstError(errors.weeks)"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Дата начала (необязательно)</label>
-            <VueDatePicker
-              v-model="formData.start_date"
-              :class="{ 'datepicker-error': errors.start_date }"
-              format="dd.MM.yyyy"
-              placeholder="Выберите дату начала"
-              :enable-time-picker="false"
-              auto-apply
-              :dark="true"
-              locale="ru"
-              :week-start="1"
-              :month-name-format="'long'"
-              :year-range="[2020, 2030]"
-            />
-            <span v-if="errors.start_date" class="error-message">{{ getFirstError(errors.start_date) }}</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Дата окончания (необязательно)</label>
-            <VueDatePicker
-              v-model="formData.end_date"
-              :class="{ 'datepicker-error': errors.end_date }"
-              format="dd.MM.yyyy"
-              placeholder="Выберите дату окончания"
-              :enable-time-picker="false"
-              auto-apply
-              :dark="true"
-              :min-date="formData.start_date || undefined"
-              locale="ru"
-              :week-start="1"
-              :month-name-format="'long'"
-              :year-range="[2020, 2030]"
-            />
-            <span v-if="errors.end_date" class="error-message">{{ getFirstError(errors.end_date) }}</span>
-            <span class="field-hint">Если указана дата начала, дата окончания должна быть позже</span>
-          </div>
-
-          <!-- Plans Management Section -->
-          <div class="form-group">
-            <div class="plans-section-header">
-              <label class="form-label">Планы тренировок</label>
-              <button
-                type="button"
-                class="add-plan-button"
-                @click="openPlanModal"
-              >
-                <i class="fas fa-plus"></i>
-                Добавить план
-              </button>
-            </div>
-            
-            <PlansList
-              :plans="cyclePlans"
-              :is-edit-mode="!!isEditMode"
-              @plan-reorder="handlePlanReorder"
-              @plan-delete="showDeleteConfirmation"
-            />
-            
-            <!-- Отображение ошибки валидации для планов -->
-            <span v-if="errors.plan_ids" class="error-message">{{ getFirstError(errors.plan_ids) }}</span>
-          </div>
+          <CyclePlanSelection
+            :plans="cyclePlans"
+            :is-edit-mode="!!isEditMode"
+            :errors="errors"
+            @add-plan="openPlanModal"
+            @reorder="handlePlanReorder"
+            @delete="showDeleteConfirmation"
+          />
 
           <div class="form-actions">
             <button
@@ -130,7 +64,6 @@
             </button>
           </div>
 
-          <!-- Delete Cycle Button - только в режиме редактирования -->
           <div v-if="isEditMode" class="delete-cycle-section">
             <button
               type="button"
@@ -146,9 +79,8 @@
       </PageContainer>
     </ion-content>
 
-    <!-- Plan Selection Modal -->
     <PlanSelectionModal
-      :is-open="isPlanModalOpen"
+      :is-open="planModal.isOpen.value"
       :available-plans="availablePlans"
       :loading-plans="loadingPlans"
       @close="handlePlanModalClose"
@@ -157,7 +89,6 @@
       @search="handlePlanSearch"
     />
 
-    <!-- Delete Confirmation Dialog -->
     <DeleteConfirmationModal
       :is-open="isDeleteDialogOpen"
       title="Подтверждение удаления"
@@ -168,7 +99,6 @@
       @cancel="cancelDeletePlan"
     />
 
-    <!-- Delete Cycle Confirmation Dialog -->
     <DeleteConfirmationModal
       :is-open="isDeleteCycleDialogOpen"
       title="Подтверждение удаления"
@@ -180,7 +110,6 @@
       @cancel="cancelDeleteCycle"
     />
 
-    <!-- Unsaved Changes Confirmation Dialog -->
     <UnsavedChangesModal
       :is-open="isUnsavedChangesDialogOpen"
       @confirm="confirmLeave"
@@ -201,58 +130,43 @@ import {
   IonButtons,
   IonButton,
   IonSpinner,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
-  IonList,
-  IonItem,
-  IonLabel,
-  IonChip,
-  IonModal,
-  IonSearchbar,
-  toastController,
 } from '@ionic/vue';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import CustomInput from '@/components/CustomInput.vue';
-import PlansList from '@/components/PlansList.vue';
 import PlanSelectionModal from '@/components/PlanSelectionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
-import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css';
-import apiClient from '@/services/api';
-import { ApiError, Plan, CyclePlan } from '@/types/api';
+import CycleBasicInfo from '@/components/CycleBasicInfo.vue';
+import CyclePlanSelection from '@/components/CyclePlanSelection.vue';
+import { cyclesService } from '@/services/cycles.service';
+import { plansService } from '@/services/plans.service';
+import { useToast, useModal } from '@/composables';
 import { useCycleFormValidation, type CycleFormData, type ValidationErrors } from '@/composables/useCycleFormValidation';
+import type { Plan, CyclePlan, Cycle as APICycle } from '@/types/api';
 
 const router = useRouter();
 const route = useRoute();
+const { showSuccess, showError, showWarning } = useToast();
 
 const cycleId = computed(() => route.params.id as string);
 const isEditMode = computed(() => cycleId.value && cycleId.value !== 'new');
 
-// Computed property to detect unsaved changes
 const hasUnsavedChanges = computed(() => {
   if (!originalFormData.value) return false;
   
-  // Check form data changes
   const formChanged = 
     formData.value.name !== originalFormData.value.name ||
     formData.value.weeks !== originalFormData.value.weeks ||
     formData.value.start_date?.getTime() !== originalFormData.value.start_date?.getTime() ||
     formData.value.end_date?.getTime() !== originalFormData.value.end_date?.getTime();
   
-  // Check plans changes
   const plansChanged = JSON.stringify(cyclePlans.value) !== JSON.stringify(originalCyclePlans.value);
   
   return formChanged || plansChanged;
 });
 
-// Используем composable для валидации
 const { validateForm, getFirstError } = useCycleFormValidation();
 
-// Функция для генерации названия цикла на основе даты начала и количества недель
 const generateCycleName = (startDate: Date, weeks: number): string => {
   const endDate = new Date(startDate);
   endDate.setDate(startDate.getDate() + (weeks * 7));
@@ -277,33 +191,26 @@ const loading = ref(false);
 const submitting = ref(false);
 const errors = ref<ValidationErrors>({});
 
-// Plan management
 const cyclePlans = ref<CyclePlan[]>([]);
 const availablePlans = ref<Plan[]>([]);
-const isPlanModalOpen = ref(false);
+const planModal = useModal();
 const loadingPlans = ref(false);
 
-// Delete confirmation dialog
 const isDeleteDialogOpen = ref(false);
 const planToDelete = ref<number | null>(null);
 const planToDeleteName = ref('');
-
-// Delete cycle confirmation dialog
 const isDeleteCycleDialogOpen = ref(false);
-
-// Unsaved changes confirmation
 const isUnsavedChangesDialogOpen = ref(false);
 const pendingNavigation = ref<any>(null);
 const isLeaving = ref(false);
 
-// Original state tracking for unsaved changes detection
 const originalFormData = ref<CycleFormData | null>(null);
 const originalCyclePlans = ref<CyclePlan[]>([]);
 
 const formData = ref<CycleFormData>({
   name: '',
-  weeks: '6', // Устанавливаем 6 недель по умолчанию
-  start_date: new Date(), // Устанавливаем текущую дату по умолчанию
+  weeks: '6',
+  start_date: new Date(),
   end_date: null,
 });
 
@@ -312,8 +219,7 @@ const fetchCycleData = async () => {
 
   loading.value = true;
   try {
-    const response = await apiClient.get(`/api/v1/cycles/${cycleId.value}`);
-    const cycle = response.data.data;
+    const cycle = await cyclesService.getById(cycleId.value) as any;
 
     formData.value = {
       name: cycle.name || '',
@@ -322,7 +228,6 @@ const fetchCycleData = async () => {
       end_date: cycle.end_date ? new Date(cycle.end_date) : null,
     };
 
-    // Save original form data for change detection
     originalFormData.value = {
       name: cycle.name || '',
       weeks: cycle.weeks ? cycle.weeks.toString() : '',
@@ -330,7 +235,6 @@ const fetchCycleData = async () => {
       end_date: cycle.end_date ? new Date(cycle.end_date) : null,
     };
 
-    // Load cycle plans if they exist
     if (cycle.plans && Array.isArray(cycle.plans)) {
       cyclePlans.value = cycle.plans.map((plan: any, index: number) => ({
         id: plan.id || 0,
@@ -350,7 +254,6 @@ const fetchCycleData = async () => {
         }
       }));
       
-      // Save original plans for change detection
       originalCyclePlans.value = JSON.parse(JSON.stringify(cyclePlans.value));
     } else {
       cyclePlans.value = [];
@@ -359,39 +262,24 @@ const fetchCycleData = async () => {
 
   } catch (err) {
     console.error('Failed to fetch cycle:', err);
-    const toast = await toastController.create({
-      message: 'Не удалось загрузить данные цикла',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError('Не удалось загрузить данные цикла');
     router.back();
   } finally {
     loading.value = false;
   }
 };
 
-const validateFormData = (formDataWithPlans?: any): boolean => {
-  const dataToValidate = formDataWithPlans || formData.value;
-  const { isValid, errors: validationErrors } = validateForm(dataToValidate);
-  errors.value = validationErrors;
-  return isValid;
-};
-
 const handleSubmit = async () => {
-  // Добавляем plan_ids в данные формы для валидации
   const formDataWithPlans = {
     ...formData.value,
     plan_ids: cyclePlans.value.map(cp => cp.plan_id)
   };
 
-  if (!validateFormData(formDataWithPlans)) {
-    const toast = await toastController.create({
-      message: 'Пожалуйста, исправьте ошибки в форме',
-      duration: 2000,
-      color: 'warning',
-    });
-    await toast.present();
+  const { isValid, errors: validationErrors } = validateForm(formDataWithPlans);
+  errors.value = validationErrors;
+
+  if (!isValid) {
+    showWarning('Пожалуйста, исправьте ошибки в форме');
     return;
   }
 
@@ -404,35 +292,21 @@ const handleSubmit = async () => {
     const payload: any = {
       name: formData.value.name.trim(),
       weeks: parseInt(formData.value.weeks),
-      // Всегда отправляем даты, даже если они null (для очистки)
       start_date: formData.value.start_date ? formData.value.start_date.toISOString().split('T')[0] : null,
       end_date: formData.value.end_date ? formData.value.end_date.toISOString().split('T')[0] : null,
-      // Отправляем массив ID планов в порядке их расположения
       plan_ids: planIds
     };
 
     if (isEditMode.value) {
-      await apiClient.put(`/api/v1/cycles/${cycleId.value}`, payload);
-      const toast = await toastController.create({
-        message: 'Цикл успешно обновлен',
-        duration: 2000,
-        color: 'success',
-      });
-      await toast.present();
+      await cyclesService.update(cycleId.value, payload);
+      showSuccess('Цикл успешно обновлен');
     } else {
-      await apiClient.post('/api/v1/cycles', payload);
-      const toast = await toastController.create({
-        message: 'Цикл успешно создан',
-        duration: 2000,
-        color: 'success',
-      });
-      await toast.present();
+      await cyclesService.create(payload);
+      showSuccess('Цикл успешно создан');
     }
 
-    // Уведомляем CyclesPage о необходимости обновления данных
     window.dispatchEvent(new CustomEvent('cycles-updated'));
     
-    // Update original state after successful save
     originalFormData.value = {
       name: formData.value.name,
       weeks: formData.value.weeks,
@@ -441,21 +315,18 @@ const handleSubmit = async () => {
     };
     originalCyclePlans.value = [...cyclePlans.value];
     
-    // Если это режим редактирования, также обновляем данные текущего цикла
     if (isEditMode.value) {
       await fetchCycleData();
     }
     
     router.push('/tabs/cycles');
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to save cycle:', err);
-    const apiError = err as ApiError;
     
-    if (apiError.errors) {
-      // Преобразуем ошибки из Record<string, string[]> в наш формат
+    if (err.errors) {
       const processedErrors: ValidationErrors = {};
-      Object.keys(apiError.errors).forEach(key => {
-        const errorArray = apiError.errors![key];
+      Object.keys(err.errors).forEach(key => {
+        const errorArray = err.errors[key];
         if (errorArray && errorArray.length > 0) {
           processedErrors[key as keyof ValidationErrors] = errorArray;
         }
@@ -463,36 +334,19 @@ const handleSubmit = async () => {
       errors.value = processedErrors;
     }
 
-    const toast = await toastController.create({
-      message: apiError.message || `Не удалось ${isEditMode.value ? 'обновить' : 'создать'} цикл`,
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError(err.message || `Не удалось ${isEditMode.value ? 'обновить' : 'создать'} цикл`);
   } finally {
     submitting.value = false;
   }
 };
 
-// Plan management functions
 const fetchAvailablePlans = async (searchTerm: string = '') => {
   loadingPlans.value = true;
   try {
-    const params: any = {};
+    const allPlans = await plansService.getAll({ search: searchTerm.trim() }) as any[] || [];
     
-    // Добавляем поиск если есть
-    if (searchTerm.trim()) {
-      params.search = searchTerm.trim();
-    }
-    
-    const response = await apiClient.get('/api/v1/plans', { params });
-    const allPlans = response.data.data || [];
-    
-    // Фильтруем планы на клиенте:
-    // 1. Только активные планы
-    // 2. Исключаем те, что уже добавлены в текущий цикл
     const addedPlanIds = cyclePlans.value.map(cp => cp.plan_id);
-    const availablePlansFiltered = allPlans.filter((plan: Plan) => {
+    const availablePlansFiltered = allPlans.filter((plan: any) => {
       const isActive = plan.is_active === true || (plan.is_active as any) === 1;
       const notAdded = !addedPlanIds.includes(plan.id);
       return isActive && notAdded;
@@ -501,42 +355,20 @@ const fetchAvailablePlans = async (searchTerm: string = '') => {
     availablePlans.value = availablePlansFiltered;
   } catch (err) {
     console.error('Failed to fetch plans:', err);
-    const toast = await toastController.create({
-      message: 'Не удалось загрузить планы',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError('Не удалось загрузить планы');
   } finally {
     loadingPlans.value = false;
   }
 };
 
-const filteredPlans = computed(() => {
-  // Фильтрация теперь происходит на сервере, возвращаем все доступные планы
-  return availablePlans.value;
-});
-
-// Plan search functions
 const handlePlanSearch = (value: string) => {
-  // Выполняем поиск на сервере
   fetchAvailablePlans(value);
 };
 
-const clearPlanSearch = () => {
-  // Загружаем все доступные планы без поиска
-  fetchAvailablePlans('');
-};
-
 const createNewPlan = async () => {
-  // Закрываем модал выбора планов
-  isPlanModalOpen.value = false;
-  
-  // Ждем завершения закрытия модального окна
+  planModal.close();
   await nextTick();
   
-  // Добавляем дополнительную задержку для полного закрытия модального окна
-  // Это предотвращает проблемы с aria-hidden и фокусом
   setTimeout(() => {
     router.push('/plan/new');
   }, 300);
@@ -544,29 +376,23 @@ const createNewPlan = async () => {
 
 const addPlanToCycle = (plan: Plan) => {
   const newCyclePlan: CyclePlan = {
-    id: 0, // Will be assigned by server
+    id: 0,
     cycle_id: parseInt(cycleId.value) || 0,
     plan_id: plan.id,
-    order: cyclePlans.value.length + 1, // Порядок определяется позицией в массиве, но оставляем для совместимости
+    order: cyclePlans.value.length + 1,
     plan: plan
   };
   
   cyclePlans.value.push(newCyclePlan);
-  isPlanModalOpen.value = false;
-  
-  // Очищаем поисковый запрос в модальном окне
+  planModal.close();
   handlePlanSearch('');
-  
-  // Обновляем список доступных планов, чтобы исключить только что добавленный
   fetchAvailablePlans('');
   
-  // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
-    // Убираем aria-hidden с модального окна
     const modalElement = document.querySelector('.ion-page-hidden');
     if (modalElement) {
       modalElement.removeAttribute('aria-hidden');
@@ -578,12 +404,6 @@ const handlePlanReorder = (reorderedPlans: CyclePlan[]) => {
   cyclePlans.value = reorderedPlans;
 };
 
-const removePlanFromCycle = (index: number) => {
-  cyclePlans.value.splice(index, 1);
-  // Порядок планов определяется их позицией в массиве, не нужно обновлять поле order
-};
-
-// Delete confirmation functions
 const showDeleteConfirmation = (index: number) => {
   const plan = cyclePlans.value[index];
   planToDelete.value = index;
@@ -594,23 +414,18 @@ const showDeleteConfirmation = (index: number) => {
 const confirmDeletePlan = () => {
   if (planToDelete.value !== null) {
     cyclePlans.value.splice(planToDelete.value, 1);
-    // Порядок планов определяется их позицией в массиве, не нужно обновлять поле order
   }
   isDeleteDialogOpen.value = false;
   planToDelete.value = null;
   planToDeleteName.value = '';
   
-  // Обновляем список доступных планов, чтобы вернуть удаленный план в список
-  // Вызываем без поискового запроса, чтобы получить все доступные планы
   fetchAvailablePlans('');
   
-  // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
-    // Убираем aria-hidden с модального окна
     const modalElement = document.querySelector('.ion-page-hidden');
     if (modalElement) {
       modalElement.removeAttribute('aria-hidden');
@@ -623,13 +438,11 @@ const cancelDeletePlan = () => {
   planToDelete.value = null;
   planToDeleteName.value = '';
   
-  // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
-    // Убираем aria-hidden с модального окна
     const modalElement = document.querySelector('.ion-page-hidden');
     if (modalElement) {
       modalElement.removeAttribute('aria-hidden');
@@ -637,7 +450,6 @@ const cancelDeletePlan = () => {
   }, 100);
 };
 
-// Delete cycle functions
 const showDeleteCycleConfirmation = () => {
   isDeleteCycleDialogOpen.value = true;
 };
@@ -648,35 +460,17 @@ const confirmDeleteCycle = async () => {
   submitting.value = true;
   
   try {
-    await apiClient.delete(`/api/v1/cycles/${cycleId.value}`);
-    
-    const toast = await toastController.create({
-      message: 'Цикл успешно удален',
-      duration: 2000,
-      color: 'success',
-    });
-    await toast.present();
-    
-    // Уведомляем CyclesPage о необходимости обновления данных
+    await cyclesService.delete(cycleId.value);
+    showSuccess('Цикл успешно удален');
     window.dispatchEvent(new CustomEvent('cycles-updated'));
-    
-    // Переходим обратно к списку циклов
     router.push('/tabs/cycles');
-  } catch (err) {
+  } catch (err: any) {
     console.error('Failed to delete cycle:', err);
-    const apiError = err as ApiError;
-    
-    const toast = await toastController.create({
-      message: apiError.message || 'Не удалось удалить цикл',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError(err.message || 'Не удалось удалить цикл');
   } finally {
     submitting.value = false;
     isDeleteCycleDialogOpen.value = false;
     
-    // Возвращаем фокус на предыдущий элемент после закрытия модала
     setTimeout(() => {
       const activeElement = document.activeElement as HTMLElement;
       if (activeElement && activeElement.blur) {
@@ -689,13 +483,11 @@ const confirmDeleteCycle = async () => {
 const cancelDeleteCycle = () => {
   isDeleteCycleDialogOpen.value = false;
   
-  // Возвращаем фокус на предыдущий элемент после закрытия модала
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
     if (activeElement && activeElement.blur) {
       activeElement.blur();
     }
-    // Убираем aria-hidden с модального окна
     const modalElement = document.querySelector('.ion-page-hidden');
     if (modalElement) {
       modalElement.removeAttribute('aria-hidden');
@@ -703,68 +495,36 @@ const cancelDeleteCycle = () => {
   }, 100);
 };
 
-
 const openPlanModal = async () => {
   if (availablePlans.value.length === 0) {
     await fetchAvailablePlans('');
   }
-  isPlanModalOpen.value = true;
+  planModal.open();
 };
 
 const handlePlanModalClose = () => {
-  isPlanModalOpen.value = false;
-  // Очищаем поисковый запрос при закрытии модального окна
+  planModal.close();
   handlePlanSearch('');
 };
 
-// Initialize original state for new cycles
 const initializeOriginalState = () => {
   const currentDate = new Date();
   const defaultName = generateCycleName(currentDate, 6);
   
   originalFormData.value = {
     name: defaultName,
-    weeks: '6', // Устанавливаем 6 недель по умолчанию
-    start_date: currentDate, // Устанавливаем текущую дату по умолчанию
+    weeks: '6',
+    start_date: currentDate,
     end_date: null,
   };
   originalCyclePlans.value = [];
 };
 
-
-onMounted(() => {
-  if (isEditMode.value) {
-    fetchCycleData();
-  } else {
-    initializeOriginalState();
-    // Устанавливаем автоматически сгенерированное название для новых циклов
-    const currentDate = new Date();
-    formData.value.name = generateCycleName(currentDate, 6);
-  }
-});
-
-// Сброс фильтра доступных планов при выходе со страницы
-onUnmounted(() => {
-  availablePlans.value = [];
-});
-
-// Автоматическое обновление названия при изменении даты начала или количества недель
-watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartDate, newWeeks]) => {
-  if (newStartDate && newWeeks && !isEditMode.value) {
-    const weeksNum = parseInt(newWeeks);
-    if (!isNaN(weeksNum) && weeksNum > 0) {
-      formData.value.name = generateCycleName(newStartDate, weeksNum);
-    }
-  }
-}, { deep: true });
-
-// Unsaved changes handling
 const handleBack = () => {
   if (hasUnsavedChanges.value) {
     pendingNavigation.value = () => router.back();
     isUnsavedChangesDialogOpen.value = true;
   } else {
-    // Убираем фокус с текущего элемента перед навигацией
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -774,7 +534,7 @@ const handleBack = () => {
 
 const confirmLeave = () => {
   isUnsavedChangesDialogOpen.value = false;
-  isLeaving.value = true; // Устанавливаем флаг перед навигацией
+  isLeaving.value = true;
   if (pendingNavigation.value) {
     pendingNavigation.value();
     pendingNavigation.value = null;
@@ -786,11 +546,9 @@ const cancelLeave = () => {
   pendingNavigation.value = null;
 };
 
-// Обработка попытки покинуть страницу с несохраненными изменениями
 onBeforeRouteLeave((to: any, from: any, next: any) => {
-  // Если мы программно покидаем страницу, пропускаем проверку
   if (isLeaving.value) {
-    isLeaving.value = false; // Сбрасываем флаг
+    isLeaving.value = false;
     next();
     return;
   }
@@ -802,6 +560,29 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
     next();
   }
 });
+
+onMounted(() => {
+  if (isEditMode.value) {
+    fetchCycleData();
+  } else {
+    initializeOriginalState();
+    const currentDate = new Date();
+    formData.value.name = generateCycleName(currentDate, 6);
+  }
+});
+
+onUnmounted(() => {
+  availablePlans.value = [];
+});
+
+watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartDate, newWeeks]) => {
+  if (newStartDate && newWeeks && !isEditMode.value) {
+    const weeksNum = parseInt(newWeeks);
+    if (!isNaN(weeksNum) && weeksNum > 0) {
+      formData.value.name = generateCycleName(newStartDate, weeksNum);
+    }
+  }
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -811,7 +592,6 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   gap: 16px;
 }
 
-/* Delete Cycle Button Styles */
 .delete-cycle-section {
   padding: 0 16px 8px 16px;
   margin-top: 8px;
@@ -855,11 +635,6 @@ ion-toolbar ion-button i {
   color: white !important;
 }
 
-.datepicker-error :deep(.dp__input) {
-  border-color: var(--ion-color-danger) !important;
-}
-
-/* Кастомные отступы для CustomInput в форме цикла */
 .cycle-form .custom-input-wrapper {
   margin: 0 !important;
 }
@@ -867,32 +642,4 @@ ion-toolbar ion-button i {
 .cycle-form .custom-input-label {
   margin-bottom: 6px !important;
 }
-
-/* Plans Management Styles */
-.plans-section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.add-plan-button {
-  background: var(--ion-color-primary);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.add-plan-button:hover {
-  background: var(--ion-color-primary-shade);
-}
 </style>
-

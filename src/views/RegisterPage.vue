@@ -12,13 +12,15 @@
           <h1 class="auth-title">Создать аккаунт</h1>
           <p class="auth-subtitle">Заполните форму для регистрации</p>
 
-          <form @submit.prevent="handleRegister">
+          <form @submit.prevent="handleSubmit(onSubmit)" novalidate>
             <CustomInput
               v-model="form.name"
               label="Имя"
               type="text"
               placeholder="Введите имя"
-              required
+              :error="touched.name && !!errors.name"
+              :error-message="touched.name ? errors.name : undefined"
+              @blur="() => setFieldTouched('name')"
             />
 
             <CustomInput
@@ -26,7 +28,9 @@
               label="Email"
               type="email"
               placeholder="Введите email"
-              required
+              :error="touched.email && !!errors.email"
+              :error-message="touched.email ? errors.email : undefined"
+              @blur="() => setFieldTouched('email')"
             />
 
             <CustomInput
@@ -34,7 +38,9 @@
               label="Пароль"
               type="password"
               placeholder="Введите пароль"
-              required
+              :error="touched.password && !!errors.password"
+              :error-message="touched.password ? errors.password : undefined"
+              @blur="() => setFieldTouched('password')"
             />
 
             <CustomInput
@@ -42,16 +48,18 @@
               label="Подтверждение пароля"
               type="password"
               placeholder="Подтвердите пароль"
-              required
+              :error="touched.password_confirmation && !!errors.password_confirmation"
+              :error-message="touched.password_confirmation ? errors.password_confirmation : undefined"
+              @blur="() => setFieldTouched('password_confirmation')"
             />
 
             <ion-button
               expand="block"
               type="submit"
-              :disabled="loading || !isFormValid"
+              :disabled="isSubmitting || authLoading"
               class="auth-button"
             >
-              <ion-spinner v-if="loading" name="crescent"></ion-spinner>
+              <ion-spinner v-if="isSubmitting || authLoading" name="crescent"></ion-spinner>
               <span v-else>Зарегистрироваться</span>
             </ion-button>
           </form>
@@ -76,7 +84,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -88,38 +96,53 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth } from '@/composables/useAuth';
+import { useAuth, useForm, useToast } from '@/composables';
 import { RegisterRequest } from '@/types/api';
+import CustomInput from '@/components/CustomInput.vue';
+import { validators } from '@/utils/validators';
 
 const router = useRouter();
-const { register, loading, error, clearError } = useAuth();
+const { register, loading: authLoading, error, clearError } = useAuth();
+const { showError } = useToast();
 
-const form = ref<RegisterRequest>({
-  name: '',
-  email: '',
-  password: '',
-  password_confirmation: '',
-});
+const passwordRef = ref('');
 
-const isFormValid = computed(() => {
-  return (
-    form.value.name &&
-    form.value.email &&
-    form.value.password &&
-    form.value.password_confirmation &&
-    form.value.password === form.value.password_confirmation &&
-    form.value.password.length >= 6
-  );
-});
+const passwordMatchValidator = (value: string): string | true => {
+  return value === passwordRef.value || 'Пароли должны совпадать';
+};
 
-const handleRegister = async () => {
-  if (!isFormValid.value) {
-    return;
+const updatePasswordRef = (value: string): true => {
+  passwordRef.value = value;
+  return true;
+};
+
+const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched } = useForm<RegisterRequest>(
+  {
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+  },
+  {
+    name: validators.required,
+    email: [validators.required, validators.email],
+    password: [
+      validators.required, 
+      validators.password,
+      updatePasswordRef
+    ],
+    password_confirmation: [
+      validators.required,
+      passwordMatchValidator
+    ],
   }
+);
 
-  const success = await register(form.value);
+const onSubmit = async (values: RegisterRequest) => {
+  const success = await register(values);
   if (success) {
-    router.push('/tabs/home');
+    // Use replace instead of push to avoid back button issues
+    router.replace('/tabs/home');
   }
 };
 </script>

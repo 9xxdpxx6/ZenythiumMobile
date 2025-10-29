@@ -32,127 +32,27 @@
         </div>
 
         <div v-else-if="workout" class="workout-details">
-        <!-- Заголовок тренировки -->
-        <div class="workout-header">
-          <h1 class="workout-title">{{ workout.plan.name }}</h1>
-        </div>
+          <WorkoutSummary
+            :workout-name="workout.plan.name"
+            :start-date-time="formatDateTime(workout.started_at)"
+            :end-date-time="workout.finished_at ? formatDateTime(workout.finished_at) : undefined"
+            :duration-minutes="workout.duration_minutes"
+            :exercise-count="workout.exercise_count"
+            :total-volume="workout.total_volume"
+          />
 
-        <!-- Основная информация -->
-        <div class="workout-info-section">
-          <div class="info-grid">
-            <div class="info-item">
-              <div class="info-label">Дата начала</div>
-              <div class="info-value">{{ formatDateTime(workout.started_at) }}</div>
-            </div>
-            
-            <div v-if="workout.finished_at" class="info-item">
-              <div class="info-label">Дата окончания</div>
-              <div class="info-value">{{ formatDateTime(workout.finished_at) }}</div>
-            </div>
-          </div>
-          
-          <!-- Статистика в блоках -->
-          <div :class="workout.finished_at ? 'stats-grid stats-grid-3' : 'stats-grid stats-grid-2'">
-            <div v-if="workout.finished_at && workout.duration_minutes && workout.duration_minutes > 0" class="stats-item">
-              <div class="stats-value">{{ formatDuration(workout.duration_minutes) }}</div>
-              <div class="stats-label">Длительность</div>
-            </div>
-            
-            <div class="stats-item">
-              <div class="stats-value">{{ workout.exercise_count || 0 }}</div>
-              <div class="stats-label">Упражнений</div>
-            </div>
-            
-            <div v-if="workout.total_volume && workout.total_volume > 0" class="stats-item">
-              <div class="stats-value">{{ formatWeight(workout.total_volume) }} кг</div>
-              <div class="stats-label">Объем</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Упражнения -->
-        <div class="exercises-section">
-          <h2 class="section-title">Упражнения</h2>
-          
-          <div v-if="!workout.exercises || workout.exercises.length === 0" class="empty-exercises">
-            <i class="fas fa-dumbbell empty-icon"></i>
-            <p>Упражнения не найдены</p>
-          </div>
-          
-          <div v-else class="exercises-list">
-            <div 
-              v-for="(exercise, index) in workout.exercises" 
-              :key="exercise.id"
-              class="exercise-card"
-            >
-              <div class="exercise-header">
-                <div class="exercise-number">{{ exercise.order }}</div>
-                <div class="exercise-info">
-                  <h3 class="exercise-name">{{ exercise.exercise.name }}</h3>
-                  <div class="exercise-muscle-group">
-                    <i class="fas fa-dumbbell"></i>
-                    {{ exercise.exercise.muscle_group.name }}
-                  </div>
-                </div>
-              </div>
-              
-              <div v-if="exercise.exercise.description" class="exercise-description">
-                {{ exercise.exercise.description }}
-              </div>
-              
-              <!-- История выполнения -->
-              <div class="exercise-history">
-                <h4 class="history-title">История выполнения</h4>
-                
-                <div v-if="!exercise.history || exercise.history.length === 0" class="no-history">
-                  <p>Нет данных о выполнении</p>
-                </div>
-                
-                 <div v-else class="history-list">
-                   <div 
-                     v-for="(historyItem, historyIndex) in getSortedHistory(exercise.history)" 
-                     :key="historyItem.workout_id"
-                     class="history-item"
-                     :class="{ 'current-workout': isCurrentWorkout(historyItem) }"
-                   >
-                    <div class="history-header">
-                      <div class="history-date">
-                        {{ historyItem.workout_date ? formatDate(historyItem.workout_date) : 'Текущая тренировка' }}
-                      </div>
-                      <div class="history-sets-count">
-                        {{ historyItem.sets.length }} подходов
-                      </div>
-                    </div>
-                    
-                    <div class="sets-list">
-                      <div 
-                        v-for="(groupedSet, setIndex) in groupAndFormatSets(historyItem.sets)"
-                        :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
-                        class="set-item"
-                      >
-                        <div class="set-fraction">
-                          <div v-if="groupedSet.isSimple" class="simple-reps">
-                            {{ groupedSet.reps }}<span v-if="groupedSet.count > 1"> × {{ groupedSet.count }}</span>
-                          </div>
-                          <div v-else class="vertical-fraction">
-                            <div class="numerator">{{ formatWeight(groupedSet.weight) }}</div>
-                            <div class="denominator">{{ groupedSet.reps }}</div>
-                          </div>
-                          <span v-if="!groupedSet.isSimple && groupedSet.count > 1" class="multiplier">× {{ groupedSet.count }}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+          <WorkoutExerciseHistory
+            :exercises="workout.exercises"
+            :current-workout-id="Number(workoutId)"
+            :group-and-format-sets="groupAndFormatSets"
+            :format-weight="formatWeight"
+            :format-date="formatDate"
+          />
         
         <!-- Кнопки действий в конце страницы -->
         <div class="bottom-actions">
           <CustomButton
-            @click="handleEdit"
+            @click="handleEditWithRouter"
             variant="outline"
             color="warning"
             class="action-button edit-button"
@@ -191,14 +91,14 @@
       :item-name="workout?.plan?.name"
       warning-text="Это действие нельзя отменить."
       :is-deleting="isDeleting"
-      @confirm="handleDeleteConfirm"
+      @confirm="handleDeleteConfirmWithRouter"
       @cancel="handleDeleteCancel"
     />
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -216,197 +116,59 @@ import CustomToast from '@/components/CustomToast.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import apiClient from '@/services/api';
-import { DetailedWorkout, ApiError } from '@/types/api';
+import WorkoutSummary from '@/components/WorkoutSummary.vue';
+import WorkoutExerciseHistory from '@/components/WorkoutExerciseHistory.vue';
+import { useViewWorkout } from '@/composables/useViewWorkout';
+import type { DetailedWorkout } from '@/types/api';
 
 const route = useRoute();
 const router = useRouter();
-const workout = ref<DetailedWorkout | null>(null);
-const loading = ref(false);
-const error = ref<string | null>(null);
-const toastMessage = ref<string | null>(null);
-const toastColor = ref<'success' | 'danger' | 'warning'>('danger');
+const workoutId = route.params.id as string;
 
-// Переменные для модального окна удаления
-const showDeleteModal = ref(false);
-const isDeleting = ref(false);
+const {
+  workout,
+  loading,
+  error,
+  toastMessage,
+  toastColor,
+  showDeleteModal,
+  isDeleting,
+  fetchWorkout,
+  formatDateTime,
+  formatDate,
+  formatDuration,
+  formatWeight,
+  groupAndFormatSets,
+  getSortedHistory,
+  isCurrentWorkout,
+  clearToast,
+  handleEdit,
+  handleDelete,
+  handleDeleteConfirm,
+  handleDeleteCancel,
+} = useViewWorkout(workoutId);
 
-const fetchWorkout = async () => {
-  const workoutId = route.params.id as string;
-  
-  if (!workoutId) {
-    error.value = 'ID тренировки не найден';
-    return;
-  }
-
-  loading.value = true;
-  error.value = null;
-  
-  try {
-    const response = await apiClient.get(`/api/v1/workouts/${workoutId}`);
-    
-    // Проверяем структуру ответа
-    if (response.data && response.data.data) {
-      workout.value = response.data.data;
-    } else {
-      console.error('Unexpected API response structure:', response.data);
-      error.value = 'Неожиданная структура ответа API';
-    }
-  } catch (err) {
-    console.error('Workout fetch error:', err);
-    console.error('Error details:', {
-      message: (err as ApiError).message,
-      status: (err as any).response?.status,
-      statusText: (err as any).response?.statusText,
-      data: (err as any).response?.data
-    });
-    error.value = (err as ApiError).message || 'Ошибка загрузки тренировки';
-  } finally {
-    loading.value = false;
-  }
-};
-
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-};
-
-const formatDuration = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  
-  if (hours > 0) {
-    return `${hours}ч ${mins}м`;
-  }
-  return `${mins}м`;
-};
-
-const formatWeight = (weight: number | null | undefined) => {
-  if (weight === null || weight === undefined || isNaN(weight)) {
-    return '0';
-  }
-  return Math.round(Number(weight)).toString();
-};
-
-interface GroupedSet {
-  weight: number;
-  reps: number;
-  count: number;
-  isSimple: boolean;
-}
-
-const groupAndFormatSets = (sets: any[]): GroupedSet[] => {
-  if (!sets || sets.length === 0) return [];
-  
-  // Сортируем подходы по ID (от старых к новым)
-  const sortedSets = [...sets].sort((a, b) => (a.id || 0) - (b.id || 0));
-  
-  // Группируем подходы по весу и повторениям
-  const grouped = sortedSets.reduce((acc, set) => {
-    const key = `${set.weight}x${set.reps}`;
-    if (!acc[key]) {
-      acc[key] = {
-        weight: set.weight,
-        reps: set.reps,
-        count: 0
-      };
-    }
-    acc[key].count++;
-    return acc;
-  }, {} as Record<string, { weight: number; reps: number; count: number }>);
-  
-  // Преобразуем в массив и добавляем поле isSimple
-  return Object.values(grouped).map((group) => {
-    const typedGroup = group as { weight: number; reps: number; count: number };
-    const isSimple = Number(typedGroup.weight) === 0;
-    
-    return {
-      weight: typedGroup.weight,
-      reps: typedGroup.reps,
-      count: typedGroup.count,
-      isSimple: isSimple
-    };
-  });
-};
-
-const getSortedHistory = (history: any[]) => {
-  if (!history) return [];
-  
-  const currentWorkoutId = Number(route.params.id);
-  
-  // Сортируем от новых к старым (по дате убывания)
-  return [...history].sort((a, b) => {
-    // Текущая тренировка (по workout_id) всегда сверху
-    if (a.workout_id === currentWorkoutId && b.workout_id !== currentWorkoutId) return -1;
-    if (a.workout_id !== currentWorkoutId && b.workout_id === currentWorkoutId) return 1;
-    if (a.workout_id === currentWorkoutId && b.workout_id === currentWorkoutId) return 0;
-    
-    // Сортируем по дате убывания
-    return new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime();
-  });
-};
-
-const isCurrentWorkout = (historyItem: any) => {
-  // Сравниваем workout_id с ID открытой тренировки
-  return historyItem.workout_id === Number(route.params.id);
-};
-
-const clearToast = () => {
-  toastMessage.value = null;
-};
-
-// Функции обработки кнопок
-const handleEdit = () => {
+const handleEditWithRouter = () => {
   if (workout.value) {
-    router.push(`/edit-workout/${workout.value.id}`);
+    router.push(handleEdit(workout.value.id));
   }
 };
 
-const handleDelete = () => {
-  showDeleteModal.value = true;
-};
-
-const handleDeleteConfirm = async () => {
-  if (!workout.value) return;
-  
-  isDeleting.value = true;
-  try {
-    await apiClient.delete(`/api/v1/workouts/${workout.value.id}`);
-    
-    toastMessage.value = 'Тренировка успешно удалена';
-    toastColor.value = 'success';
-    
-    // Переходим обратно к списку тренировок
+const handleDeleteConfirmWithRouter = async () => {
+  const success = await handleDeleteConfirm();
+  if (success) {
     setTimeout(() => {
       router.push('/tabs/workouts');
     }, 1500);
-  } catch (err) {
-    console.error('Delete workout error:', err);
-    toastMessage.value = (err as ApiError).message || 'Ошибка удаления тренировки';
-    toastColor.value = 'danger';
-  } finally {
-    isDeleting.value = false;
-    showDeleteModal.value = false;
   }
 };
 
-const handleDeleteCancel = () => {
-  showDeleteModal.value = false;
+const getSortedHistoryWithId = (history: any[]) => {
+  return getSortedHistory(history, Number(workoutId));
+};
+
+const isCurrentWorkoutWithId = (historyItem: any) => {
+  return isCurrentWorkout(historyItem, Number(workoutId));
 };
 
 onMounted(() => {

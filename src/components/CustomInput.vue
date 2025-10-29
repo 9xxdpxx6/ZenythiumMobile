@@ -8,7 +8,6 @@
         :placeholder="placeholder"
         :value="modelValue"
         :disabled="disabled"
-        :required="required"
         :min="min"
         :max="max"
         :step="step"
@@ -34,7 +33,6 @@ interface Props {
   type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
   placeholder?: string;
   disabled?: boolean;
-  required?: boolean;
   error?: boolean;
   errorMessage?: string;
   min?: number | string;
@@ -52,7 +50,6 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
   type: 'text',
   disabled: false,
-  required: false,
   error: false,
 });
 
