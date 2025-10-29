@@ -39,30 +39,28 @@
         </div>
         
         <div v-else class="exercises-grid">
-          <ion-card
+          <div
             v-for="exercise in filteredExercises"
             :key="exercise.id"
-            class="exercise-card"
+            class="exercise-card modern-card"
             @click="$emit('selectExercise', exercise)"
           >
-            <ion-card-header>
-              <ion-card-title>{{ exercise.name }}</ion-card-title>
-            </ion-card-header>
+            <div class="exercise-header">
+              <h3>{{ exercise.name }}</h3>
+            </div>
             
-            <ion-card-content>
-              <div class="exercise-meta">
-                <div class="exercise-stats">
-                  <span v-if="exercise.muscle_group">
-                    <i class="fa-solid fa-bolt"></i>
-                    {{ exercise.muscle_group.name }}
-                  </span>
-                </div>
-                <p v-if="exercise.description" class="exercise-description">
-                  {{ exercise.description }}
-                </p>
+            <div class="exercise-meta">
+              <div class="exercise-stats">
+                <span v-if="exercise.muscle_group">
+                  <i class="fa-solid fa-bolt"></i>
+                  {{ exercise.muscle_group.name }}
+                </span>
               </div>
-            </ion-card-content>
-          </ion-card>
+              <p v-if="exercise.description" class="exercise-description">
+                {{ exercise.description }}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </ion-content>
@@ -80,10 +78,6 @@ import {
   IonButtons,
   IonButton,
   IonSpinner,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
 } from '@ionic/vue';
 import SearchInput from '@/components/ui/SearchInput.vue';
 
@@ -176,32 +170,26 @@ const handleModalClose = () => {
 }
 
 .modal-content .exercise-card {
+  padding: 16px;
   cursor: pointer;
   transition: transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-content .exercise-card:hover {
   transform: translateY(-2px);
 }
 
-.modal-content .exercise-card ion-card-header {
-  padding-bottom: 8px;
+.modal-content .exercise-header {
+  margin-bottom: 8px;
 }
 
-.modal-content .exercise-card ion-card-title {
-  font-size: 1.4rem;
+.modal-content .exercise-header h3 {
+  margin: 0;
+  font-size: 16px;
   font-weight: 600;
-}
-
-.modal-content .exercise-card ion-card-content {
-  padding-top: 0;
-}
-
-.modal-content .exercise-card ion-card-content p {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: var(--ion-color-medium);
-  line-height: 1.4;
+  color: var(--ion-text-color);
 }
 
 .modal-content .exercise-meta {
