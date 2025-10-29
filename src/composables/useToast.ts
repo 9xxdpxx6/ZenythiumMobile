@@ -30,19 +30,32 @@ export function useToast(): UseToastReturn {
    * Show toast with custom options
    */
   const showToast = async (options: ToastOptions): Promise<void> => {
-    const toast = await toastController.create({
+    const toastOptions: {
+      message: string;
+      duration: number;
+      position: 'top' | 'bottom' | 'middle';
+      color?: 'success' | 'warning' | 'danger' | 'primary' | 'secondary';
+      icon?: string;
+      buttons: Array<{ text: string; role: string }>;
+    } = {
       message: options.message,
       duration: options.duration || appConfig.toastDuration,
       position: options.position || appConfig.toastPosition,
       color: options.color,
-      icon: options.icon,
       buttons: [
         {
           text: 'Dismiss',
           role: 'cancel',
         },
       ],
-    });
+    };
+    
+    // Only add icon if explicitly provided to avoid Ionic trying to load default icons
+    if (options.icon) {
+      toastOptions.icon = options.icon;
+    }
+    
+    const toast = await toastController.create(toastOptions);
 
     await toast.present();
   };
@@ -55,7 +68,6 @@ export function useToast(): UseToastReturn {
       message,
       duration,
       color: 'success',
-      icon: 'checkmark-circle-outline',
     });
   };
 
@@ -67,7 +79,6 @@ export function useToast(): UseToastReturn {
       message,
       duration,
       color: 'danger',
-      icon: 'alert-circle-outline',
     });
   };
 
@@ -79,7 +90,6 @@ export function useToast(): UseToastReturn {
       message,
       duration,
       color: 'warning',
-      icon: 'warning-outline',
     });
   };
 
@@ -91,7 +101,6 @@ export function useToast(): UseToastReturn {
       message,
       duration,
       color: 'primary',
-      icon: 'information-circle-outline',
     });
   };
 
