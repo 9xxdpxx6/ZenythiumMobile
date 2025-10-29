@@ -12,13 +12,15 @@
           <h1 class="auth-title">Добро пожаловать!</h1>
           <p class="auth-subtitle">Войдите в свой аккаунт</p>
 
-          <form @submit.prevent="handleLogin">
+          <form @submit.prevent="handleSubmit(onSubmit)" novalidate>
             <CustomInput
               v-model="form.email"
               label="Email"
               type="email"
               placeholder="Введите email"
-              required
+              :error="touched.email && !!errors.email"
+              :error-message="touched.email ? errors.email : undefined"
+              @blur="() => setFieldTouched('email')"
             />
 
             <CustomInput
@@ -26,16 +28,18 @@
               label="Пароль"
               type="password"
               placeholder="Введите пароль"
-              required
+              :error="touched.password && !!errors.password"
+              :error-message="touched.password ? errors.password : undefined"
+              @blur="() => setFieldTouched('password')"
             />
 
             <ion-button
               expand="block"
               type="submit"
-              :disabled="loading"
+              :disabled="isSubmitting || authLoading"
               class="auth-button"
             >
-              <ion-spinner v-if="loading" name="crescent"></ion-spinner>
+              <ion-spinner v-if="isSubmitting || authLoading" name="crescent"></ion-spinner>
               <span v-else>Войти</span>
             </ion-button>
           </form>
@@ -60,7 +64,6 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -72,19 +75,25 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth } from '@/composables/useAuth';
+import { useAuth, useForm, useToast } from '@/composables';
 import { LoginRequest } from '@/types/api';
+import CustomInput from '@/components/CustomInput.vue';
+import { validators } from '@/utils/validators';
 
 const router = useRouter();
-const { login, loading, error, clearError } = useAuth();
+const { login, loading: authLoading, error, clearError } = useAuth();
+const { showError } = useToast();
 
-const form = ref<LoginRequest>({
+const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouched } = useForm<LoginRequest>({
   email: '',
   password: '',
+}, {
+  email: [validators.required, validators.email],
+  password: [validators.required],
 });
 
-const handleLogin = async () => {
-  const success = await login(form.value);
+const onSubmit = async (values: LoginRequest) => {
+  const success = await login(values);
   if (success) {
     router.push('/tabs/home');
   }

@@ -1,3 +1,25 @@
+/**
+ * API Types
+ * This file maintains backward compatibility with existing code
+ * while also exporting new domain types
+ */
+
+// Re-export new domain types
+export * from './models/metric.types';
+export * from './models/cycle.types';
+export * from './models/plan.types';
+export * from './models/workout.types';
+export * from './models/exercise.types';
+export * from './models/user.types';
+export * from './models/statistics.types';
+export * from './common/pagination.types';
+export * from './common/filters.types';
+export * from './common/api-response.types';
+export * from './dtos';
+
+// Legacy types (kept for backward compatibility)
+// TODO: Gradually migrate to new types
+
 // User related types
 export interface User {
   id: number;
@@ -27,6 +49,8 @@ export interface RegisterRequest {
 }
 
 export interface RegisterResponse {
+  message?: string;
+  user?: User;
   token: string;
   token_type: string;
 }

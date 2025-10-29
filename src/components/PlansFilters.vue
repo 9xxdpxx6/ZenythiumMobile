@@ -218,7 +218,7 @@ const applyFilters = () => {
 
 const fetchCycles = async () => {
   try {
-    const response = await apiClient.get('/api/v1/cycles');
+    const response = await apiClient.get('/cycles');
     cycles.value = response.data.data || response.data || [];
   } catch (error) {
     console.error('Error fetching cycles:', error);

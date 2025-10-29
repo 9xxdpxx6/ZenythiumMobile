@@ -126,16 +126,16 @@
         </div>
 
         <div style="margin-top: 16px;">
-          <ion-button
-            expand="block"
-            color="success"
-            @click="finishWorkout"
-            :disabled="finishing || !canFinishWorkout"
-            style="--border-radius: 12px; --padding-top: 12px; --padding-bottom: 12px; font-weight: 600; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);"
-          >
-            <ion-spinner v-if="finishing" name="crescent"></ion-spinner>
-            <span v-else>Завершить тренировку</span>
-          </ion-button>
+            <ion-button
+              expand="block"
+              color="success"
+              @click="handleFinishWorkout"
+              :disabled="finishing || !canFinishWorkout"
+              style="--border-radius: 12px; --padding-top: 12px; --padding-bottom: 12px; font-weight: 600; box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.1);"
+            >
+              <ion-spinner v-if="finishing" name="crescent"></ion-spinner>
+              <span v-else>Завершить тренировку</span>
+            </ion-button>
         </div>
       </div>
 
@@ -157,7 +157,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -166,7 +166,6 @@ import {
   IonTitle,
   IonContent,
   IonButtons,
-  IonBackButton,
   IonButton,
   IonSpinner,
   IonToast,
@@ -174,404 +173,41 @@ import {
 import CustomInput from '@/components/CustomInput.vue';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import apiClient from '@/services/api';
-import { 
-  Workout, 
-  WorkoutSet, 
-  PlanExercise,
-  ExerciseHistory,
-  FinishWorkoutResponse, 
-  ApiError 
-} from '@/types/api';
+import { useActiveWorkout } from '@/composables/useActiveWorkout';
 
 const route = useRoute();
 const router = useRouter();
-const workoutId = computed(() => Number(route.params.id));
+const workoutId = Number(route.params.id);
 
-const workout = ref<Workout | null>(null);
-const exercises = ref<PlanExercise[]>([]);
-const loading = ref(false);
-const addingSet = ref(false);
-const finishing = ref(false);
-const error = ref<string | null>(null);
+const {
+  workout,
+  exercises,
+  loading,
+  addingSet,
+  finishing,
+  error,
+  newSets,
+  canFinishWorkout,
+  fetchWorkout,
+  getCurrentSets,
+  getPlaceholderValue,
+  getPreviousSets,
+  groupAndFormatSets,
+  formatWeight,
+  addSet,
+  deleteSet,
+  deleteLastSetFromGroup,
+  finishWorkout,
+  validateInput,
+  formatDate,
+  formatStartTime,
+  clearError,
+} = useActiveWorkout(workoutId);
 
-const newSets = ref<Record<number, { weight: number | null; reps: number | null }>>({});
-
-// Проверяем, есть ли подходы во всех упражнениях
-const canFinishWorkout = computed(() => {
-  if (exercises.value.length === 0) return false;
-  
-  return exercises.value.every(exercise => {
-    const currentSets = getCurrentSets(exercise.id);
-    return currentSets.length > 0;
-  });
-});
-
-const fetchWorkout = async () => {
-  loading.value = true;
-  error.value = null;
-  
-  
-  try {
-    const response = await apiClient.get(`/api/v1/workouts/${workoutId.value}`);
-    
-    // API возвращает WorkoutResource в поле data
-    workout.value = response.data.data;
-    
-    // Используем упражнения из ответа API
-    if (workout.value?.exercises && workout.value.exercises.length > 0) {
-      exercises.value = workout.value.exercises || [];
-      
-      // Debug each exercise
-      exercises.value.forEach(exercise => {
-        // Проверяем, есть ли текущая тренировка в истории
-        const currentWorkoutHistory = exercise.history?.find((h: any) => h.workout_id === workoutId.value);
-      });
-      
-      // Initialize new sets for each exercise
-      exercises.value.forEach(exercise => {
-        newSets.value[exercise.id] = {
-          weight: null,
-          reps: null,
-        };
-      });
-    } else {
-      error.value = 'Тренировка не содержит упражнений';
-    }
-  } catch (err) {
-    error.value = (err as ApiError).message;
-  } finally {
-    loading.value = false;
-  }
-};
-
-
-const getExerciseSets = (exerciseId: number) => {
-  // Получаем упражнение из списка
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  if (exercise && exercise.history) {
-    // Возвращаем последние подходы из истории (текущая тренировка)
-    const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-    return currentWorkoutHistory?.sets || [];
-  }
-  
-  // Fallback: ищем в старом формате
-  return workout.value?.sets?.filter(set => (set as any).plan_exercise_id === exerciseId) || [];
-};
-
-const getCurrentSets = (exerciseId: number) => {
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  
-  if (exercise && exercise.history) {
-    // Возвращаем подходы текущей тренировки
-    const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-    
-    if (currentWorkoutHistory) {
-      return currentWorkoutHistory.sets || [];
-    }
-  }
-  return [];
-};
-
-const getLastHistoricalSet = (exerciseId: number) => {
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  if (exercise && exercise.history) {
-    // Получаем историю предыдущих тренировок (исключая текущую)
-    const previousHistory = exercise.history
-      .filter((h: any) => h.workout_id !== workoutId.value)
-      .sort((a: any, b: any) => new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime()); // Сортируем по убыванию даты
-    
-    // Возвращаем последний подход из самой новой тренировки
-    if (previousHistory.length > 0 && previousHistory[0].sets.length > 0) {
-      return previousHistory[0].sets[previousHistory[0].sets.length - 1]; // Последний подход
-    }
-  }
-  return null;
-};
-
-const getLastCurrentSet = (exerciseId: number) => {
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  if (!exercise?.history) return null;
-  
-  // Ищем текущую тренировку
-  const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-  if (!currentWorkoutHistory?.sets || currentWorkoutHistory.sets.length === 0) return null;
-  
-  // Возвращаем последний подход из текущей тренировки
-  return currentWorkoutHistory.sets[currentWorkoutHistory.sets.length - 1];
-};
-
-const getPlaceholderValue = (exerciseId: number, field: 'weight' | 'reps') => {
-  const lastSet = getLastHistoricalSet(exerciseId);
-  if (lastSet) {
-    if (field === 'weight') {
-      return formatWeight(lastSet[field]);
-    }
-    return lastSet[field].toString();
-  }
-  return '';
-};
-
-const getPreviousSets = (exerciseId: number) => {
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  if (exercise && exercise.history) {
-    // Возвращаем историю предыдущих тренировок (исключая текущую)
-    // Сортируем по дате: старые сверху, новые снизу
-    return exercise.history
-      .filter((h: any) => h.workout_id !== workoutId.value)
-      .sort((a: any, b: any) => new Date(a.workout_date).getTime() - new Date(b.workout_date).getTime());
-  }
-  return [];
-};
-
-const groupAndFormatSets = (sets: any[]) => {
-  if (!sets || sets.length === 0) return [];
-  
-  // Сортируем подходы по ID (от старых к новым)
-  const sortedSets = [...sets].sort((a, b) => (a.id || 0) - (b.id || 0));
-  
-  // Группируем подходы по весу и повторениям
-  const grouped = sortedSets.reduce((acc, set) => {
-    const key = `${set.weight}x${set.reps}`;
-    if (!acc[key]) {
-      acc[key] = {
-        weight: set.weight,
-        reps: set.reps,
-        count: 0
-      };
-    }
-    acc[key].count++;
-    return acc;
-  }, {} as Record<string, { weight: number; reps: number; count: number }>);
-  
-  // Преобразуем в массив и форматируем
-  return Object.values(grouped).map((group) => {
-    const typedGroup = group as { weight: number; reps: number; count: number };
-    const isSimple = Number(typedGroup.weight) === 0;
-    
-    return {
-      weight: typedGroup.weight,
-      reps: typedGroup.reps,
-      count: typedGroup.count,
-      isSimple: isSimple,
-      formatted: isSimple 
-        ? (typedGroup.count === 1 
-            ? `${typedGroup.reps}` // Простой формат для одиночного подхода
-            : `${typedGroup.reps} × ${typedGroup.count}`) // Простой формат с количеством
-        : (typedGroup.count === 1 
-            ? `${formatWeight(typedGroup.weight)}/${typedGroup.reps}` // Обычная дробь для одиночного подхода
-            : `${formatWeight(typedGroup.weight)}/${typedGroup.reps} × ${typedGroup.count}`) // Обычная дробь с количеством
-    };
-  });
-};
-
-const formatWeight = (weight: number) => {
-  // Округляем до целого, если после запятой только нули
-  const rounded = Math.round(weight);
-  if (Math.abs(weight - rounded) < 0.001) {
-    return rounded.toString();
-  }
-  // Иначе показываем с десятичной частью
-  return weight.toString();
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-  });
-};
-
-const formatStartTime = (dateString: string | undefined) => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-};
-
-const addSet = async (exerciseId: number) => {
-  const setData = newSets.value[exerciseId];
-  
-  if (setData.weight === null || setData.weight === undefined || !setData.reps || setData.weight < 0 || setData.reps <= 0) {
-    error.value = 'Заполните вес (≥0) и повторения (положительные числа)';
-    return;
-  }
-
-  addingSet.value = true;
-  error.value = null;
-  
-  try {
-    const response = await apiClient.post('/api/v1/workout-sets', {
-      workout_id: workoutId.value,
-      plan_exercise_id: exerciseId,
-      weight: setData.weight,
-      reps: setData.reps,
-    });
-    
-    // Получаем созданный подход из ответа
-    const newSet = response.data.data;
-    
-    // Находим упражнение и обновляем его историю
-    const exercise = exercises.value.find(ex => ex.id === exerciseId);
-    if (exercise) {
-      // Находим или создаем запись для текущей тренировки в истории
-      let currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-      
-      if (!currentWorkoutHistory) {
-        // Создаем новую запись для текущей тренировки
-        currentWorkoutHistory = {
-          workout_id: workoutId.value,
-          workout_date: workout.value?.started_at || new Date().toISOString(),
-          sets: []
-        };
-        exercise.history.push(currentWorkoutHistory);
-      }
-      
-      // Добавляем новый подход
-      currentWorkoutHistory.sets.push({
-        id: newSet.id,
-        weight: newSet.weight,
-        reps: newSet.reps
-      });
-    }
-    
-    // Reset form - устанавливаем значения из последнего текущего подхода или null для плейсхолдеров
-    const lastCurrentSet = getLastCurrentSet(exerciseId);
-    if (lastCurrentSet) {
-      // Если есть сегодняшние подходы, используем значения последнего
-      newSets.value[exerciseId] = {
-        weight: lastCurrentSet.weight,
-        reps: lastCurrentSet.reps,
-      };
-    } else {
-      // Если нет сегодняшних подходов, оставляем null для плейсхолдеров
-      newSets.value[exerciseId] = {
-        weight: null,
-        reps: null,
-      };
-    }
-  } catch (err) {
-    error.value = (err as ApiError).message;
-  } finally {
-    addingSet.value = false;
-  }
-};
-
-const deleteSet = async (exerciseId: number, setId: number) => {
-  try {
-    await apiClient.delete(`/api/v1/workout-sets/${setId}`);
-    
-    // Находим упражнение и удаляем подход из истории
-    const exercise = exercises.value.find(ex => ex.id === exerciseId);
-    if (exercise) {
-      const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-      if (currentWorkoutHistory) {
-        // Удаляем подход из массива sets
-        const setIndex = currentWorkoutHistory.sets.findIndex((s: any) => s.id === setId);
-        if (setIndex !== -1) {
-          currentWorkoutHistory.sets.splice(setIndex, 1);
-        }
-      }
-    }
-    
-    // Обновляем значения в инпутах после удаления
-    const lastCurrentSet = getLastCurrentSet(exerciseId);
-    if (lastCurrentSet) {
-      newSets.value[exerciseId] = {
-        weight: lastCurrentSet.weight,
-        reps: lastCurrentSet.reps,
-      };
-    } else {
-      newSets.value[exerciseId] = {
-        weight: null,
-        reps: null,
-      };
-    }
-  } catch (err) {
-    error.value = (err as ApiError).message;
-  }
-};
-
-const deleteLastSetFromGroup = async (exerciseId: number, groupedSet: { weight: number; reps: number; count: number }) => {
-  // Находим упражнение и текущую тренировку
-  const exercise = exercises.value.find(ex => ex.id === exerciseId);
-  if (!exercise) return;
-  
-  const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId.value);
-  if (!currentWorkoutHistory) return;
-  
-  // Находим последний подход с такими же весом и повторениями
-  const matchingSets = currentWorkoutHistory.sets.filter((s: any) => 
-    s.weight === groupedSet.weight && s.reps === groupedSet.reps
-  );
-  
-  if (matchingSets.length === 0) return;
-  
-  // Берем последний подход из группы
-  const lastSet = matchingSets[matchingSets.length - 1];
-  
-  // Удаляем подход
-  await deleteSet(exerciseId, lastSet.id);
-};
-
-const finishWorkout = async () => {
-  finishing.value = true;
-  error.value = null;
-  
-  try {
-    await apiClient.post<FinishWorkoutResponse>(`/api/v1/workouts/${workoutId.value}/finish`);
-    
-    // Уведомляем другие страницы о завершении тренировки
-    window.dispatchEvent(new CustomEvent('workout-finished', { 
-      detail: { workoutId: workoutId.value } 
-    }));
-    
+const handleFinishWorkout = async () => {
+  const success = await finishWorkout();
+  if (success) {
     router.push('/tabs/workouts');
-  } catch (err) {
-    error.value = (err as ApiError).message;
-  } finally {
-    finishing.value = false;
-  }
-};
-
-const clearError = () => {
-  error.value = null;
-};
-
-const validateInput = (value: string, exerciseId: number, field: 'weight' | 'reps') => {
-  // Разрешаем только цифры, запятую и точку
-  const validPattern = /^[0-9.,]*$/;
-  if (!validPattern.test(value)) {
-    return;
-  }
-  
-  // Заменяем запятую на точку для корректного парсинга
-  const normalizedValue = value.replace(',', '.');
-  const numValue = parseFloat(normalizedValue);
-  
-  // Проверяем на отрицательные значения
-  if (numValue < 0) {
-    newSets.value[exerciseId][field] = null;
-    return;
-  }
-  
-  // Для повторений запрещаем 0, для веса разрешаем
-  if (field === 'reps' && numValue === 0) {
-    newSets.value[exerciseId][field] = null;
-    return;
-  }
-  
-  // Если значение валидно, обновляем состояние
-  if (!isNaN(numValue) && (field === 'weight' ? numValue >= 0 : numValue > 0)) {
-    newSets.value[exerciseId][field] = numValue;
-  } else if (value === '') {
-    newSets.value[exerciseId][field] = null;
   }
 };
 

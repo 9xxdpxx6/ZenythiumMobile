@@ -1,0 +1,214 @@
+<template>
+  <div class="progress-by-exercise-chart">
+    <div class="chart-container modern-card">
+      <h3>Прогресс по упражнениям</h3>
+      <div v-if="selectedExercises && selectedExercises.length > 0" class="exercise-selector">
+        <label>Выберите упражнение:</label>
+        <select v-model="selectedExerciseIndex" class="exercise-select">
+          <option 
+            v-for="(exercise, index) in selectedExercises" 
+            :key="index"
+            :value="index"
+          >
+            {{ exercise.name }}
+          </option>
+        </select>
+      </div>
+      <div class="chart-wrapper">
+        <Line
+          v-if="chartData"
+          :data="chartData"
+          :options="chartOptions"
+        />
+        <div v-else class="no-data">
+          <p>Выберите упражнение для отображения прогресса</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue';
+import { Line } from 'vue-chartjs';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+);
+
+interface ExerciseProgress {
+  name: string;
+  data: Array<{
+    date: string;
+    weight: number;
+    reps?: number;
+    sets?: number;
+  }>;
+}
+
+interface Props {
+  exercises?: ExerciseProgress[];
+}
+
+const props = defineProps<Props>();
+
+const selectedExerciseIndex = ref(0);
+
+const selectedExercise = computed(() => {
+  if (!props.exercises || props.exercises.length === 0) return null;
+  return props.exercises[selectedExerciseIndex.value] || null;
+});
+
+const chartData = computed(() => {
+  if (!selectedExercise.value || !selectedExercise.value.data || selectedExercise.value.data.length === 0) {
+    return null;
+  }
+  
+  const sortedData = [...selectedExercise.value.data].sort((a, b) => 
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  
+  return {
+    labels: sortedData.map(item => {
+      const date = new Date(item.date);
+      return date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+    }),
+    datasets: [{
+      label: `Вес (${selectedExercise.value.name})`,
+      data: sortedData.map(item => item.weight),
+      borderColor: 'rgba(75, 192, 192, 1)',
+      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      borderWidth: 2,
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+    }]
+  };
+});
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top' as const,
+    },
+    tooltip: {
+      callbacks: {
+        label: function(context: any) {
+          const exercise = selectedExercise.value;
+          if (!exercise) return '';
+          const dataPoint = exercise.data[context.dataIndex];
+          let label = `Вес: ${context.parsed.y.toFixed(1)} кг`;
+          if (dataPoint.reps) {
+            label += `, Повторений: ${dataPoint.reps}`;
+          }
+          if (dataPoint.sets) {
+            label += `, Подходов: ${dataPoint.sets}`;
+          }
+          return label;
+        }
+      }
+    }
+  },
+  scales: {
+    x: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.1)'
+      },
+      ticks: {
+        color: 'rgba(255, 255, 255, 0.7)',
+      }
+    },
+    y: {
+      grid: {
+        color: 'rgba(255, 255, 255, 0.1)'
+      },
+      ticks: {
+        color: 'rgba(255, 255, 255, 0.7)',
+        callback: function(value: any) {
+          return value + ' кг';
+        }
+      }
+    }
+  },
+};
+</script>
+
+<style scoped>
+.progress-by-exercise-chart {
+  margin-bottom: 24px;
+}
+
+.chart-container {
+  padding: 16px !important;
+}
+
+.chart-container h3 {
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
+  padding: 0 4px;
+}
+
+.exercise-selector {
+  margin-bottom: 16px;
+}
+
+.exercise-selector label {
+  display: block;
+  margin-bottom: 8px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.exercise-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.9rem;
+}
+
+.exercise-select:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.chart-wrapper {
+  height: 300px;
+  position: relative;
+}
+
+.no-data {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: var(--ion-color-medium);
+}
+</style>

@@ -10,7 +10,7 @@
       <PageContainer>
         <h1 class="page-title">Профиль</h1>
 
-        <LoadingState v-if="loading" message="Загрузка профиля..." />
+        <LoadingState v-if="loading || userLoading" message="Загрузка профиля..." />
 
          <div v-else-if="user">
            <div class="profile-header modern-card">
@@ -20,72 +20,7 @@
              <h1>{{ user.name }}</h1>
            </div>
 
-           <!-- Статистика пользователя -->
-           <div v-if="statistics" class="statistics-section">
-             <h2 class="section-title">Статистика</h2>
-             
-             <div class="quick-stats">
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ statistics.total_workouts }}</div>
-                   <i class="fas fa-dumbbell stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Всего тренировок</h3>
-                 </div>
-               </div>
-
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ statistics.completed_workouts }}</div>
-                   <i class="fas fa-check-circle stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Завершено</h3>
-                 </div>
-               </div>
-
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ formatTime(statistics.total_training_time) }}</div>
-                   <i class="fas fa-clock stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Время тренировок</h3>
-                 </div>
-               </div>
-
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ formatWeight(statistics.total_volume) }}</div>
-                   <i class="fas fa-weight stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Общий объем</h3>
-                 </div>
-               </div>
-
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ (statistics as any).current_weight || 'N/A' }} кг</div>
-                   <i class="fas fa-chart-line stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Текущий вес</h3>
-                 </div>
-               </div>
-
-               <div class="stat-card modern-card">
-                 <div class="stat-top">
-                   <div class="stat-value">{{ statistics.training_frequency_4_weeks }}</div>
-                   <i class="fas fa-calendar-week stat-icon"></i>
-                 </div>
-                 <div class="stat-content">
-                   <h3>Тренировок/неделю</h3>
-                 </div>
-               </div>
-             </div>
-           </div>
+           <ProfileStatistics :statistics="statistics" />
 
            <!-- Кнопки навигации -->
            <div class="navigation-section">
@@ -145,12 +80,6 @@
       </PageContainer>
     </ion-content>
 
-    <ion-toast
-      :is-open="!!error"
-      :message="error"
-      duration="3000"
-      @didDismiss="clearError"
-    ></ion-toast>
   </ion-page>
 </template>
 
@@ -164,32 +93,27 @@ import {
   IonTitle,
   IonContent,
   IonSpinner,
-  IonToast,
 } from '@ionic/vue';
 import { useAuth } from '@/composables/useAuth';
-import { DataService } from '@/services/data';
-import { User, Statistics } from '@/types/api';
+import { useDataFetching, useToast } from '@/composables';
+import { statisticsService } from '@/services';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
+import ProfileStatistics from '@/components/ProfileStatistics.vue';
 
 const router = useRouter();
-const { user, logout, fetchUser, loading, error, clearError } = useAuth();
+const { user, logout, fetchUser, loading } = useAuth();
+const { showError } = useToast();
 const loggingOut = ref(false);
-const statistics = ref<Statistics | null>(null);
-const statisticsLoading = ref(false);
+const userLoading = ref(true);
 
-const handleLogout = async () => {
-  loggingOut.value = true;
-  
-  try {
-    await logout();
-    router.push('/login');
-  } catch (err) {
-    console.error('Logout error:', err);
-  } finally {
-    loggingOut.value = false;
-  }
-};
+// Fetch statistics
+const { data: statistics, execute: fetchStatistics } = useDataFetching(
+  async () => {
+    return await statisticsService.getOverview();
+  },
+  { immediate: false }
+);
 
 const navigateToExercises = () => {
   router.push('/exercises');
@@ -208,64 +132,29 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const formatTime = (minutes: number) => {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  
-  if (hours > 0) {
-    return `${hours}ч ${mins}м`;
-  }
-  return `${mins}м`;
-};
-
-const formatWeight = (volume: number | string) => {
-  const numVolume = typeof volume === 'string' ? parseFloat(volume) : volume;
-  if (isNaN(numVolume)) return '0 кг';
-  
-  const absVolume = Math.abs(numVolume);
-  
-  // B = Billion (миллиард)
-  if (absVolume >= 1000000000) {
-    const value = absVolume / 1000000000;
-    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
-    return `${floored.toFixed(floored >= 10 ? 0 : 2)}B кг`;
-  } 
-  // M = Million (миллион)
-  else if (absVolume >= 1000000) {
-    const value = absVolume / 1000000;
-    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
-    return `${floored.toFixed(floored >= 10 ? 0 : 2)}M кг`;
-  } 
-  // K = Thousand (тысяча)
-  else if (absVolume >= 1000) {
-    const value = absVolume / 1000;
-    const floored = Math.floor(value * 100) / 100; // Floor до 2 знаков
-    return `${floored.toFixed(floored >= 10 ? 0 : 2)}K кг`;
-  }
-  return `${Math.round(numVolume)} кг`;
-};
-
-const fetchStatistics = async () => {
-  statisticsLoading.value = true;
+const handleLogout = async () => {
+  loggingOut.value = true;
   try {
-    const response = await DataService.getUserStatistics();
-    statistics.value = response.data;
+    await logout();
+    router.push('/login');
   } catch (err) {
-    console.error('Failed to fetch statistics:', err);
+    await showError('Ошибка выхода из системы');
   } finally {
-    statisticsLoading.value = false;
+    loggingOut.value = false;
   }
 };
 
 onMounted(async () => {
-  await fetchUser();
+  try {
+    await fetchUser();
+  } finally {
+    userLoading.value = false;
+  }
   await fetchStatistics();
 });
 </script>
 
 <style scoped>
-/* Minimal spacing for maximum screen usage */
-
 .profile-header {
   text-align: center;
 }
@@ -344,112 +233,6 @@ onMounted(async () => {
   background: var(--ion-color-danger-shade);
 }
 
-/* Statistics section */
-.statistics-section {
-  margin: 0 0 24px 0;
-}
-
-.section-title {
-  margin: 24px 0 16px 0;
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--ion-text-color);
-}
-
-.quick-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 0 0 0 0;
-}
-
-/* .stat-card now in utilities.css */
-
-.stat-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--ion-text-color);
-  margin: 0;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.stat-content h3 {
-  margin: 0;
-  text-align: start;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ion-color-medium);
-  line-height: 1.2;
-  height: 32px;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-}
-
-.stat-icon {
-  font-size: 1.5rem;
-  color: var(--ion-color-primary);
-}
-
-/* Цветные значения для карточек статистики */
-.stat-card:nth-child(1) .stat-value {
-  color: #10b981; /* Зеленый */
-}
-
-.stat-card:nth-child(2) .stat-value {
-  color: #8b5cf6; /* Фиолетовый */
-}
-
-.stat-card:nth-child(3) .stat-value {
-  color: #f59e0b; /* Оранжевый */
-}
-
-.stat-card:nth-child(4) .stat-value {
-  color: #3b82f6; /* Синий */
-}
-
-.stat-card:nth-child(5) .stat-value {
-  color: #ef4444; /* Красный */
-}
-
-.stat-card:nth-child(6) .stat-value {
-  color: #06b6d4; /* Голубой */
-}
-
-/* Цветные иконки для карточек статистики */
-.stat-card:nth-child(1) .stat-icon {
-  color: #10b981; /* Зеленый */
-}
-
-.stat-card:nth-child(2) .stat-icon {
-  color: #8b5cf6; /* Фиолетовый */
-}
-
-.stat-card:nth-child(3) .stat-icon {
-  color: #f59e0b; /* Оранжевый */
-}
-
-.stat-card:nth-child(4) .stat-icon {
-  color: #3b82f6; /* Синий */
-}
-
-.stat-card:nth-child(5) .stat-icon {
-  color: #ef4444; /* Красный */
-}
-
-.stat-card:nth-child(6) .stat-icon {
-  color: #06b6d4; /* Голубой */
-}
-
-/* Navigation section */
 .navigation-section {
   margin: 0;
   margin-bottom: 24px;

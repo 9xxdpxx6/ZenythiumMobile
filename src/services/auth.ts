@@ -31,7 +31,7 @@ export class AuthService {
   // Authentication methods
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<LoginResponse>('/api/v1/login', credentials);
+      const response = await apiClient.post<LoginResponse>('/login', credentials);
       const { token } = response.data;
       
       if (token) {
@@ -46,8 +46,8 @@ export class AuthService {
 
   static async register(userData: RegisterRequest): Promise<RegisterResponse> {
     try {
-      const response = await apiClient.post<RegisterResponse>('/api/v1/register', userData);
-      const { token } = response.data;
+      const response = await apiClient.post<any>('/register', userData);
+      const { token, user } = response.data;
       
       if (token) {
         this.setToken(token);
@@ -61,7 +61,7 @@ export class AuthService {
 
   static async logout(): Promise<void> {
     try {
-      await apiClient.post('/api/v1/logout');
+      await apiClient.post('/logout');
     } catch (error) {
       // Even if logout fails on server, clear local token
       console.warn('Logout request failed:', error);
@@ -72,7 +72,7 @@ export class AuthService {
 
   static async getUser(): Promise<User> {
     try {
-      const response = await apiClient.get<{ data: User }>('/api/v1/user');
+      const response = await apiClient.get<{ data: User }>('/user');
       return response.data.data;
     } catch (error) {
       throw error as ApiError;

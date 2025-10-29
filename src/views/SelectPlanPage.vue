@@ -55,8 +55,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { ref, computed } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   IonPage,
   IonHeader,
@@ -69,21 +69,24 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
+import { useDataFetching, useToast } from '@/composables';
+import { plansService, workoutsService } from '@/services';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
 import CustomSelect from '@/components/CustomSelect.vue';
-import apiClient from '@/services/api';
-import { DataService } from '@/services/data';
-import { StartWorkoutResponse, ApiError, Cycle, Plan } from '@/types/api';
+import type { Plan } from '@/types/api';
 
 const router = useRouter();
-const route = useRoute();
-const loading = ref(false);
 const starting = ref(false);
-const error = ref<string | null>(null);
 const selectedPlanId = ref<string>('auto');
-const cycles = ref<Cycle[]>([]);
-const plans = ref<Plan[]>([]);
+
+// Use composables
+const { data: plans, loading, error, execute } = useDataFetching(
+  () => plansService.getAll(),
+  { immediate: true }
+);
+
+const { showError, showSuccess } = useToast();
 
 // Computed property for plan options
 const planOptions = computed(() => {
@@ -91,48 +94,19 @@ const planOptions = computed(() => {
     { value: 'auto', label: 'Автоматический выбор' }
   ];
   
-  plans.value.forEach(plan => {
-    if (plan.is_active) {
-      options.push({
-        value: plan.id.toString(),
-        label: plan.name
-      });
-    }
-  });
+  if (plans.value) {
+    plans.value.forEach((plan: Plan) => {
+      if (plan.is_active) {
+        options.push({
+          value: plan.id.toString(),
+          label: plan.name
+        });
+      }
+    });
+  }
   
   return options;
 });
-
-const loadActiveCyclesAndPlans = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    
-    // Fetch all cycles
-    const cyclesResponse = await DataService.getCycles();
-    cycles.value = cyclesResponse.data;
-    
-    // Find active cycles
-    const activeCycles = cycles.value.filter(cycle => DataService.isCycleActive(cycle));
-    
-    if (activeCycles.length > 0) {
-      // Use the first active cycle
-      const firstActiveCycle = activeCycles[0];
-      
-      // Fetch plans for this cycle
-      const plansResponse = await DataService.getPlans(1, 100, firstActiveCycle.id);
-      plans.value = plansResponse.data;
-      
-    } else {
-      plans.value = [];
-    }
-  } catch (err) {
-    console.error('Error loading cycles and plans:', err);
-    error.value = 'Ошибка загрузки планов тренировок';
-  } finally {
-    loading.value = false;
-  }
-};
 
 const onPlanChange = (value: any) => {
   selectedPlanId.value = value;
@@ -140,41 +114,26 @@ const onPlanChange = (value: any) => {
 
 const startWorkout = async () => {
   starting.value = true;
-  error.value = null;
   
   try {
-    const requestData: any = {};
+    const workout = await workoutsService.start(selectedPlanId.value);
     
-    // If a specific plan is selected (not auto), include it in the request
-    if (selectedPlanId.value !== 'auto') {
-      requestData.plan_id = parseInt(selectedPlanId.value);
-    }
-    
-    const response = await apiClient.post<StartWorkoutResponse>('/api/v1/workouts/start', requestData);
-    
-    const workoutId = response.data.data.id;
-    
-    // Уведомляем другие страницы о создании новой тренировки
     window.dispatchEvent(new CustomEvent('workout-started', { 
-      detail: { workoutId: workoutId } 
+      detail: { workoutId: workout.id } 
     }));
     
-    router.push(`/workout/${workoutId}`);
+    await showSuccess('Тренировка начата!');
+    router.push(`/workout/${workout.id}`);
   } catch (err) {
-    console.error('❌ SelectPlanPage: Error creating workout:', err);
-    error.value = (err as ApiError).message;
+    await showError('Не удалось начать тренировку');
   } finally {
     starting.value = false;
   }
 };
 
 const clearError = () => {
-  error.value = null;
+  // Error handled by useDataFetching
 };
-
-onMounted(() => {
-  loadActiveCyclesAndPlans();
-});
 </script>
 
 <style scoped>

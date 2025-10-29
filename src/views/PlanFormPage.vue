@@ -19,51 +19,21 @@
         <LoadingState v-if="loading" message="Загрузка..." />
 
         <form v-else @submit.prevent="handleSubmit" class="plan-form">
-          <div class="form-group">
-            <CustomInput
-              v-model="formData.name"
-              label="Название плана *"
-              type="text"
-              placeholder="Например: Грудь и трицепс"
-              :error="!!errors.name"
-              :error-message="getFirstError(errors.name)"
-              required
-            />
-          </div>
+          <PlanBasicInfo
+            v-model:name="formData.name"
+            v-model:isActive="formData.is_active"
+            :errors="errors"
+            @update:name="formData.name = $event"
+            @update:isActive="formData.is_active = $event"
+          />
 
-          <div class="form-group">
-            <label class="form-label">
-              <input
-                type="checkbox"
-                v-model="formData.is_active"
-                class="form-checkbox"
-              />
-              Активный план
-            </label>
-            <span class="field-hint">Активные планы доступны для выбора при создании тренировок</span>
-          </div>
-
-          <!-- Exercises Management Section -->
-          <div class="form-group">
-            <div class="exercises-section-header">
-              <label class="form-label">Упражнения</label>
-              <button
-                type="button"
-                class="add-exercise-button"
-                @click="openExerciseModal"
-              >
-                <i class="fas fa-plus"></i>
-                Добавить упражнение
-              </button>
-            </div>
-            
-            <ExercisesList
-              :exercises="exercises"
-              :is-edit-mode="!!isEditMode"
-              @exercise-reorder="handleExerciseReorder"
-              @exercise-delete="showDeleteExerciseConfirmation"
-            />
-          </div>
+          <PlanExercisesList
+            :exercises="exercises"
+            :is-edit-mode="!!isEditMode"
+            @add-exercise="openExerciseModal"
+            @reorder="handleExerciseReorder"
+            @delete="showDeleteExerciseConfirmation"
+          />
 
           <div class="form-actions">
             <button
@@ -107,10 +77,10 @@
 
     <!-- Exercise Selection Modal -->
     <ExerciseSelectionModal
-      :is-open="isExerciseModalOpen"
+      :is-open="exerciseModal.isOpen.value"
       :available-exercises="availableExercises"
       :loading-exercises="loadingExercises"
-      @close="isExerciseModalOpen = false"
+      @close="exerciseModal.close()"
       @select-exercise="addExerciseToPlan"
       @create-new-exercise="createNewExercise"
       @search="handleExerciseSearch"
@@ -160,17 +130,16 @@ import {
   IonButtons,
   IonButton,
   IonSpinner,
-  IonModal,
-  toastController,
 } from '@ionic/vue';
 import PageContainer from '@/components/PageContainer.vue';
 import LoadingState from '@/components/LoadingState.vue';
-import CustomInput from '@/components/CustomInput.vue';
-import ExercisesList from '@/components/ExercisesList.vue';
+import PlanBasicInfo from '@/components/PlanBasicInfo.vue';
+import PlanExercisesList from '@/components/PlanExercisesList.vue';
 import ExerciseSelectionModal from '@/components/ExerciseSelectionModal.vue';
 import DeleteConfirmationModal from '@/components/DeleteConfirmationModal.vue';
 import UnsavedChangesModal from '@/components/UnsavedChangesModal.vue';
-import apiClient from '@/services/api';
+import { plansService } from '@/services/plans.service';
+import { useToast, useModal } from '@/composables';
 import { ApiError, Exercise } from '@/types/api';
 
 interface PlanFormData {
@@ -196,6 +165,7 @@ interface ValidationErrors {
 
 const router = useRouter();
 const route = useRoute();
+const { showSuccess, showError, showWarning } = useToast();
 
 const planId = computed(() => route.params.id as string);
 const isEditMode = computed(() => planId.value && planId.value !== 'new');
@@ -207,7 +177,7 @@ const errors = ref<ValidationErrors>({});
 // Exercise management
 const exercises = ref<Exercise[]>([]);
 const availableExercises = ref<AvailableExercise[]>([]);
-const isExerciseModalOpen = ref(false);
+const exerciseModal = useModal();
 const loadingExercises = ref(false);
 // Флаг hasExercisesChanged больше не нужен - порядок передается через массив exercise_ids
 
@@ -256,12 +226,7 @@ const validateForm = (): boolean => {
 
 const handleSubmit = async () => {
   if (!validateForm()) {
-    const toast = await toastController.create({
-      message: 'Пожалуйста, исправьте ошибки в форме',
-      duration: 2000,
-      color: 'warning',
-    });
-    await toast.present();
+    showWarning('Пожалуйста, исправьте ошибки в форме');
     return;
   }
 
@@ -271,37 +236,24 @@ const handleSubmit = async () => {
   try {
     const payload: any = {
       name: formData.value.name.trim(),
-      order: null, // Порядок устанавливается автоматически на сервере
+      order: null,
       is_active: formData.value.is_active,
-      exercise_ids: exercises.value.map(exercise => exercise.id), // Массив ID упражнений в порядке их расположения
+      exercise_ids: exercises.value.map(exercise => exercise.id),
     };
 
     if (isEditMode.value) {
-      const response = await apiClient.put(`/api/v1/plans/${planId.value}`, payload);
-      const toast = await toastController.create({
-        message: 'План успешно обновлен',
-        duration: 2000,
-        color: 'success',
-      });
-      await toast.present();
+      await plansService.update(planId.value, payload);
+      showSuccess('План успешно обновлен');
     } else {
-      const response = await apiClient.post('/api/v1/plans', payload);
-      const toast = await toastController.create({
-        message: 'План успешно создан',
-        duration: 2000,
-        color: 'success',
-      });
-      await toast.present();
+      await plansService.create(payload);
+      showSuccess('План успешно создан');
     }
 
-    // Обновляем начальные значения после успешного сохранения
     initialFormData.value = { ...formData.value };
     initialExercises.value = [...exercises.value];
 
-    // Уведомляем PlansPage о необходимости обновления данных
     window.dispatchEvent(new CustomEvent('plans-updated'));
 
-    // Убираем фокус перед навигацией
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -321,12 +273,7 @@ const handleSubmit = async () => {
       errors.value = processedErrors;
     }
 
-    const toast = await toastController.create({
-      message: apiError.message || `Не удалось ${isEditMode.value ? 'обновить' : 'создать'} план`,
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError(apiError.message || `Не удалось ${isEditMode.value ? 'обновить' : 'создать'} план`);
   } finally {
     submitting.value = false;
   }
@@ -387,20 +334,13 @@ const cancelLeave = () => {
 const fetchAvailableExercises = async (searchTerm: string = '') => {
   loadingExercises.value = true;
   try {
-    const params: any = {};
-    
-    // Добавляем поиск если есть
-    if (searchTerm.trim()) {
-      params.search = searchTerm.trim();
-    }
-    
-    const response = await apiClient.get('/api/v1/exercises', { params });
-    const allExercises = response.data.data || [];
+    const { exercisesService } = await import('@/services/exercises.service');
+    const allExercises = await exercisesService.getAll({ search: searchTerm.trim() }) as any[] || [];
     
     // Фильтруем упражнения на клиенте:
     // Исключаем те, что уже добавлены в текущий план
     const addedExerciseIds = exercises.value.map(ex => ex.id);
-    const availableExercisesFiltered = allExercises.filter((exercise: AvailableExercise) => {
+    const availableExercisesFiltered = allExercises.filter((exercise: any) => {
       const notAdded = !addedExerciseIds.includes(exercise.id);
       return notAdded;
     });
@@ -408,12 +348,7 @@ const fetchAvailableExercises = async (searchTerm: string = '') => {
     availableExercises.value = availableExercisesFiltered;
   } catch (err) {
     console.error('Failed to fetch exercises:', err);
-    const toast = await toastController.create({
-      message: 'Не удалось загрузить упражнения',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError('Не удалось загрузить упражнения');
   } finally {
     loadingExercises.value = false;
   }
@@ -423,7 +358,7 @@ const openExerciseModal = async () => {
   if (availableExercises.value.length === 0) {
     await fetchAvailableExercises('');
   }
-  isExerciseModalOpen.value = true;
+  exerciseModal.open();
 };
 
 const addExerciseToPlan = async (exercise: AvailableExercise) => {
@@ -441,7 +376,7 @@ const addExerciseToPlan = async (exercise: AvailableExercise) => {
   
   exercises.value.push(newExercise);
   
-  isExerciseModalOpen.value = false;
+  exerciseModal.close();
   
   // Обновляем список доступных упражнений, чтобы исключить только что добавленное
   fetchAvailableExercises();
@@ -488,7 +423,7 @@ const handleExerciseSearch = (value: string) => {
 
 const createNewExercise = async () => {
   // Закрываем модал выбора упражнений
-  isExerciseModalOpen.value = false;
+  exerciseModal.close();
   
   // Переходим на страницу создания нового упражнения
   // TODO: Implement exercise creation page or modal
@@ -505,19 +440,10 @@ const confirmDeletePlan = async () => {
   submitting.value = true;
   
   try {
-    await apiClient.delete(`/api/v1/plans/${planId.value}`);
-    
-    const toast = await toastController.create({
-      message: 'План успешно удален',
-      duration: 2000,
-      color: 'success',
-    });
-    await toast.present();
-    
-    // Уведомляем PlansPage о необходимости обновления данных
+    await plansService.delete(planId.value);
+    showSuccess('План успешно удален');
     window.dispatchEvent(new CustomEvent('plans-updated'));
     
-    // Убираем фокус перед навигацией
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -525,13 +451,7 @@ const confirmDeletePlan = async () => {
   } catch (err) {
     console.error('Failed to delete plan:', err);
     const apiError = err as ApiError;
-    
-    const toast = await toastController.create({
-      message: apiError.message || 'Не удалось удалить план',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError(apiError.message || 'Не удалось удалить план');
   } finally {
     submitting.value = false;
     isDeleteDialogOpen.value = false;
@@ -547,20 +467,20 @@ const fetchPlanData = async () => {
 
   loading.value = true;
   try {
-    const response = await apiClient.get(`/api/v1/plans/${planId.value}`);
-    const plan = response.data.data; // Правильно извлекаем данные из API ответа
+    const plan = await plansService.getById(planId.value) as any;
+    const planData = plan as any;
     
     formData.value = {
-      name: plan.name || '',
-      is_active: plan.is_active !== undefined ? plan.is_active : true,
+      name: planData.name || '',
+      is_active: planData.is_active !== undefined ? planData.is_active : true,
     };
     
     // Сохраняем начальные значения для отслеживания изменений
     initialFormData.value = { ...formData.value };
     
     // Правильно обрабатываем вложенную структуру упражнений согласно API docs
-    if (plan.exercises && Array.isArray(plan.exercises)) {
-      exercises.value = plan.exercises.map((planExercise: any) => ({
+    if (planData.exercises && Array.isArray(planData.exercises)) {
+      exercises.value = planData.exercises.map((planExercise: any) => ({
         id: planExercise.exercise.id,
         plan_id: parseInt(planId.value),
         name: planExercise.exercise.name || '',
@@ -579,14 +499,8 @@ const fetchPlanData = async () => {
     console.error('Failed to fetch plan:', err);
     const apiError = err as ApiError;
     
-    const toast = await toastController.create({
-      message: apiError.message || 'Не удалось загрузить данные плана',
-      duration: 3000,
-      color: 'danger',
-    });
-    await toast.present();
+    showError(apiError.message || 'Не удалось загрузить данные плана');
     
-    // Убираем фокус перед навигацией
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
