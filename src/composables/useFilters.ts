@@ -6,7 +6,7 @@
 import { reactive, computed, type ComputedRef } from 'vue';
 
 export interface UseFiltersReturn<T> {
-  filters: T;
+  filters: T & Record<string, any>;
   activeFiltersCount: ComputedRef<number>;
   updateFilter: (key: keyof T, value: any) => void;
   clearFilters: () => void;
@@ -60,7 +60,7 @@ export function useFilters<T extends Record<string, any>>(
    * Update a single filter
    */
   const updateFilter = (key: keyof T, value: any): void => {
-    filters[key] = value;
+    (filters as any)[key] = value;
   };
 
   /**
@@ -68,7 +68,7 @@ export function useFilters<T extends Record<string, any>>(
    */
   const clearFilters = (): void => {
     Object.keys(filters).forEach(key => {
-      filters[key as keyof T] = initialFiltersRef[key as keyof T];
+      (filters as any)[key as keyof T] = initialFiltersRef[key as keyof T];
     });
   };
 
@@ -76,11 +76,11 @@ export function useFilters<T extends Record<string, any>>(
    * Clear a single filter
    */
   const clearFilter = (key: keyof T): void => {
-    filters[key] = initialFiltersRef[key];
+    (filters as any)[key] = initialFiltersRef[key];
   };
 
   return {
-    filters,
+    filters: filters as T & Record<string, any>,
     activeFiltersCount,
     updateFilter,
     clearFilters,

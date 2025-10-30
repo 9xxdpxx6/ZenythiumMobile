@@ -87,7 +87,7 @@ const { data: muscleData, loading: muscleLoading } = useDataFetching(
 
 // Update local refs when data loads
 const updateData = () => {
-  if (statsData.value) statistics.value = statsData.value;
+  if (statsData.value) statistics.value = statsData.value as unknown as Statistics;
   if (timeData.value) timeAnalytics.value = timeData.value;
   if (muscleData.value) muscleGroupStats.value = muscleData.value;
   loading.value = statsLoading.value || timeLoading.value || muscleLoading.value;
@@ -107,7 +107,7 @@ const weekWorkouts = computed(() => {
   endOfWeek.setHours(23, 59, 59, 999);
   
   return props.workouts.filter(workout => {
-    const workoutDate = new Date(workout.started_at);
+    const workoutDate = new Date(workout.startedAt || '');
     return workoutDate >= startOfWeek && workoutDate <= endOfWeek;
   }).length;
 });

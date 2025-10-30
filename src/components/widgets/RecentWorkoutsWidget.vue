@@ -16,9 +16,9 @@
         @click="$emit('view-workout', workout)"
       >
         <div class="workout-info">
-          <h3>{{ workout.plan?.name || 'Тренировка' }}</h3>
-          <p class="workout-date">{{ formatDate(workout.started_at) }}</p>
-          <div class="workout-meta" v-if="workout.finished_at">
+          <h3>{{ workout.name || 'Тренировка' }}</h3>
+          <p class="workout-date">{{ formatDate(workout.startedAt || '') }}</p>
+          <div class="workout-meta" v-if="workout.completedAt">
             <i class="fas fa-check-circle"></i>
             <span>Завершена</span>
           </div>
@@ -66,7 +66,7 @@ const recentWorkouts = computed(() => {
   if (!workoutsData.value) return [];
   
   return (workoutsData.value as Workout[])
-    .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
+    .sort((a, b) => new Date(b.startedAt || '').getTime() - new Date(a.startedAt || '').getTime())
     .slice(0, props.limit);
 });
 

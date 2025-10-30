@@ -5,8 +5,8 @@
     <div class="workout-card modern-card" @click="handleResume">
       <div class="workout-header">
         <div>
-          <h3>{{ activeWorkout.plan?.name || 'Тренировка' }}</h3>
-          <p class="workout-date">{{ formatDate(activeWorkout.started_at) }}</p>
+          <h3>{{ activeWorkout.name || 'Тренировка' }}</h3>
+          <p class="workout-date">{{ formatDate(activeWorkout.startedAt || '') }}</p>
         </div>
         <div class="status-badge active">Активна</div>
       </div>

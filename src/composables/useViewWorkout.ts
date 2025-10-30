@@ -5,6 +5,8 @@
 import { ref } from 'vue';
 import { workoutsService } from '@/services/workouts.service';
 import { useModal } from './useModal';
+import apiClient from '@/services/api';
+import { API_ENDPOINTS } from '@/constants/api-endpoints';
 import type { DetailedWorkout, ApiError } from '@/types/api';
 
 export function useViewWorkout(workoutId: string) {
@@ -27,7 +29,12 @@ export function useViewWorkout(workoutId: string) {
     error.value = null;
     
     try {
-      workout.value = await workoutsService.getById(workoutId) as any;
+      // For view page, we need DetailedWorkout with plan structure from API
+      // Use direct API call instead of mapped service to get DetailedWorkout
+      const response = await apiClient.get<{ data: DetailedWorkout }>(
+        API_ENDPOINTS.WORKOUT_BY_ID(workoutId)
+      );
+      workout.value = response.data.data;
     } catch (err) {
       console.error('Workout fetch error:', err);
       console.error('Error details:', {

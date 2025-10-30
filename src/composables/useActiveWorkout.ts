@@ -118,12 +118,13 @@ export function useActiveWorkout(workoutId: number) {
       return acc;
     }, {} as Record<string, { weight: number; reps: number; count: number }>);
     
-    return Object.values(grouped).map((group) => {
-      const isSimple = Number(group.weight) === 0;
+    return Object.values(grouped).map((group: unknown) => {
+      const typedGroup = group as { weight: number; reps: number; count: number };
+      const isSimple = Number(typedGroup.weight) === 0;
       return {
-        weight: group.weight,
-        reps: group.reps,
-        count: group.count,
+        weight: typedGroup.weight,
+        reps: typedGroup.reps,
+        count: typedGroup.count,
         isSimple,
       };
     });
@@ -157,13 +158,13 @@ export function useActiveWorkout(workoutId: number) {
       });
       
       const exercise = exercises.value.find(ex => ex.id === exerciseId);
-      if (exercise) {
+      if (exercise && exercise.history) {
         let currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId);
         
         if (!currentWorkoutHistory) {
           currentWorkoutHistory = {
             workout_id: workoutId,
-            workout_date: workout.value?.started_at || new Date().toISOString(),
+            workout_date: workout.value?.startedAt || workout.value?.started_at || new Date().toISOString(),
             sets: []
           };
           exercise.history.push(currentWorkoutHistory);
@@ -197,7 +198,7 @@ export function useActiveWorkout(workoutId: number) {
 
   const getLastCurrentSet = (exerciseId: number) => {
     const exercise = exercises.value.find(ex => ex.id === exerciseId);
-    if (!exercise?.history) return null;
+    if (!exercise || !exercise.history) return null;
     
     const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId);
     if (!currentWorkoutHistory?.sets || currentWorkoutHistory.sets.length === 0) return null;
@@ -210,7 +211,7 @@ export function useActiveWorkout(workoutId: number) {
       await workoutsService.deleteSet(setId);
       
       const exercise = exercises.value.find(ex => ex.id === exerciseId);
-      if (exercise) {
+      if (exercise && exercise.history) {
         const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId);
         if (currentWorkoutHistory) {
           const setIndex = currentWorkoutHistory.sets.findIndex((s: any) => s.id === setId);
@@ -239,7 +240,7 @@ export function useActiveWorkout(workoutId: number) {
 
   const deleteLastSetFromGroup = async (exerciseId: number, groupedSet: { weight: number; reps: number; count: number }) => {
     const exercise = exercises.value.find(ex => ex.id === exerciseId);
-    if (!exercise) return;
+    if (!exercise || !exercise.history) return;
     
     const currentWorkoutHistory = exercise.history.find((h: any) => h.workout_id === workoutId);
     if (!currentWorkoutHistory) return;

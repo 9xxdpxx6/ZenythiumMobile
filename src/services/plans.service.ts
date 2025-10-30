@@ -6,15 +6,11 @@
 import { BaseService } from './base.service';
 import apiClient from './api';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
-import type {
-  Plan,
-  CreatePlanDto,
-  UpdatePlanDto,
-} from '../types/models/plan.types';
+import type { Plan } from '../types/api';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
 
-class PlansService extends BaseService<Plan, CreatePlanDto, UpdatePlanDto> {
+class PlansService extends BaseService<Plan, any, any> {
   constructor() {
     super(API_ENDPOINTS.PLANS);
   }
