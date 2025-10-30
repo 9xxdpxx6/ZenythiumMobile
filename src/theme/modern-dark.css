@@ -100,6 +100,40 @@
 /* Global styles for modern flat design */
 ion-app {
   --background: var(--ion-background-color);
+  font-family: var(--ion-font-family) !important;
+}
+
+html, body {
+  font-family: var(--ion-font-family) !important;
+}
+
+/* Apply Manrope to all Ionic components and text elements */
+ion-button,
+ion-input,
+ion-textarea,
+ion-label,
+ion-card,
+ion-card-header,
+ion-card-content,
+ion-item,
+ion-list,
+ion-list-header,
+ion-title,
+ion-toolbar,
+ion-content,
+ion-tab-bar,
+ion-tab-button,
+h1, h2, h3, h4, h5, h6,
+p, span, div, a, button, input, textarea,
+label {
+  font-family: var(--ion-font-family) !important;
+}
+
+/* Apply to Ionic shadow DOM elements */
+ion-button::part(native),
+ion-input::part(native),
+ion-textarea::part(native) {
+  font-family: var(--ion-font-family) !important;
 }
 
 /* Cards with rounded corners */
@@ -443,4 +477,41 @@ ion-spinner {
 .auth-link ion-button {
   --color: var(--ion-color-primary);
   font-weight: 600;
+}
+
+/* Preserve Font Awesome icons - must override Manrope */
+/* Font Awesome icons use special font-family - don't override them */
+/* This rule must be at the end to have highest priority */
+i[class*="fa-"],
+i.fas,
+i.far,
+i.fal,
+i.fab,
+.fas,
+.far,
+.fal,
+.fab,
+[class*="fa-"],
+ion-button i[class*="fa-"],
+ion-button .fas,
+ion-button .far,
+ion-button .fab,
+ion-tab-button i[class*="fa-"],
+ion-tab-button .fas,
+ion-tab-button .far,
+ion-tab-button .fab,
+* i[class*="fa-"],
+* .fas,
+* .far,
+* .fal,
+* .fab,
+* [class*="fa-"] {
+  font-family: "Font Awesome 6 Free", "Font Awesome 6 Brands", "Font Awesome 6 Pro", "FontAwesome" !important;
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-variant: normal !important;
+  text-transform: none !important;
+  line-height: 1 !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }

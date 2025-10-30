@@ -210,6 +210,7 @@ const formatTimeCompact = (seconds: number) => {
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 24px;
+  align-items: stretch;
 }
 
 .stat-card {
@@ -217,13 +218,19 @@ const formatTimeCompact = (seconds: number) => {
   background: var(--ion-color-step-50);
   border-radius: 12px;
   margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: fit-content;
+  height: 100%;
 }
 
 .stat-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   margin-bottom: 8px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .stat-value {
@@ -232,7 +239,8 @@ const formatTimeCompact = (seconds: number) => {
   color: var(--ion-text-color);
   margin: 0;
   line-height: 1.2;
-  white-space: nowrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .stat-card:nth-child(1) .stat-value {
@@ -251,18 +259,29 @@ const formatTimeCompact = (seconds: number) => {
   color: #3b82f6;
 }
 
+.stat-content {
+  margin-top: auto;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+}
+
 .stat-content h3 {
   margin: 0;
   text-align: start;
   font-size: 14px;
   font-weight: 600;
   color: var(--ion-color-medium);
-  line-height: 1.2;
+  line-height: 1.3;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .stat-icon {
   font-size: 1.5rem;
   color: var(--ion-color-primary);
+  flex-shrink: 0;
 }
 
 .stat-card:nth-child(1) .stat-icon {
