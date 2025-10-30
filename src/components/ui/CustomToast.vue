@@ -172,13 +172,11 @@ onMounted(() => {
   padding: 4px;
   cursor: pointer;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: none;
   flex-shrink: 0;
 }
 
-.toast-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
+.toast-close:hover { background: transparent; }
 
 /* Animations */
 @keyframes toastSlideIn {

@@ -146,7 +146,7 @@ const formatDate = (dateString?: string) => {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,18 +159,14 @@ const formatDate = (dateString?: string) => {
   color: white;
 }
 
-.edit-button:hover {
-  background: var(--ion-color-primary-shade);
-}
+.edit-button:hover { background: var(--ion-color-primary); }
 
 .delete-button {
   background: var(--ion-color-danger);
   color: white;
 }
 
-.delete-button:hover {
-  background: var(--ion-color-danger-shade);
-}
+.delete-button:hover { background: var(--ion-color-danger); }
 
 .delete-button:disabled {
   opacity: 0.6;
@@ -183,9 +179,7 @@ const formatDate = (dateString?: string) => {
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.cancel-button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
+.cancel-button:hover { background: rgba(255, 255, 255, 0.1); }
 
 .dialog-button i {
   font-size: 16px;

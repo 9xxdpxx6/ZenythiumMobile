@@ -76,14 +76,15 @@ const getFirstError = (error: string | string[] | undefined): string => {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
+/* Keep add button stable on hover */
 .add-plan-button:hover {
-  background: var(--ion-color-primary-shade);
+  background: var(--ion-color-primary);
 }
 
 .error-message {

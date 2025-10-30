@@ -172,13 +172,13 @@ const handleModalClose = () => {
 .modal-content .exercise-card {
   padding: 16px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: none;
   display: flex;
   flex-direction: column;
 }
 
 .modal-content .exercise-card:hover {
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .modal-content .exercise-header {

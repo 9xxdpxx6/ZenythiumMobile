@@ -470,12 +470,10 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
-.retry-button:hover {
-  opacity: 0.9;
-}
+.retry-button:hover { opacity: 1; }
 
 /* Кнопки действий в конце страницы */
 .bottom-actions {
