@@ -90,17 +90,17 @@
     />
 
     <DeleteConfirmationModal
-      :is-open="isDeleteDialogOpen"
+      :is-open="deletePlanModal.isOpen.value"
       title="Подтверждение удаления"
       message="Вы уверены, что хотите удалить план"
-      :item-name="planToDeleteName"
+      :item-name="deletePlanModal.data.value?.name"
       warning-text="Это действие нельзя отменить."
       @confirm="confirmDeletePlan"
       @cancel="cancelDeletePlan"
     />
 
     <DeleteConfirmationModal
-      :is-open="isDeleteCycleDialogOpen"
+      :is-open="deleteCycleModal.isOpen.value"
       title="Подтверждение удаления"
       message="Вы уверены, что хотите удалить цикл"
       :item-name="formData.name"
@@ -111,7 +111,7 @@
     />
 
     <UnsavedChangesModal
-      :is-open="isUnsavedChangesDialogOpen"
+      :is-open="unsavedChangesModal.isOpen.value"
       @confirm="confirmLeave"
       @cancel="cancelLeave"
     />
@@ -196,11 +196,9 @@ const availablePlans = ref<Plan[]>([]);
 const planModal = useModal();
 const loadingPlans = ref(false);
 
-const isDeleteDialogOpen = ref(false);
-const planToDelete = ref<number | null>(null);
-const planToDeleteName = ref('');
-const isDeleteCycleDialogOpen = ref(false);
-const isUnsavedChangesDialogOpen = ref(false);
+const deletePlanModal = useModal<{ index: number; name: string }>();
+const deleteCycleModal = useModal();
+const unsavedChangesModal = useModal();
 const pendingNavigation = ref<any>(null);
 const isLeaving = ref(false);
 
@@ -406,18 +404,14 @@ const handlePlanReorder = (reorderedPlans: CyclePlan[]) => {
 
 const showDeleteConfirmation = (index: number) => {
   const plan = cyclePlans.value[index];
-  planToDelete.value = index;
-  planToDeleteName.value = plan.plan.name;
-  isDeleteDialogOpen.value = true;
+  deletePlanModal.open({ index, name: plan.plan.name });
 };
 
 const confirmDeletePlan = () => {
-  if (planToDelete.value !== null) {
-    cyclePlans.value.splice(planToDelete.value, 1);
+  if (deletePlanModal.data.value?.index !== undefined) {
+    cyclePlans.value.splice(deletePlanModal.data.value.index, 1);
   }
-  isDeleteDialogOpen.value = false;
-  planToDelete.value = null;
-  planToDeleteName.value = '';
+  deletePlanModal.close();
   
   fetchAvailablePlans('');
   
@@ -434,9 +428,7 @@ const confirmDeletePlan = () => {
 };
 
 const cancelDeletePlan = () => {
-  isDeleteDialogOpen.value = false;
-  planToDelete.value = null;
-  planToDeleteName.value = '';
+  deletePlanModal.close();
   
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
@@ -451,7 +443,7 @@ const cancelDeletePlan = () => {
 };
 
 const showDeleteCycleConfirmation = () => {
-  isDeleteCycleDialogOpen.value = true;
+  deleteCycleModal.open();
 };
 
 const confirmDeleteCycle = async () => {
@@ -469,7 +461,7 @@ const confirmDeleteCycle = async () => {
     showError(err.message || 'Не удалось удалить цикл');
   } finally {
     submitting.value = false;
-    isDeleteCycleDialogOpen.value = false;
+    deleteCycleModal.close();
     
     setTimeout(() => {
       const activeElement = document.activeElement as HTMLElement;
@@ -481,7 +473,7 @@ const confirmDeleteCycle = async () => {
 };
 
 const cancelDeleteCycle = () => {
-  isDeleteCycleDialogOpen.value = false;
+  deleteCycleModal.close();
   
   setTimeout(() => {
     const activeElement = document.activeElement as HTMLElement;
@@ -523,7 +515,7 @@ const initializeOriginalState = () => {
 const handleBack = () => {
   if (hasUnsavedChanges.value) {
     pendingNavigation.value = () => router.back();
-    isUnsavedChangesDialogOpen.value = true;
+    unsavedChangesModal.open();
   } else {
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -533,7 +525,7 @@ const handleBack = () => {
 };
 
 const confirmLeave = () => {
-  isUnsavedChangesDialogOpen.value = false;
+  unsavedChangesModal.close();
   isLeaving.value = true;
   if (pendingNavigation.value) {
     pendingNavigation.value();
@@ -542,7 +534,7 @@ const confirmLeave = () => {
 };
 
 const cancelLeave = () => {
-  isUnsavedChangesDialogOpen.value = false;
+  unsavedChangesModal.close();
   pendingNavigation.value = null;
 };
 
@@ -555,7 +547,7 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   
   if (hasUnsavedChanges.value) {
     pendingNavigation.value = () => next();
-    isUnsavedChangesDialogOpen.value = true;
+    unsavedChangesModal.open();
   } else {
     next();
   }
