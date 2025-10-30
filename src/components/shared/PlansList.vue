@@ -35,10 +35,14 @@
         <template #item="{ element: cyclePlan, index }">
           <div 
             class="plan-item"
-            @longpress="showDeleteConfirmation(index)"
-            @touchstart="handleTouchStart"
+            @touchstart="(e) => handleTouchStart(e, index)"
             @touchend="handleTouchEnd"
             @touchmove="handleTouchMove"
+            @touchcancel="handleTouchEnd"
+            @mousedown="(e) => handleMouseDown(e, index)"
+            @mouseup="handleMouseUp"
+            @mouseleave="handleMouseLeave"
+            @mousemove="handleMouseMove"
           >
             <div class="drag-handle">
               <i class="fas fa-grip-vertical"></i>
@@ -68,6 +72,7 @@
 import { ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { CyclePlan } from '@/types/api';
+import { useLongPress } from '@/composables';
 
 interface Props {
   plans: CyclePlan[];
@@ -90,26 +95,48 @@ watch(() => props.plans, (newPlans) => {
   localPlans.value = [...newPlans];
 }, { immediate: true, deep: true });
 
-// Long press handlers
-let touchStartTime = 0;
-let touchStartX = 0;
-let touchStartY = 0;
-let longPressTimer: NodeJS.Timeout | null = null;
+// Используем useLongPress для отслеживания движения (threshold по умолчанию 10px)
+const longPress = useLongPress({
+  threshold: 10, // Порог движения в пикселях
+});
 
-const handleTouchStart = (event: TouchEvent) => {
-  touchStartTime = Date.now();
-  touchStartX = event.touches[0].clientX;
-  touchStartY = event.touches[0].clientY;
-  
+// Long press handler с отслеживанием движения
+let longPressTimer: NodeJS.Timeout | null = null;
+let currentPlanIndex: number | null = null;
+
+// Проверка, является ли элемент или его родитель drag-handle
+const isDragHandle = (element: HTMLElement | null): boolean => {
+  if (!element) return false;
+  return element.classList.contains('drag-handle') || 
+         element.closest('.drag-handle') !== null;
+};
+
+const showDeleteConfirmation = (index: number) => {
+  emit('planDelete', index);
+};
+
+// Обработчики для touch событий
+const handleTouchStart = (event: TouchEvent, index: number) => {
+  // Проверяем, не нажали ли на drag-handle
+  const target = event.target as HTMLElement;
+  if (isDragHandle(target)) {
+    return; // Не обрабатываем долгое нажатие для drag-handle
+  }
+
+  currentPlanIndex = index;
+  longPress.hasMoved.value = false;
+
+  // Запускаем таймер долгого нажатия
   longPressTimer = setTimeout(() => {
-    // Long press detected
-    const target = event.target as HTMLElement;
-    const planItem = target.closest('.plan-item');
-    if (planItem) {
-      const index = Array.from(planItem.parentElement?.children || []).indexOf(planItem);
-      showDeleteConfirmation(index);
+    // Проверяем, что не было движения перед показом модала
+    if (!longPress.hasMoved.value && currentPlanIndex !== null) {
+      showDeleteConfirmation(currentPlanIndex);
     }
+    longPressTimer = null;
   }, 800); // 800ms for long press
+
+  // Используем useLongPress для отслеживания движения
+  longPress.handleTouchStart(event);
 };
 
 const handleTouchEnd = () => {
@@ -117,17 +144,68 @@ const handleTouchEnd = () => {
     clearTimeout(longPressTimer);
     longPressTimer = null;
   }
+  currentPlanIndex = null;
+  longPress.handleTouchEnd();
 };
 
-const handleTouchMove = () => {
-  if (longPressTimer) {
+const handleTouchMove = (event: TouchEvent) => {
+  // Если обнаружено движение, отменяем таймер
+  longPress.handleTouchMove(event);
+  if (longPress.hasMoved.value && longPressTimer) {
     clearTimeout(longPressTimer);
     longPressTimer = null;
   }
 };
 
-const showDeleteConfirmation = (index: number) => {
-  emit('planDelete', index);
+// Обработчики для mouse событий (десктоп)
+const handleMouseDown = (event: MouseEvent, index: number) => {
+  // Проверяем, не нажали ли на drag-handle
+  const target = event.target as HTMLElement;
+  if (isDragHandle(target)) {
+    return; // Не обрабатываем долгое нажатие для drag-handle
+  }
+
+  currentPlanIndex = index;
+  longPress.hasMoved.value = false;
+
+  // Запускаем таймер долгого нажатия
+  longPressTimer = setTimeout(() => {
+    // Проверяем, что не было движения перед показом модала
+    if (!longPress.hasMoved.value && currentPlanIndex !== null) {
+      showDeleteConfirmation(currentPlanIndex);
+    }
+    longPressTimer = null;
+  }, 800); // 800ms for long press
+
+  // Используем useLongPress для отслеживания движения
+  longPress.handleMouseDown(event);
+};
+
+const handleMouseUp = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  currentPlanIndex = null;
+  longPress.handleMouseUp();
+};
+
+const handleMouseLeave = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
+  currentPlanIndex = null;
+  longPress.handleMouseLeave();
+};
+
+const handleMouseMove = (event: MouseEvent) => {
+  // Если обнаружено движение, отменяем таймер
+  longPress.handleMouseMove(event);
+  if (longPress.hasMoved.value && longPressTimer) {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+  }
 };
 
 // Drag and drop handlers
