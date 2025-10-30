@@ -31,6 +31,7 @@
               placeholder="Поиск упражнений..."
               @search="handleSearch"
               @clear="clearSearch"
+              class="search-input"
             />
           <ExercisesFilters
             :filters="filters"
@@ -280,17 +281,22 @@ const closeDeleteModal = () => {
   deleteModal.close();
 };
 
-const submitForm = async () => {
+const submitForm = async (payload?: { name: string; description: string; muscle_group_id: number | string; is_active: boolean }) => {
   submitting.value = true;
   errors.value = {};
 
   try {
+    const source = payload || form.value;
+    const normalizedMuscleGroupId = typeof source.muscle_group_id === 'string'
+      ? parseInt(source.muscle_group_id)
+      : source.muscle_group_id;
+
     const formData = {
-      ...form.value,
-      muscle_group_id: typeof form.value.muscle_group_id === 'string' 
-        ? parseInt(form.value.muscle_group_id) 
-        : form.value.muscle_group_id
-    };
+      name: (source.name || '').trim(),
+      description: source.description || '',
+      muscle_group_id: normalizedMuscleGroupId,
+      is_active: !!source.is_active,
+    } as const;
 
     if (isEditing.value && exerciseToEdit.value) {
       await exercisesService.update(exerciseToEdit.value.id.toString(), formData as any);
@@ -402,6 +408,10 @@ onUnmounted(() => {
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
 }
 
 .exercises-list {

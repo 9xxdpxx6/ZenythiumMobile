@@ -111,7 +111,12 @@ interface Props {
 const props = defineProps<Props>();
 const emit = defineEmits<{
   close: [];
-  submit: [];
+  submit: [form: {
+    name: string;
+    description: string;
+    muscle_group_id: number | string;
+    is_active: boolean;
+  }];
 }>();
 
 const localForm = ref({ ...props.form });
@@ -121,7 +126,7 @@ watch(() => props.form, (newForm) => {
 }, { deep: true });
 
 const handleSubmit = () => {
-  emit('submit');
+  emit('submit', { ...localForm.value });
 };
 </script>
 
