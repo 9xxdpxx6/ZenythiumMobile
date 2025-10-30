@@ -47,8 +47,18 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    */
   async start(id: string): Promise<Workout> {
     try {
+      // According to API docs: POST /workouts with optional plan_id
+      const payload: any = {};
+      if (id && id !== 'auto') {
+        const numericPlanId = Number(id);
+        if (!isNaN(numericPlanId)) {
+          payload.plan_id = numericPlanId;
+        }
+      }
+
       const response = await apiClient.post<{ data: Workout }>(
-        API_ENDPOINTS.WORKOUT_START(id)
+        API_ENDPOINTS.WORKOUTS_START,
+        payload
       );
       logger.info('WorkoutsService: Workout started successfully');
       return response.data.data;

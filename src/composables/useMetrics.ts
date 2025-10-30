@@ -197,6 +197,8 @@ export function useMetrics() {
       await showSuccess('Запись успешно удалена!');
       handleCloseDeleteModal();
       await fetchData();
+      // Notify other parts of the app to refresh dependent views (charts, widgets)
+      window.dispatchEvent(new CustomEvent('metric-updated'));
     } catch (error: any) {
       await showError('Не удалось удалить запись');
     }

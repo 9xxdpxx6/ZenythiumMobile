@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { IonButton } from '@ionic/vue';
 import { Line } from 'vue-chartjs';
 import {
@@ -151,7 +151,7 @@ const isRefreshingChart = ref(false);
 const isCompletingChart = ref(false);
 const selectedExercises = ref<any[]>([]);
 
-const { data: metrics, loading } = useDataFetching(
+const { data: metrics, loading, execute: fetchMetrics } = useDataFetching(
   async () => {
     const result = await metricsService.getAll();
     return result;
@@ -174,13 +174,19 @@ const { data: exerciseStats, loading: exerciseLoading } = useDataFetching(
 
 watch(metrics, (newMetrics) => {
   if (newMetrics && Array.isArray(newMetrics)) {
-    weightData.value = newMetrics
-      .filter((m: any) => m.category === 'weight')
-      .map((metric: any) => ({
-        date: metric.date,
-        weight: parseFloat(metric.value)
-      }))
+    const mapped = newMetrics
+      .map((m: any) => {
+        // Support both shapes: { date, weight } and { date, value, category: 'weight' }
+        const date = m.date || m.created_at || m.updated_at;
+        const rawWeight = m.weight !== undefined ? m.weight : (m.category === 'weight' ? m.value : undefined);
+        const weightNum = typeof rawWeight === 'string' ? parseFloat(rawWeight) : Number(rawWeight);
+        return { date, weight: weightNum };
+      })
+      .filter(item => !!item.date && !isNaN(item.weight))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    weightData.value = mapped;
+  } else {
+    weightData.value = [];
   }
 }, { immediate: true });
 
@@ -332,6 +338,23 @@ const refreshWeightChart = async () => {
 
 defineExpose({
   refreshWeightChart
+});
+
+// Refresh metrics when metric is added elsewhere or homepage requests refresh
+const handleMetricAdded = () => fetchMetrics();
+const handleMetricUpdated = () => fetchMetrics();
+const handleHomepageRefresh = () => fetchMetrics();
+
+onMounted(() => {
+  window.addEventListener('metric-added', handleMetricAdded as EventListener);
+  window.addEventListener('metric-updated', handleMetricUpdated as EventListener);
+  window.addEventListener('homepage-refresh', handleHomepageRefresh as EventListener);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('metric-added', handleMetricAdded as EventListener);
+  window.removeEventListener('metric-updated', handleMetricUpdated as EventListener);
+  window.removeEventListener('homepage-refresh', handleHomepageRefresh as EventListener);
 });
 </script>
 

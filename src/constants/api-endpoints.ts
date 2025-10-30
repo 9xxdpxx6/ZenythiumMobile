@@ -36,7 +36,7 @@ export const API_ENDPOINTS = {
   WORKOUTS: '/workouts',
   WORKOUT_BY_ID: (id: string) => `/workouts/${id}`,
   WORKOUT_ACTIVE: '/workouts/active',
-  WORKOUT_START: (id: string) => `/workouts/${id}/start`,
+  WORKOUTS_START: '/workouts/start',
   WORKOUT_COMPLETE: (id: string) => `/workouts/${id}/complete`,
   WORKOUT_EXERCISE_SET: (workoutId: string, exerciseId: string, setId: string) =>
     `/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`,
