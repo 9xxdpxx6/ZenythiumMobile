@@ -44,7 +44,7 @@ export function useToast(): UseToastReturn {
       color: options.color,
       buttons: [
         {
-          text: 'Dismiss',
+          text: 'Скрыть',
           role: 'cancel',
         },
       ],

@@ -428,8 +428,8 @@ onUnmounted(() => {
 }
 
 .weight-decrease {
-  color: #f59e0b;
-  border-color: #f59e0b;
+  color: #3b82f6; /* blue when weight decreased */
+  border-color: #3b82f6;
 }
 
 .weight-stable {
@@ -441,6 +441,12 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.chart-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* label left, button right with spacing */
 }
 
 .exercise-item {

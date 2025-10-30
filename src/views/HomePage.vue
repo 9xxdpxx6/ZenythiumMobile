@@ -221,15 +221,18 @@ const handleSaveMetric = async () => {
     handleCloseMetricModal();
   } catch (error: any) {
     console.error('Error saving metric:', error);
-    if (error.response?.status === 422) {
+    // Our interceptor transforms errors to { message, errors }
+    if (error?.response?.status === 422 && error.response?.data) {
       const errorData = error.response.data;
       if (errorData.errors?.date) {
-        metricError.value = Array.isArray(errorData.errors.date) 
-          ? errorData.errors.date[0] 
+        metricError.value = Array.isArray(errorData.errors.date)
+          ? errorData.errors.date[0]
           : String(errorData.errors.date);
       } else {
         metricError.value = errorData.message || 'Ошибка валидации данных';
       }
+    } else if (error?.message) {
+      metricError.value = String(error.message);
     } else {
       metricError.value = 'Произошла ошибка при сохранении метрики';
     }
