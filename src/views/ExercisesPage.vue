@@ -55,15 +55,14 @@
             </div>
           </template>
           
-          <div v-else class="no-results">
+          <!-- No results when search/filters are active -->
+          <div v-else-if="searchQuery || filters.is_active !== null || filters.muscle_group_id !== null" class="no-results">
             <div class="no-results-icon">
               <i class="fas fa-search"></i>
             </div>
             <p class="no-results-title">Упражнения не найдены</p>
             <p class="no-results-message">
-              {{ searchQuery || filters.is_active !== null || filters.muscle_group_id !== null 
-                ? 'Попробуйте изменить поисковый запрос или фильтры' 
-                : 'Создайте первое упражнение' }}
+              Попробуйте изменить поисковый запрос или фильтры
             </p>
           </div>
 
@@ -92,7 +91,7 @@
           </div>
         </div>
 
-        <!-- Empty state only when there are no exercises at all -->
+        <!-- Empty state only when there are no exercises at all and no active search/filters -->
         <EmptyState
           v-if="(!exercises || exercises.length === 0) && !loading && !searchLoading && !searchQuery && filters.is_active === null && filters.muscle_group_id === null"
           icon="fas fa-dumbbell"
