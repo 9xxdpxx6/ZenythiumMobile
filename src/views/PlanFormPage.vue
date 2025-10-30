@@ -88,10 +88,10 @@
 
     <!-- Delete Exercise Confirmation Dialog -->
     <DeleteConfirmationModal
-      :is-open="isDeleteExerciseDialogOpen"
+      :is-open="deleteExerciseModal.isOpen.value"
       title="Подтверждение удаления"
       message="Вы уверены, что хотите удалить упражнение"
-      :item-name="exerciseToDeleteName"
+      :item-name="deleteExerciseModal.data.value?.name"
       warning-text="Это действие нельзя отменить."
       @confirm="confirmDeleteExercise"
       @cancel="cancelDeleteExercise"
@@ -99,7 +99,7 @@
 
     <!-- Delete Plan Confirmation Dialog -->
     <DeleteConfirmationModal
-      :is-open="isDeleteDialogOpen"
+      :is-open="deletePlanModal.isOpen.value"
       title="Подтверждение удаления"
       message="Вы уверены, что хотите удалить план"
       :item-name="formData.name"
@@ -111,7 +111,7 @@
 
     <!-- Unsaved Changes Confirmation Dialog -->
     <UnsavedChangesModal
-      :is-open="isUnsavedChangesDialogOpen"
+      :is-open="unsavedChangesModal.isOpen.value"
       @confirm="confirmLeave"
       @cancel="cancelLeave"
     />
@@ -182,13 +182,11 @@ const loadingExercises = ref(false);
 // Флаг hasExercisesChanged больше не нужен - порядок передается через массив exercise_ids
 
 // Delete confirmation dialogs
-const isDeleteDialogOpen = ref(false);
-const isDeleteExerciseDialogOpen = ref(false);
-const exerciseToDelete = ref<number | null>(null);
-const exerciseToDeleteName = ref('');
+const deletePlanModal = useModal();
+const deleteExerciseModal = useModal<{ index: number; name: string }>();
 
 // Unsaved changes confirmation
-const isUnsavedChangesDialogOpen = ref(false);
+const unsavedChangesModal = useModal();
 const pendingNavigation = ref<any>(null);
 const hasUnsavedChanges = ref(false);
 const initialFormData = ref<PlanFormData>({ name: '', is_active: true });
@@ -305,7 +303,7 @@ const checkForUnsavedChanges = (): boolean => {
 const handleBack = () => {
   if (checkForUnsavedChanges()) {
     pendingNavigation.value = () => router.back();
-    isUnsavedChangesDialogOpen.value = true;
+    unsavedChangesModal.open();
   } else {
     // Убираем фокус с текущего элемента перед навигацией
     if (document.activeElement instanceof HTMLElement) {
@@ -318,7 +316,7 @@ const handleBack = () => {
 // Функции для обработки диалога несохраненных изменений
 const confirmLeave = () => {
   isLeaving.value = true; // Устанавливаем флаг перед навигацией
-  isUnsavedChangesDialogOpen.value = false;
+  unsavedChangesModal.close();
   if (pendingNavigation.value) {
     pendingNavigation.value();
     pendingNavigation.value = null;
@@ -326,7 +324,7 @@ const confirmLeave = () => {
 };
 
 const cancelLeave = () => {
-  isUnsavedChangesDialogOpen.value = false;
+  unsavedChangesModal.close();
   pendingNavigation.value = null;
 };
 
@@ -390,30 +388,24 @@ const handleExerciseReorder = (reorderedExercises: Exercise[]) => {
 
 const showDeleteExerciseConfirmation = (index: number) => {
   const exercise = exercises.value[index];
-  exerciseToDelete.value = index;
-  exerciseToDeleteName.value = exercise.name;
-  isDeleteExerciseDialogOpen.value = true;
+  deleteExerciseModal.open({ index, name: exercise.name });
 };
 
 const confirmDeleteExercise = async () => {
-  if (exerciseToDelete.value === null) return;
+  if (deleteExerciseModal.data.value?.index === undefined) return;
   
   // Просто удаляем из локального массива
   // На сервер отправится только при нажатии "Сохранить"
-  exercises.value.splice(exerciseToDelete.value, 1);
+  exercises.value.splice(deleteExerciseModal.data.value.index, 1);
   
-  isDeleteExerciseDialogOpen.value = false;
-  exerciseToDelete.value = null;
-  exerciseToDeleteName.value = '';
+  deleteExerciseModal.close();
   
   // Обновляем список доступных упражнений
   fetchAvailableExercises();
 };
 
 const cancelDeleteExercise = () => {
-  isDeleteExerciseDialogOpen.value = false;
-  exerciseToDelete.value = null;
-  exerciseToDeleteName.value = '';
+  deleteExerciseModal.close();
 };
 
 const handleExerciseSearch = (value: string) => {
@@ -431,7 +423,7 @@ const createNewExercise = async () => {
 
 // Delete plan functions
 const showDeletePlanConfirmation = () => {
-  isDeleteDialogOpen.value = true;
+  deletePlanModal.open();
 };
 
 const confirmDeletePlan = async () => {
@@ -454,12 +446,12 @@ const confirmDeletePlan = async () => {
     showError(apiError.message || 'Не удалось удалить план');
   } finally {
     submitting.value = false;
-    isDeleteDialogOpen.value = false;
+    deletePlanModal.close();
   }
 };
 
 const cancelDeletePlan = () => {
-  isDeleteDialogOpen.value = false;
+  deletePlanModal.close();
 };
 
 const fetchPlanData = async () => {
@@ -530,7 +522,7 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   
   if (checkForUnsavedChanges()) {
     pendingNavigation.value = () => next();
-    isUnsavedChangesDialogOpen.value = true;
+    unsavedChangesModal.open();
   } else {
     next();
   }
