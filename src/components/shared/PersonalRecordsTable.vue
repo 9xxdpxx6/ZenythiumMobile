@@ -1,7 +1,7 @@
 <template>
   <div class="personal-records-table">
     <div class="records-container modern-card" v-if="personalRecords && personalRecords.length > 0">
-      <h3>Личные рекорды</h3>
+      <h3>Топ 10 личных рекордов</h3>
       <div class="records-grid">
         <div 
           v-for="record in limitedRecords" 

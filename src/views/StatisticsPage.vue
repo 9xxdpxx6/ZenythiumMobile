@@ -37,6 +37,8 @@
             
             <WorkoutVolumeChart
               :monthly-trends="timeAnalytics.monthly_trends"
+              :weekly-trends="(timeAnalytics as any)?.volume_trends"
+              initial-mode="month"
             />
 
             <MuscleGroupDistributionChart
@@ -171,7 +173,7 @@ const balanceRecommendation = computed(() => {
 const exerciseProgressData = computed(() => {
   const stats = exerciseStatsData.value;
   if (!stats?.exercise_progress || stats.exercise_progress.length === 0) return [];
-
+  
   return stats.exercise_progress.map((item: any) => ({
     name: item.exercise_name,
     data: Array.isArray(item.weight_progression)
