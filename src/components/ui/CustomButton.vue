@@ -78,7 +78,7 @@ const handleClick = (event: MouseEvent) => {
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   text-decoration: none;
   outline: none;
   position: relative;
@@ -100,7 +100,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-primary:hover:not(.button-disabled) {
-  background: var(--ion-color-primary-shade);
+  background: var(--ion-color-primary);
 }
 
 .button-secondary {
@@ -109,7 +109,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-secondary:hover:not(.button-disabled) {
-  background: var(--ion-color-secondary-shade);
+  background: var(--ion-color-secondary);
 }
 
 .button-outline {
@@ -118,8 +118,8 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-outline:hover:not(.button-disabled) {
-  background: var(--ion-color-primary);
-  color: white;
+  background: transparent;
+  color: var(--ion-color-primary);
 }
 
 /* Color variants for outline */
@@ -129,8 +129,8 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-outline.button-primary:hover:not(.button-disabled) {
-  background: var(--ion-color-primary);
-  color: white;
+  background: transparent;
+  color: var(--ion-color-primary);
 }
 
 .button-outline.button-warning {
@@ -140,8 +140,8 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-outline.button-warning:hover:not(.button-disabled) {
-  background: var(--ion-color-warning) !important;
-  color: white !important;
+  background: transparent !important;
+  color: var(--ion-color-warning) !important;
 }
 
 .button-outline.button-danger {
@@ -151,8 +151,8 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-outline.button-danger:hover:not(.button-disabled) {
-  background: var(--ion-color-danger) !important;
-  color: white !important;
+  background: transparent !important;
+  color: var(--ion-color-danger) !important;
 }
 
 .button-ghost {
@@ -161,7 +161,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-ghost:hover:not(.button-disabled) {
-  background: rgba(99, 102, 241, 0.1);
+  background: transparent;
 }
 
 .button-danger {
@@ -170,7 +170,7 @@ const handleClick = (event: MouseEvent) => {
 }
 
 .button-danger:hover:not(.button-disabled) {
-  background: var(--ion-color-danger-shade);
+  background: var(--ion-color-danger);
 }
 
 /* Sizes */

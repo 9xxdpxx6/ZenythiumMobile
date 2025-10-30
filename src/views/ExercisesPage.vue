@@ -485,4 +485,25 @@ onUnmounted(() => {
   line-height: 1.5;
   max-width: 300px;
 }
+
+/* Disable hover effects on this page */
+:deep(ion-button) {
+  --background-hover: transparent;
+  --background-activated: transparent;
+  --color-hover: inherit;
+  --border-color-hover: inherit;
+  transition: none;
+}
+
+/* Precisely neutralize modern-card hover coming from utilities.css */
+:deep(.card-list .modern-card) {
+  transition: none !important;
+}
+
+:deep(.card-list .modern-card:hover) {
+  transform: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+  background: var(--ion-card-background) !important;
+  filter: none !important;
+}
 </style>

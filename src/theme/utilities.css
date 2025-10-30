@@ -48,12 +48,12 @@
   margin: 0 !important;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
   backdrop-filter: blur(10px) !important;
-  transition: all 0.2s ease !important;
+  transition: none !important;
 }
 
 .modern-card:hover {
-  transform: translateY(-1px) !important;
-  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1) !important;
+  transform: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* ============================================
@@ -170,7 +170,7 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -184,9 +184,7 @@
   cursor: not-allowed;
 }
 
-.modern-button:hover:not(:disabled) {
-  background: var(--ion-color-primary-shade);
-}
+.modern-button:hover:not(:disabled) { background: var(--ion-color-primary); }
 
 .modern-button.primary-button {
   background: var(--ion-color-primary);
@@ -197,18 +195,14 @@
   color: var(--ion-text-color);
 }
 
-.modern-button.secondary-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.15);
-}
+.modern-button.secondary-button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
 
 .modern-button.warning-button {
   background: var(--ion-color-warning);
   color: white;
 }
 
-.modern-button.warning-button:hover:not(:disabled) {
-  background: var(--ion-color-warning-shade);
-}
+.modern-button.warning-button:hover:not(:disabled) { background: var(--ion-color-warning); }
 
 .modern-button i {
   font-size: 14px;

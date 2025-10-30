@@ -612,15 +612,13 @@ ion-toolbar ion-button i {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.add-exercise-button:hover {
-  background: var(--ion-color-primary-shade);
-}
+.add-exercise-button:hover { background: var(--ion-color-primary); }
 
 /* Delete Plan Button Styles */
 .delete-plan-section {
@@ -637,7 +635,7 @@ ion-toolbar ion-button i {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -646,11 +644,7 @@ ion-toolbar ion-button i {
   min-height: 40px;
 }
 
-.delete-plan-button:hover {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.6);
-  color: rgba(239, 68, 68, 0.8);
-}
+.delete-plan-button:hover { background: transparent; border-color: rgba(239, 68, 68, 0.4); color: rgba(239, 68, 68, 0.7); }
 
 .delete-plan-button:disabled {
   opacity: 0.4;

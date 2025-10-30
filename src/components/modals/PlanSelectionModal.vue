@@ -168,13 +168,13 @@ const handleModalClose = () => {
 .modal-content .plan-card {
   padding: 16px;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: none;
   display: flex;
   flex-direction: column;
 }
 
 .modal-content .plan-card:hover {
-  transform: translateY(-2px);
+  transform: none;
 }
 
 .modal-content .plan-header {

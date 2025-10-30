@@ -227,13 +227,13 @@ watch(() => props.filters, (newFilters) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: none;
   font-size: 16px;
 }
 
 .filters-button:hover {
-  border-color: var(--ion-color-primary);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
 }
 
 .filters-button i {
@@ -278,7 +278,7 @@ watch(() => props.filters, (newFilters) => {
   font-weight: 500;
   color: var(--ion-color-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   flex: 1;
   min-width: 0;
   white-space: nowrap;
@@ -287,8 +287,8 @@ watch(() => props.filters, (newFilters) => {
 }
 
 .toggle-button:hover {
-  background: var(--ion-color-step-150);
-  border-color: var(--ion-color-primary);
+  background: var(--ion-color-step-100);
+  border-color: var(--ion-color-step-200);
 }
 
 .toggle-button.active {
@@ -323,13 +323,13 @@ watch(() => props.filters, (newFilters) => {
   font-weight: 600;
   color: var(--ion-color-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .reset-button:hover {
-  background: var(--ion-color-step-100);
-  border-color: var(--ion-color-primary);
-  color: var(--ion-color-primary);
+  background: transparent;
+  border-color: var(--ion-color-medium);
+  color: var(--ion-color-medium);
 }
 
 .apply-button {
@@ -342,10 +342,10 @@ watch(() => props.filters, (newFilters) => {
   font-weight: 600;
   color: white;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .apply-button:hover {
-  background: var(--ion-color-primary-shade);
+  background: var(--ion-color-primary);
 }
 </style>

@@ -135,7 +135,7 @@ const handleModalClose = () => {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -150,7 +150,7 @@ const handleModalClose = () => {
 }
 
 .cancel-button:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .delete-button {
@@ -159,7 +159,7 @@ const handleModalClose = () => {
 }
 
 .delete-button:hover {
-  background: var(--ion-color-danger-shade);
+  background: var(--ion-color-danger);
 }
 
 .delete-button:disabled {

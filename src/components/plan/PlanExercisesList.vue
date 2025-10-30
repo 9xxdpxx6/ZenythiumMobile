@@ -62,15 +62,13 @@ defineEmits<{
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.add-exercise-button:hover {
-  background: var(--ion-color-primary-shade);
-}
+.add-exercise-button:hover { background: var(--ion-color-primary); }
 </style>
 
 

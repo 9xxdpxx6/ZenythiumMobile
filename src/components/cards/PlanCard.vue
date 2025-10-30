@@ -85,9 +85,15 @@ const formatDate = (dateString: string) => {
 .plan-card {
   padding: 20px !important;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: none;
   display: flex;
   flex-direction: column;
+}
+
+/* Neutralize modern-card hover elevation for plan cards */
+.plan-card.modern-card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .plan-header {
@@ -203,9 +209,10 @@ const formatDate = (dateString: string) => {
   height: 28px;
 }
 
+/* Keep duplicate button stable on hover */
 .duplicate-button:hover:not(:disabled) {
-  background: var(--ion-color-primary);
-  color: white;
+  background: transparent;
+  color: var(--ion-color-primary);
 }
 
 .duplicate-button:disabled {

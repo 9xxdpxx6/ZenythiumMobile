@@ -72,7 +72,7 @@ const clearSearch = () => {
   border-radius: 12px;
   padding: 0 16px;
   height: 48px;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: none;
 }
 
 .search-input-wrapper:focus-within {
@@ -128,11 +128,8 @@ const clearSearch = () => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
-.clear-search-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-text-color);
-}
+.clear-search-button:hover { background: transparent; color: var(--ion-color-medium); }
 </style>

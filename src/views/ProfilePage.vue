@@ -229,9 +229,7 @@ onMounted(async () => {
   background: var(--ion-color-danger);
 }
 
-.modern-button.logout-button:hover:not(:disabled) {
-  background: var(--ion-color-danger-shade);
-}
+.modern-button.logout-button:hover:not(:disabled) { background: var(--ion-color-danger); }
 
 .navigation-section {
   margin: 0;
@@ -250,7 +248,7 @@ onMounted(async () => {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -258,9 +256,7 @@ onMounted(async () => {
   justify-content: flex-start;
 }
 
-.nav-button:hover {
-  background: var(--ion-color-primary-shade);
-}
+.nav-button:hover { background: var(--ion-color-primary); }
 
 .nav-button i {
   font-size: 18px;

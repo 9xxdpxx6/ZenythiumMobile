@@ -96,13 +96,14 @@ const formatTime = (dateString: string) => {
   border-radius: 12px;
   margin: 0 !important;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: none;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+/* Disable hover elevation for metric cards */
+.metric-card.modern-card:hover {
+  transform: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
 }
 
 .metric-header {
@@ -135,12 +136,10 @@ const formatTime = (dateString: string) => {
   padding: 0;
 }
 
-.edit-btn:hover {
-  --color: var(--ion-color-primary);
-}
-
+/* Keep icon color stable on hover */
+.edit-btn:hover,
 .delete-btn:hover {
-  --color: var(--ion-color-danger);
+  --color: var(--ion-color-medium);
 }
 
 .metric-content {

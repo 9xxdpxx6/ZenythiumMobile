@@ -606,7 +606,7 @@ watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartD
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -615,11 +615,7 @@ watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartD
   min-height: 40px;
 }
 
-.delete-cycle-button:hover {
-  background: rgba(239, 68, 68, 0.05);
-  border-color: rgba(239, 68, 68, 0.6);
-  color: rgba(239, 68, 68, 0.8);
-}
+.delete-cycle-button:hover { background: transparent; border-color: rgba(239, 68, 68, 0.4); color: rgba(239, 68, 68, 0.7); }
 
 .delete-cycle-button:disabled {
   opacity: 0.4;

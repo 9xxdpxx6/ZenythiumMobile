@@ -216,16 +216,14 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 12px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
   min-height: 44px;
 }
 
-.select-input:hover {
-  border-color: #6B7280;
-}
+.select-input:hover { border-color: #6B7280; }
 
 .select-input.is-open {
   border-color: #6B7280;
@@ -265,18 +263,15 @@ onUnmounted(() => {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
-.clear-icon:hover {
-  background: #6B7280;
-  color: #FFFFFF;
-}
+.clear-icon:hover { background: transparent; color: #6B7280; }
 
 .dropdown-icon {
   color: #6B7280;
   font-size: 12px;
-  transition: transform 0.2s ease;
+  transition: none;
 }
 
 .dropdown-icon.is-open {
@@ -322,12 +317,12 @@ onUnmounted(() => {
   font-size: 14px;
   color: #FFFFFF;
   outline: none;
-  transition: all 0.2s ease;
+  transition: none;
 }
 
 .search-input:focus {
   border-color: #6B7280;
-  box-shadow: 0 0 0 2px rgba(107, 114, 128, 0.2);
+  box-shadow: none;
 }
 
 .search-input::placeholder {
@@ -359,7 +354,7 @@ onUnmounted(() => {
 .select-option {
   padding: 12px 16px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: none;
   display: flex;
   align-items: center;
   justify-content: space-between;

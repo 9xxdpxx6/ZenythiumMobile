@@ -361,9 +361,8 @@ defineExpose({
   transition: background-color 0.2s;
 }
 
-.nav-button:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+.nav-button { transition: none; }
+.nav-button:hover { background: transparent; }
 
 .month-year {
   color: var(--ion-text-color);
@@ -405,9 +404,8 @@ defineExpose({
   color: var(--ion-text-color);
 }
 
-.calendar-day:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
+.calendar-day { transition: none; }
+.calendar-day:hover { background: transparent; }
 
 .calendar-day.other-month {
   color: var(--ion-color-medium);
@@ -441,7 +439,7 @@ defineExpose({
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: none;
 }
 
 .cancel-btn {
@@ -450,18 +448,14 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.cancel-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
+.cancel-btn:hover { background: transparent; }
 
 .confirm-btn {
   background: var(--ion-color-primary);
   color: white;
 }
 
-.confirm-btn:hover {
-  background: var(--ion-color-primary-shade);
-}
+.confirm-btn:hover { background: var(--ion-color-primary); }
 
 .custom-datepicker-error {
   margin-top: 4px;

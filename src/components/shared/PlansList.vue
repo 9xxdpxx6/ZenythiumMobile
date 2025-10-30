@@ -228,10 +228,10 @@ const onPlanDragEnd = () => {
 }
 
 .plan-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.15);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  transform: none;
+  box-shadow: none;
 }
 
 /* Drag and drop animations - simplified */
@@ -314,9 +314,9 @@ const onPlanDragEnd = () => {
 }
 
 .drag-handle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: var(--ion-color-primary);
-  transform: scale(1.1);
+  background: transparent;
+  color: var(--ion-color-medium);
+  transform: none;
 }
 
 .drag-handle:active {

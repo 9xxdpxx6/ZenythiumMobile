@@ -81,6 +81,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { onIonViewWillEnter, onIonViewDidLeave } from '@ionic/vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -152,6 +153,18 @@ const groupedSets = computed(() => {
   
   return groups;
 });
+
+// Сброс локального состояния экрана редактирования
+const resetState = (): void => {
+  error.value = null;
+  loading.value = false;
+  setsToDelete.value = [];
+  sets.value = [];
+  editData.value = {
+    started_at: null,
+    finished_at: null,
+  };
+};
 
 const loadWorkout = async () => {
   if (!workoutId.value) return;
@@ -304,6 +317,10 @@ const saveWorkout = async () => {
       detail: { workoutId: workoutId.value } 
     }));
     
+    // На всякий случай сбрасываем локальные изменения, если страница останется в кеше
+    setsToDelete.value = [];
+    sets.value = [];
+
     // Возвращаемся к списку тренировок
     router.push('/tabs/workouts');
   } catch (err) {
@@ -409,8 +426,15 @@ const handleBack = () => {
   }
 };
 
-onMounted(() => {
+// Для кешируемых страниц Ionic используем lifecycle-хуки, чтобы данные обновлялись при каждом входе
+onIonViewWillEnter(() => {
+  resetState();
   loadWorkout();
+});
+
+// На выходе очищаем состояние, чтобы при повторном заходе не было ложных изменений
+onIonViewDidLeave(() => {
+  resetState();
 });
 </script>
 
@@ -670,7 +694,5 @@ onMounted(() => {
   color: white;
 }
 
-.modern-button.warning-button:hover:not(:disabled) {
-  background: var(--ion-color-warning-shade);
-}
+.modern-button.warning-button:hover:not(:disabled) { background: var(--ion-color-warning); }
 </style>
