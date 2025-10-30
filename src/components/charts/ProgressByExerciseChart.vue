@@ -2,17 +2,14 @@
   <div class="progress-by-exercise-chart">
     <div class="chart-container modern-card">
       <h3>Прогресс по упражнениям</h3>
-      <div v-if="selectedExercises && selectedExercises.length > 0" class="exercise-selector">
+      <div v-if="exercises && exercises.length > 0" class="exercise-selector">
         <label>Выберите упражнение:</label>
-        <select v-model="selectedExerciseIndex" class="exercise-select">
-          <option 
-            v-for="(exercise, index) in selectedExercises" 
-            :key="index"
-            :value="index"
-          >
-            {{ exercise.name }}
-          </option>
-        </select>
+        <CustomSelect
+          v-model="selectedExerciseIndex"
+          :options="exerciseOptions"
+          placeholder="Выберите упражнение"
+          search-placeholder="Поиск упражнения..."
+        />
       </div>
       <div class="chart-wrapper">
         <Line
@@ -30,6 +27,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import CustomSelect from '@/components/ui/CustomSelect.vue';
 import { Line } from 'vue-chartjs';
 import {
   Chart as ChartJS,
@@ -40,6 +38,7 @@ import {
   Title,
   Tooltip,
   Legend,
+  Filler,
 } from 'chart.js';
 
 ChartJS.register(
@@ -49,7 +48,8 @@ ChartJS.register(
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 interface ExerciseProgress {
@@ -70,6 +70,11 @@ const props = defineProps<Props>();
 
 const selectedExerciseIndex = ref(0);
 
+const exerciseOptions = computed(() => {
+  if (!props.exercises) return [] as Array<{ value: number; label: string }>;
+  return props.exercises.map((ex, idx) => ({ value: idx, label: ex.name }));
+});
+
 const selectedExercise = computed(() => {
   if (!props.exercises || props.exercises.length === 0) return null;
   return props.exercises[selectedExerciseIndex.value] || null;
@@ -84,6 +89,7 @@ const chartData = computed(() => {
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
   
+  const lineColor = getColor(selectedExercise.value.name);
   return {
     labels: sortedData.map(item => {
       const date = new Date(item.date);
@@ -92,12 +98,12 @@ const chartData = computed(() => {
     datasets: [{
       label: `Вес (${selectedExercise.value.name})`,
       data: sortedData.map(item => item.weight),
-      borderColor: 'rgba(75, 192, 192, 1)',
-      backgroundColor: 'rgba(75, 192, 192, 0.2)',
+      borderColor: lineColor,
+      backgroundColor: 'transparent',
       borderWidth: 2,
-      fill: true,
+      fill: false,
       tension: 0.4,
-      pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+      pointBackgroundColor: lineColor,
       pointBorderColor: '#fff',
       pointBorderWidth: 2,
       pointRadius: 4,
@@ -153,6 +159,21 @@ const chartOptions = {
     }
   },
 };
+
+function hashStringToHue(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  // Map to [0, 360)
+  return Math.abs(hash) % 360;
+}
+
+function getColor(name: string): string {
+  const hue = hashStringToHue(name);
+  return `hsl(${hue}, 70%, 55%)`;
+}
 </script>
 
 <style scoped>

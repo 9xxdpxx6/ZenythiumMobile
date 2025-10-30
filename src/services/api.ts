@@ -175,6 +175,12 @@ export const statisticsApi = {
     return response.data;
   },
 
+  // Get exercise statistics (progression etc.)
+  getExerciseStatistics: async (): Promise<any> => {
+    const response = await apiClient.get('/user/exercise-statistics');
+    return response.data;
+  },
+
   // Get metrics with pagination
   getMetrics: async (page: number = 1, perPage: number = 50): Promise<MetricsResponse> => {
     const response = await apiClient.get<MetricsResponse>(`/metrics?page=${page}&per_page=${perPage}`);
