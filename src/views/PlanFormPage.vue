@@ -336,11 +336,12 @@ const fetchAvailableExercises = async (searchTerm: string = '') => {
     const allExercises = await exercisesService.getAll({ search: searchTerm.trim() }) as any[] || [];
     
     // Фильтруем упражнения на клиенте:
-    // Исключаем те, что уже добавлены в текущий план
+    // Исключаем неактивные упражнения и те, что уже добавлены в текущий план
     const addedExerciseIds = exercises.value.map(ex => ex.id);
     const availableExercisesFiltered = allExercises.filter((exercise: any) => {
+      const isActive = exercise.is_active === true || (exercise.is_active as any) === 1;
       const notAdded = !addedExerciseIds.includes(exercise.id);
-      return notAdded;
+      return isActive && notAdded;
     });
     
     availableExercises.value = availableExercisesFiltered;
