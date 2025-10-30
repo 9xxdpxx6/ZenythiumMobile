@@ -28,6 +28,10 @@ export function useActiveWorkout(workoutId: number) {
   });
 
   const fetchWorkout = async () => {
+    if (!Number.isFinite(workoutId) || isNaN(workoutId)) {
+      error.value = 'Некорректный идентификатор тренировки';
+      return;
+    }
     loading.value = true;
     error.value = null;
     

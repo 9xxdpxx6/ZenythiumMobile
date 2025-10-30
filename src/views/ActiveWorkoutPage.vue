@@ -207,11 +207,19 @@ const {
 const handleFinishWorkout = async () => {
   const success = await finishWorkout();
   if (success) {
+    // Notify other pages to refresh workouts list
+    window.dispatchEvent(new CustomEvent('workout-finished', {
+      detail: { workoutId }
+    }));
     router.push('/tabs/workouts');
   }
 };
 
 onMounted(() => {
+  if (!Number.isFinite(workoutId) || isNaN(workoutId)) {
+    router.push('/tabs/workouts');
+    return;
+    }
   fetchWorkout();
 });
 </script>

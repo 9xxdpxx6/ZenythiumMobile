@@ -92,11 +92,11 @@ export class ErrorHandler {
    * Type guard for API error
    */
   private isApiError(error: unknown): error is ApiError {
+    // Accept transformed ApiError from interceptor (may not include 'code')
     return (
       typeof error === 'object' &&
       error !== null &&
-      'code' in error &&
-      'message' in error
+      'message' in (error as any)
     );
   }
 

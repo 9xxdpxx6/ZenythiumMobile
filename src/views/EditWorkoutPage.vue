@@ -103,6 +103,7 @@ import WorkoutBasicInfo from '@/components/workout/WorkoutBasicInfo.vue';
 import WorkoutSetsEditor from '@/components/workout/WorkoutSetsEditor.vue';
 import { workoutsService } from '@/services/workouts.service';
 import { useToast } from '@/composables/useToast';
+import { errorHandler } from '@/utils/error-handler';
 import { Workout, WorkoutSet, ApiError } from '@/types/api';
 
 const route = useRoute();
@@ -228,6 +229,24 @@ const saveWorkout = async () => {
     error.value = 'Время окончания не может быть раньше времени начала';
     return;
   }
+
+  // Валидация подходов (границы и обязательность)
+  for (const set of sets.value) {
+    const weight = set.weight ?? null;
+    const reps = set.reps ?? null;
+    if (weight === null || reps === null) {
+      error.value = 'Заполните вес и повторения для всех подходов';
+      return;
+    }
+    if (weight > 999.99) {
+      error.value = 'Вес не может превышать 999.99';
+      return;
+    }
+    if (weight < 0 || reps <= 0) {
+      error.value = 'Вес должен быть ≥ 0, повторения — положительные';
+      return;
+    }
+  }
   
   loading.value = true;
   error.value = null;
@@ -248,9 +267,17 @@ const saveWorkout = async () => {
     
     await workoutsService.update(workoutId.value.toString(), workoutData);
     
-    // Удаляем помеченные подходы
+    // Удаляем помеченные подходы (404 игнорируем как уже удалённые)
     for (const setId of setsToDelete.value) {
-      await workoutsService.deleteSet(setId);
+      try {
+        await workoutsService.deleteSet(setId);
+      } catch (e: any) {
+        const msg = errorHandler.format(e);
+        // Игнорируем только "Подход не найден"
+        if (!msg.includes('Подход не найден') && !msg.includes('not found')) {
+          throw e;
+        }
+      }
     }
     
     // Обновляем подходы
@@ -281,7 +308,7 @@ const saveWorkout = async () => {
     router.push('/tabs/workouts');
   } catch (err) {
     console.error('Save workout error:', err);
-    error.value = (err as ApiError).message;
+    error.value = errorHandler.format(err as any);
   } finally {
     loading.value = false;
   }

@@ -70,11 +70,12 @@ import {
   IonToast,
 } from '@ionic/vue';
 import { useDataFetching, useToast } from '@/composables';
+import { errorHandler } from '@/utils/error-handler';
 import { plansService, workoutsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import CustomSelect from '@/components/ui/CustomSelect.vue';
-import type { Plan } from '@/types/api';
+// Avoid strict coupling to API Plan type here; we only need id/name/is_active
 
 const router = useRouter();
 const starting = ref(false);
@@ -95,11 +96,11 @@ const planOptions = computed(() => {
   ];
   
   if (plans.value) {
-    plans.value.forEach((plan: Plan) => {
-      if (plan.is_active) {
+    (plans.value as any[]).forEach((plan: any) => {
+      if ((plan as any)?.is_active) {
         options.push({
-          value: plan.id.toString(),
-          label: plan.name
+          value: String((plan as any).id),
+          label: (plan as any).name,
         });
       }
     });
@@ -124,8 +125,14 @@ const startWorkout = async () => {
     
     await showSuccess('Тренировка начата!');
     router.push(`/workout/${workout.id}`);
-  } catch (err) {
-    await showError('Не удалось начать тренировку');
+  } catch (err: any) {
+    const message = errorHandler.format(err);
+    await showError(message || 'Не удалось начать тренировку');
+    // Try to resume active workout if exists
+    const active = await workoutsService.getActive();
+    if (active?.id) {
+      router.push(`/workout/${active.id}`);
+    }
   } finally {
     starting.value = false;
   }

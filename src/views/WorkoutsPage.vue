@@ -122,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -255,6 +255,19 @@ const clearError = () => {
 };
 
 const handleDateFilterChange = () => execute();
+
+// Refresh workouts when a workout is started/finished elsewhere
+const handleExternalRefresh = () => execute();
+
+onMounted(() => {
+  window.addEventListener('workout-started', handleExternalRefresh as EventListener);
+  window.addEventListener('workout-finished', handleExternalRefresh as EventListener);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('workout-started', handleExternalRefresh as EventListener);
+  window.removeEventListener('workout-finished', handleExternalRefresh as EventListener);
+});
 </script>
 
 <style scoped>

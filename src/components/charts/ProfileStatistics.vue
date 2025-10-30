@@ -74,12 +74,35 @@ interface Props {
 defineProps<Props>();
 
 const formatTime = (minutes: number) => {
+  if (!minutes || minutes <= 0) return '0м';
+
   const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}ч ${mins}м`;
+
+  // 1000+ hours → show in days
+  if (hours >= 1000) {
+    const days = Math.floor(hours / 24);
+    // 1000+ days → show in years
+    if (days >= 1000) {
+      const years = Math.floor(days / 365);
+      return `${years} г`;
+    }
+    return `${days} д`;
   }
-  return `${mins}м`;
+
+  // 10+ hours → show only hours (no minutes) to keep width compact
+  if (hours >= 10) {
+    return `${hours} ч`;
+  }
+
+  // < 10 hours → show hours and minutes
+  if (hours > 0) {
+    const mins = minutes % 60;
+    return `${hours} ч ${mins} м`;
+  }
+
+  // < 1 hour → only minutes
+  const mins = minutes % 60;
+  return `${mins} м`;
 };
 
 const formatWeight = (volume: number | string) => {
