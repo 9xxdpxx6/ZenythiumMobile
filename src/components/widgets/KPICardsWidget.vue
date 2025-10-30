@@ -13,7 +13,7 @@
       <div class="kpi-card modern-card">
         <div class="kpi-icon">⏱️</div>
         <div class="kpi-content">
-          <h3>Время тренировок</h3>
+          <h3>Общее время тренировок</h3>
           <div class="kpi-value">{{ formatTime(statistics?.total_training_time || 0) }}</div>
         </div>
       </div>
@@ -21,7 +21,7 @@
       <div class="kpi-card modern-card">
         <div class="kpi-icon">📈</div>
         <div class="kpi-content">
-          <h3>Частота (4 недели)</h3>
+          <h3>Частота (последние 4 недели)</h3>
           <div class="kpi-value">{{ statistics?.training_frequency_4_weeks || 0 }} в неделю</div>
         </div>
       </div>
@@ -84,10 +84,11 @@ const topRecords = computed(() => {
     .slice(0, 3);
 });
 
-const formatTime = (seconds: number) => {
-  if (!seconds || isNaN(seconds)) return '0м';
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
+// API возвращает total_training_time в МИНУТАХ (см. api-docs), форматируем ч/м
+const formatTime = (minutesTotal: number) => {
+  if (!minutesTotal || isNaN(minutesTotal)) return '0м';
+  const hours = Math.floor(minutesTotal / 60);
+  const minutes = Math.round(minutesTotal % 60);
   if (hours > 0) {
     return `${hours}ч ${minutes}м`;
   }
