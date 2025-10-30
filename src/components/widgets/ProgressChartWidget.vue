@@ -127,8 +127,7 @@ import {
 } from 'chart.js';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { metricsService } from '@/services/metrics.service';
-import apiClient from '@/services/api';
-import type { MetricsResponse } from '@/types/api';
+import { statisticsService } from '@/services/statistics.service';
 
 ChartJS.register(
   CategoryScale,
@@ -160,15 +159,7 @@ const { data: metrics, loading, execute: fetchMetrics } = useDataFetching(
 );
 
 const { data: exerciseStats, loading: exerciseLoading } = useDataFetching(
-  async () => {
-    try {
-      const response = await apiClient.get('/user/exercise-statistics');
-      return response.data.data;
-    } catch (error) {
-      console.error('Error fetching exercise statistics:', error);
-      return null;
-    }
-  },
+  () => statisticsService.getExerciseStatistics(),
   { immediate: true }
 );
 

@@ -362,7 +362,7 @@ ion-spinner {
   flex-direction: column;
   justify-content: flex-start;
   min-height: 100vh;
-  padding: 60px 24px 24px 24px;
+  padding: 140px 24px 24px 24px;
   max-width: 400px;
   margin: 0 auto;
 }
@@ -376,7 +376,7 @@ ion-spinner {
 .register-page {
   justify-content: flex-start !important;
   padding: 24px !important;
-  padding-top: 40px !important;
+  padding-top: 100px !important;
 }
 
 .auth-form {
