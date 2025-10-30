@@ -139,8 +139,9 @@ const handleClose = () => {
 }
 
 .metric-form {
-  max-width: 500px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin: 0;
   padding: 16px; 
 }
 
@@ -162,6 +163,7 @@ const handleClose = () => {
 
 .form-actions {
   margin-top: 24px;
+  padding: 8px 16px; /* keep 16px gutters at sides */
 }
 
 .save-btn {
@@ -169,6 +171,8 @@ const handleClose = () => {
   --padding-top: 14px;
   --padding-bottom: 14px;
   font-weight: 600;
+  display: block;       /* ensure full width */
+  width: 100%;          /* stretch across container */
 }
 </style>
 

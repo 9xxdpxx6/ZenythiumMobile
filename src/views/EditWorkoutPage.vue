@@ -270,7 +270,7 @@ const saveWorkout = async () => {
     // Удаляем помеченные подходы (404 игнорируем как уже удалённые)
     for (const setId of setsToDelete.value) {
       try {
-        await workoutsService.deleteSet(setId);
+      await workoutsService.deleteSet(setId);
       } catch (e: any) {
         const msg = errorHandler.format(e);
         // Игнорируем только "Подход не найден"
