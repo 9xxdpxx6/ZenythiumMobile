@@ -48,7 +48,7 @@
               v-for="plan in plans"
               :key="plan.id"
               :plan="plan"
-              :is-duplicating="duplicatingPlanId === plan.id"
+              :is-duplicating="duplicatingPlanId === Number(plan.id)"
               @click="handlePlanClick"
               @duplicate="duplicatePlan"
               v-show="!searchLoading"

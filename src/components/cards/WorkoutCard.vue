@@ -13,12 +13,12 @@
     class="workout-card"
   >
     <div class="workout-header">
-      <h3>{{ formatDate((workout as any).started_at || (workout as any).startDate || '') }}</h3>
+      <h3>{{ formatDate((workout as any).startedAt || (workout as any).started_at || (workout as any).startDate || '') }}</h3>
       <CustomChip
-        :color="(workout as any).finished_at || (workout as any).completedAt ? 'success' : 'warning'"
+        :color="(workout as any).completedAt || (workout as any).finished_at ? 'success' : 'warning'"
         size="small"
       >
-        {{ (workout as any).finished_at || (workout as any).completedAt ? 'Завершена' : 'Активна' }}
+        {{ (workout as any).completedAt || (workout as any).finished_at ? 'Завершена' : 'Активна' }}
       </CustomChip>
     </div>
     
@@ -63,7 +63,9 @@ const handleClick = () => {
 };
 
 const formatDate = (dateString: string) => {
+  if (!dateString) return '';
   const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
   return date.toLocaleDateString('ru-RU', {
     day: 'numeric',
     month: 'long',
@@ -75,7 +77,7 @@ const formatDate = (dateString: string) => {
 
 const isCompleted = computed(() => {
   const workoutData = props.workout as any;
-  return workoutData?.finished_at || workoutData?.completedAt;
+  return workoutData?.completedAt || workoutData?.finished_at;
 });
 
 const getDuration = computed(() => {
@@ -91,8 +93,8 @@ const getDuration = computed(() => {
   }
   
   // Calculate from dates
-  const startedAt = workoutData?.started_at || workoutData?.startDate;
-  const finishedAt = workoutData?.finished_at || workoutData?.completedAt;
+  const startedAt = workoutData?.startedAt || workoutData?.started_at || workoutData?.startDate;
+  const finishedAt = workoutData?.completedAt || workoutData?.finished_at;
   
   if (!startedAt || !finishedAt) {
     return null;

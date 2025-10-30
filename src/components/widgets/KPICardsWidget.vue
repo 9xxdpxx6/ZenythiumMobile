@@ -38,8 +38,8 @@
         <div class="kpi-icon">⚖️</div>
         <div class="kpi-content">
           <h3>Изменение веса (30 дней)</h3>
-          <div class="kpi-value" :class="getWeightChangeClass(statistics?.weight_change_30_days)">
-            {{ formatWeightChange(statistics?.weight_change_30_days) }}
+          <div class="kpi-value" :class="getWeightChangeClass(statistics?.weight_change_30_days ?? null)">
+            {{ formatWeightChange(statistics?.weight_change_30_days ?? null) }}
           </div>
         </div>
       </div>

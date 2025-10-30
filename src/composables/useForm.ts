@@ -11,7 +11,7 @@ export type ValidationSchema<T> = {
 };
 
 export interface UseFormReturn<T> {
-  values: T;
+  values: T & Record<string, any>;
   errors: Partial<Record<keyof T, string>>;
   touched: Partial<Record<keyof T, boolean>>;
   isSubmitting: Ref<boolean>;
@@ -59,9 +59,9 @@ export function useForm<T extends Record<string, any>>(
    * Set field value
    */
   const setFieldValue = (field: keyof T, value: any): void => {
-    values[field] = value;
+    (values as any)[field] = value;
     // Validate field if it's been touched
-    if (touched[field]) {
+    if ((touched as any)[field]) {
       validateField(field);
     }
   };
@@ -70,7 +70,7 @@ export function useForm<T extends Record<string, any>>(
    * Set field touched state
    */
   const setFieldTouched = (field: keyof T, isTouched: boolean = true): void => {
-    touched[field] = isTouched;
+    (touched as any)[field] = isTouched;
     if (isTouched) {
       validateField(field);
     }
@@ -81,9 +81,9 @@ export function useForm<T extends Record<string, any>>(
    */
   const setFieldError = (field: keyof T, error: string | null): void => {
     if (error) {
-      errors[field] = error;
+      (errors as any)[field] = error;
     } else {
-      delete errors[field];
+      delete (errors as any)[field];
     }
   };
 
@@ -96,7 +96,7 @@ export function useForm<T extends Record<string, any>>(
     }
 
     const validators = validationSchema[field];
-    const value = values[field];
+    const value = (values as any)[field];
 
     // Handle single validator
     if (typeof validators === 'function') {
@@ -154,7 +154,7 @@ export function useForm<T extends Record<string, any>>(
   ): Promise<void> => {
     // Mark all fields as touched
     Object.keys(values).forEach(field => {
-      touched[field as keyof T] = true;
+      (touched as any)[field as keyof T] = true;
     });
 
     // Validate form
@@ -167,7 +167,7 @@ export function useForm<T extends Record<string, any>>(
     // Submit form
     isSubmitting.value = true;
     try {
-      await onSubmit(values);
+      await onSubmit(values as T);
     } finally {
       isSubmitting.value = false;
     }
@@ -180,24 +180,24 @@ export function useForm<T extends Record<string, any>>(
     const resetValues = newValues ? { ...initialValues, ...newValues } : initialValues;
 
     Object.keys(resetValues).forEach(key => {
-      values[key as keyof T] = resetValues[key as keyof T];
+      (values as any)[key as keyof T] = resetValues[key as keyof T];
     });
 
     Object.keys(errors).forEach(key => {
-      delete errors[key as keyof T];
+      delete (errors as any)[key as keyof T];
     });
 
     Object.keys(touched).forEach(key => {
-      delete touched[key as keyof T];
+      delete (touched as any)[key as keyof T];
     });
 
     isSubmitting.value = false;
   };
 
   return {
-    values,
-    errors,
-    touched,
+    values: values as T & Record<string, any>,
+    errors: errors as Partial<Record<keyof T, string>>,
+    touched: touched as Partial<Record<keyof T, boolean>>,
     isSubmitting,
     isValid,
     isDirty,

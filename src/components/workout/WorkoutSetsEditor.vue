@@ -93,7 +93,7 @@ defineEmits<{
 
 const handleWeightChange = (set: WorkoutSet, value: string) => {
   const numValue = value ? parseFloat(value) : null;
-  if (!isNaN(numValue as number) && numValue >= 0) {
+  if (numValue !== null && !isNaN(numValue) && numValue >= 0) {
     set.weight = numValue;
   } else {
     set.weight = null;
@@ -102,7 +102,7 @@ const handleWeightChange = (set: WorkoutSet, value: string) => {
 
 const handleRepsChange = (set: WorkoutSet, value: string) => {
   const numValue = value ? parseInt(value) : null;
-  if (!isNaN(numValue as number) && numValue > 0) {
+  if (numValue !== null && !isNaN(numValue) && numValue > 0) {
     set.reps = numValue;
   } else {
     set.reps = null;

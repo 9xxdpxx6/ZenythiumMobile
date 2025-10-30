@@ -22,7 +22,9 @@ export interface Workout {
   startedAt?: string;
   completedAt?: string;
   duration?: number;
-  exercises: WorkoutExercise[];
+  // For active workout, exercises come from API as PlanExercise[] with history
+  // This allows useActiveWorkout to access exercise.history structure
+  exercises: any[];
   notes?: string;
   createdAt: string;
   updatedAt: string;

@@ -13,6 +13,8 @@ import type {
   CompleteWorkoutDto,
   UpdateSetDto,
 } from '../types/models/workout.types';
+import { WorkoutStatus } from '../types/models/workout.types';
+import type { Workout as ApiWorkout } from '../types/api';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
 
@@ -22,15 +24,89 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
   }
 
   /**
+   * Override getAll to map API response
+   */
+  async getAll(filters?: any): Promise<Workout[]> {
+    try {
+      const params = this.buildQueryParams(filters);
+      const response = await apiClient.get<{ data: ApiWorkout[] }>(this.baseUrl, { params });
+      return response.data.data.map(workout => this.mapWorkoutFromApi(workout));
+    } catch (error) {
+      errorHandler.log(error, `${this.constructor.name}.getAll`);
+      throw error;
+    }
+  }
+
+  /**
+   * Override getPaginated to map API response
+   */
+  async getPaginated(filters?: any): Promise<any> {
+    try {
+      const params = this.buildQueryParams(filters);
+      const response = await apiClient.get<{ data: ApiWorkout[]; meta: any }>(this.baseUrl, { params });
+      return {
+        data: response.data.data.map(workout => this.mapWorkoutFromApi(workout)),
+        meta: response.data.meta,
+      };
+    } catch (error) {
+      errorHandler.log(error, `${this.constructor.name}.getPaginated`);
+      throw error;
+    }
+  }
+
+  /**
+   * Override getById to map API response
+   */
+  async getById(id: string): Promise<Workout> {
+    try {
+      const response = await apiClient.get<{ data: ApiWorkout }>(`${this.baseUrl}/${id}`);
+      return this.mapWorkoutFromApi(response.data.data);
+    } catch (error) {
+      errorHandler.log(error, `${this.constructor.name}.getById`);
+      throw error;
+    }
+  }
+
+  /**
+   * Map API response to Workout model
+   */
+  private mapWorkoutFromApi(apiWorkout: ApiWorkout): Workout {
+    // Map status from API format to domain format
+    let status: WorkoutStatus = WorkoutStatus.SCHEDULED;
+    if (apiWorkout.status === 'active') {
+      status = WorkoutStatus.IN_PROGRESS;
+    } else if (apiWorkout.status === 'completed') {
+      status = WorkoutStatus.COMPLETED;
+    }
+
+    return {
+      id: String(apiWorkout.id),
+      userId: String(apiWorkout.user_id),
+      name: apiWorkout.plan?.name || 'Тренировка',
+      status,
+      startedAt: apiWorkout.started_at,
+      completedAt: apiWorkout.finished_at || undefined,
+      // Keep exercises as-is from API to preserve history structure for useActiveWorkout
+      // exercises will be PlanExercise[] with history property from API
+      exercises: apiWorkout.exercises || [],
+      createdAt: apiWorkout.created_at,
+      updatedAt: apiWorkout.updated_at,
+    };
+  }
+
+  /**
    * Get active workout
    * Returns null if no active workout (404 or 500 errors are treated as "no active workout")
    */
   async getActive(): Promise<Workout | null> {
     try {
-      const response = await apiClient.get<{ data: Workout | null }>(
+      const response = await apiClient.get<{ data: ApiWorkout | null }>(
         API_ENDPOINTS.WORKOUT_ACTIVE
       );
-      return response.data.data;
+      if (!response.data.data) {
+        return null;
+      }
+      return this.mapWorkoutFromApi(response.data.data);
     } catch (error: any) {
       // 404 or 500 means no active workout - this is normal, not an error
       if (error?.response?.status === 404 || error?.response?.status === 500) {
@@ -56,12 +132,12 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
         }
       }
 
-      const response = await apiClient.post<{ data: Workout }>(
+      const response = await apiClient.post<{ data: ApiWorkout }>(
         API_ENDPOINTS.WORKOUTS_START,
         payload
       );
       logger.info('WorkoutsService: Workout started successfully');
-      return response.data.data;
+      return this.mapWorkoutFromApi(response.data.data);
     } catch (error) {
       errorHandler.log(error, 'WorkoutsService.start');
       throw error;
@@ -114,12 +190,12 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
       }
       
       // Transform to API format: use PUT /workouts/{id} with finished_at and required fields
-      const response = await apiClient.put<{ data: Workout }>(
+      const response = await apiClient.put<{ data: ApiWorkout }>(
         API_ENDPOINTS.WORKOUT_BY_ID(id),
         requestBody
       );
       logger.info('WorkoutsService: Workout completed successfully');
-      return response.data.data;
+      return this.mapWorkoutFromApi(response.data.data);
     } catch (error) {
       errorHandler.log(error, 'WorkoutsService.complete');
       throw error;
