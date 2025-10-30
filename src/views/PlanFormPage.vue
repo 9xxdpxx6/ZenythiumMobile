@@ -54,7 +54,7 @@
               <ion-spinner v-if="submitting" name="crescent"></ion-spinner>
               <span v-else>
                 <i :class="isEditMode ? 'fas fa-save' : 'fas fa-plus'"></i>
-                {{ isEditMode ? 'Сохранить' : 'Создать план' }}
+                {{ isEditMode ? 'Сохранить' : 'Создать' }}
               </span>
             </button>
           </div>
@@ -119,7 +119,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   IonPage,
@@ -298,6 +298,25 @@ const checkForUnsavedChanges = (): boolean => {
     });
   
   return formChanged || exercisesChanged;
+};
+
+// Функция для полного сброса состояния формы при создании нового плана
+const resetFormState = () => {
+  formData.value = {
+    name: '',
+    is_active: true,
+  };
+  exercises.value = [];
+  errors.value = {};
+  initialFormData.value = { name: '', is_active: true };
+  initialExercises.value = [];
+  
+  // Закрываем все модальные окна
+  exerciseModal.close();
+  deleteExerciseModal.close();
+  deletePlanModal.close();
+  unsavedChangesModal.close();
+  pendingNavigation.value = null;
 };
 
 const handleBack = () => {
@@ -503,11 +522,36 @@ const fetchPlanData = async () => {
   }
 };
 
+// Сбрасываем состояние при переходе в режим создания нового плана
+watch(isEditMode, (newMode, oldMode) => {
+  // Если переходим из режима редактирования в режим создания
+  if (oldMode !== undefined && !newMode && oldMode) {
+    resetFormState();
+    hasUnsavedChanges.value = false;
+  }
+}, { immediate: false });
+
+// Также отслеживаем прямой переход на страницу создания
+watch(() => route.params.id, (newId) => {
+  // Если переходим на создание нового плана
+  if (!newId || newId === 'new') {
+    if (!isEditMode.value) {
+      resetFormState();
+      hasUnsavedChanges.value = false;
+      // Сохраняем начальные значения для отслеживания изменений
+      initialFormData.value = { ...formData.value };
+      initialExercises.value = [...exercises.value];
+    }
+  }
+}, { immediate: false });
+
 onMounted(() => {
   if (isEditMode.value) {
     fetchPlanData();
   } else {
-    // Для новых планов сохраняем начальные значения
+    // Для новых планов сбрасываем состояние
+    resetFormState();
+    // Сохраняем начальные значения для отслеживания изменений
     initialFormData.value = { ...formData.value };
     initialExercises.value = [...exercises.value];
   }

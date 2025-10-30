@@ -59,7 +59,7 @@
               <ion-spinner v-if="submitting" name="crescent"></ion-spinner>
               <span v-else>
                 <i :class="isEditMode ? 'fas fa-save' : 'fas fa-plus'"></i>
-                {{ isEditMode ? 'Сохранить' : 'Создать цикл' }}
+                {{ isEditMode ? 'Сохранить' : 'Создать' }}
               </span>
             </button>
           </div>
@@ -343,11 +343,24 @@ const fetchAvailablePlans = async (searchTerm: string = '') => {
   try {
     const allPlans = await plansService.getAll({ search: searchTerm.trim() }) as any[] || [];
     
+    // Планы, которые уже добавлены в текущий цикл (разрешаем их выбрать повторно)
     const addedPlanIds = cyclePlans.value.map(cp => cp.plan_id);
+    
+    // Текущий ID цикла (если редактируем)
+    const currentCycleId = isEditMode.value ? parseInt(cycleId.value) : null;
+    
     const availablePlansFiltered = allPlans.filter((plan: any) => {
       const isActive = plan.is_active === true || (plan.is_active as any) === 1;
       const notAdded = !addedPlanIds.includes(plan.id);
-      return isActive && notAdded;
+      
+      // Проверяем, не используется ли план в другом цикле
+      // План доступен если:
+      // 1. У плана нет cycle (не используется ни в каком цикле)
+      // 2. ИЛИ мы редактируем цикл и план принадлежит текущему циклу
+      const isAvailable = !plan.cycle || 
+        (isEditMode.value && plan.cycle?.id === currentCycleId);
+      
+      return isActive && notAdded && isAvailable;
     });
     
     availablePlans.value = availablePlansFiltered;
@@ -512,6 +525,36 @@ const initializeOriginalState = () => {
   originalCyclePlans.value = [];
 };
 
+// Функция для полного сброса состояния формы при создании нового цикла
+const resetFormState = () => {
+  const currentDate = new Date();
+  const defaultName = generateCycleName(currentDate, 6);
+  
+  formData.value = {
+    name: defaultName,
+    weeks: '6',
+    start_date: currentDate,
+    end_date: null,
+  };
+  cyclePlans.value = [];
+  errors.value = {};
+  originalFormData.value = {
+    name: defaultName,
+    weeks: '6',
+    start_date: currentDate,
+    end_date: null,
+  };
+  originalCyclePlans.value = [];
+  availablePlans.value = [];
+  
+  // Закрываем все модальные окна
+  planModal.close();
+  deletePlanModal.close();
+  deleteCycleModal.close();
+  unsavedChangesModal.close();
+  pendingNavigation.value = null;
+};
+
 const handleBack = () => {
   if (hasUnsavedChanges.value) {
     pendingNavigation.value = () => router.back();
@@ -553,13 +596,30 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   }
 });
 
+// Сбрасываем состояние при переходе в режим создания нового цикла
+watch(isEditMode, (newMode, oldMode) => {
+  // Если переходим из режима редактирования в режим создания
+  if (oldMode !== undefined && !newMode && oldMode) {
+    resetFormState();
+  }
+}, { immediate: false });
+
+// Также отслеживаем прямой переход на страницу создания
+watch(() => route.params.id, (newId) => {
+  // Если переходим на создание нового цикла
+  if (!newId || newId === 'new') {
+    if (!isEditMode.value) {
+      resetFormState();
+    }
+  }
+}, { immediate: false });
+
 onMounted(() => {
   if (isEditMode.value) {
     fetchCycleData();
   } else {
-    initializeOriginalState();
-    const currentDate = new Date();
-    formData.value.name = generateCycleName(currentDate, 6);
+    // Для новых циклов сбрасываем состояние
+    resetFormState();
   }
 });
 
