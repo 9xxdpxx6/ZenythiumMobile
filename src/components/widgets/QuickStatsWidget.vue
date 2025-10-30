@@ -52,8 +52,6 @@
 import { computed, ref } from 'vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
-import apiClient from '@/services/api';
-import { workoutsService } from '@/services/workouts.service';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import type { Statistics } from '@/types/api';
 import type { Workout } from '@/types/models/workout.types';
@@ -77,29 +75,13 @@ const { data: statsData, loading: statsLoading } = useDataFetching(
 
 // Fetch time analytics
 const { data: timeData, loading: timeLoading } = useDataFetching(
-  async () => {
-    try {
-      const response = await apiClient.get('/user/time-analytics');
-      return response.data.data;
-    } catch (error) {
-      console.error('Error fetching time analytics:', error);
-      return null;
-    }
-  },
+  () => statisticsService.getTimeAnalytics(),
   { immediate: true }
 );
 
 // Fetch muscle group stats
 const { data: muscleData, loading: muscleLoading } = useDataFetching(
-  async () => {
-    try {
-      const response = await apiClient.get('/user/muscle-group-statistics');
-      return response.data.data;
-    } catch (error) {
-      console.error('Error fetching muscle group stats:', error);
-      return null;
-    }
-  },
+  () => statisticsService.getMuscleGroupStatistics(),
   { immediate: true }
 );
 
@@ -169,15 +151,35 @@ const trainingStreak = computed(() => {
 });
 
 const mostTrainedMuscleGroup = computed(() => {
-  if (!muscleGroupStats.value?.muscle_groups || muscleGroupStats.value.muscle_groups.length === 0) {
-    return '—';
+  // Normalize groups from service mapping or raw API
+  const groups = (muscleGroupStats.value?.muscle_groups
+    || (muscleGroupStats.value as any)?.data?.muscle_group_stats
+    || (muscleGroupStats.value as any)?.data?.muscle_groups
+    || []) as any[];
+
+  if (!Array.isArray(groups) || groups.length === 0) return '—';
+
+  // Rule: max total_volume; tie-breakers: workout_count -> avg_volume_per_workout -> original order
+  let maxIdx = 0;
+  for (let i = 1; i < groups.length; i++) {
+    const a = groups[maxIdx] || {};
+    const b = groups[i] || {};
+    const aVol = Number(a.total_volume ?? 0);
+    const bVol = Number(b.total_volume ?? 0);
+    if (bVol > aVol) { maxIdx = i; continue; }
+    if (bVol < aVol) { continue; }
+    const aCnt = Number(a.workout_count ?? 0);
+    const bCnt = Number(b.workout_count ?? 0);
+    if (bCnt > aCnt) { maxIdx = i; continue; }
+    if (bCnt < aCnt) { continue; }
+    const aAvg = Number(a.avg_volume_per_workout ?? 0);
+    const bAvg = Number(b.avg_volume_per_workout ?? 0);
+    if (bAvg > aAvg) { maxIdx = i; continue; }
+    // else keep original order
   }
-  
-  const sortedGroups = muscleGroupStats.value.muscle_groups.sort((a: any, b: any) => 
-    (b.total_volume || 0) - (a.total_volume || 0)
-  );
-  
-  return sortedGroups[0]?.muscle_group_name || '—';
+
+  const top = groups[maxIdx] || {};
+  return top.muscle_group_name || top.name || '—';
 });
 
 const formatTimeCompact = (seconds: number) => {

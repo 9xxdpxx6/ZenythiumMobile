@@ -345,6 +345,28 @@ export interface TimeAnalyticsResponse {
   message: string;
 }
 
+// Muscle group statistics (separate endpoint)
+export interface MuscleGroupStatistics {
+  muscle_groups: MuscleGroupStats[];
+  balance_analysis: BalanceAnalysis;
+}
+
+// Exercise statistics for widgets (subset of full server payload)
+export interface ExerciseStatistics {
+  top_exercises?: Array<{
+    exercise_name: string;
+    muscle_group?: string;
+    max_weight?: number;
+    total_sets?: number;
+    avg_weight?: number;
+    last_performed?: string;
+  }>;
+  exercise_progress?: Array<{
+    exercise_name: string;
+    weight_progression?: Array<{ max_weight: number; date?: string }>;
+  }>;
+}
+
 // Personal Records types
 export interface PersonalRecord {
   exercise_name: string;

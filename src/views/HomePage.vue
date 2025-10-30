@@ -58,7 +58,6 @@ import {
 } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { useModal } from '@/composables/useModal';
-import apiClient from '@/services/api';
 import { metricsService } from '@/services/metrics.service';
 import { statisticsService } from '@/services/statistics.service';
 import { workoutsService } from '@/services/workouts.service';
@@ -113,45 +112,24 @@ const totalVolume = computed(() => {
 
 // Fetch personal records
 const { data: recordsData } = useDataFetching(
-  async () => {
-    try {
-      const response = await apiClient.get('/user/records');
-      return response.data.data;
-    } catch (error) {
-      console.error('Error fetching records:', error);
-      return null;
-    }
-  },
+  () => statisticsService.getPersonalRecords(),
   { immediate: true }
 );
 
 // Fetch muscle group stats
 const { data: muscleGroupStats } = useDataFetching(
-  async () => {
-    try {
-      const response = await apiClient.get('/user/muscle-group-statistics');
-      return response.data.data;
-    } catch (error) {
-      console.error('Error fetching muscle group stats:', error);
-      return null;
-    }
-  },
+  () => statisticsService.getMuscleGroupStatistics(),
   { immediate: true }
 );
 
 const bestPersonalRecord = computed(() => {
-  if (!recordsData.value?.personal_records || recordsData.value.personal_records.length === 0) {
-    return null;
-  }
-  const sortedRecords = recordsData.value.personal_records.sort((a: any, b: any) => 
-    (b.max_weight || 0) - (a.max_weight || 0)
-  );
-  return sortedRecords[0] || null;
+  const records = (recordsData.value as any) || [];
+  if (!Array.isArray(records) || records.length === 0) return null;
+  const sorted = [...records].sort((a: any, b: any) => (b.max_weight || 0) - (a.max_weight || 0));
+  return sorted[0] || null;
 });
 
-const balanceAnalysis = computed(() => {
-  return muscleGroupStats.value?.balance_analysis || null;
-});
+const balanceAnalysis = computed(() => muscleGroupStats.value?.balance_analysis || null);
 
 // Watch loading states
 import { watch } from 'vue';

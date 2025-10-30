@@ -9,9 +9,19 @@ import type {
   Statistics,
   ChartData,
   ProgressData,
-  PersonalRecord,
   DateRangeParams,
 } from '../types/models/statistics.types';
+import type {
+  PersonalRecord as LegacyPersonalRecord,
+  TimeAnalytics,
+  MuscleGroupStatistics,
+  // Minimal typed shape used by widgets
+  // Includes only fields we access in UI components
+  // to keep API coupling low
+  } from '../types/api';
+import type {
+  ExerciseStatistics,
+} from '../types/api';
 import { errorHandler } from '../utils/error-handler';
 
 class StatisticsService {
@@ -80,14 +90,65 @@ class StatisticsService {
   /**
    * Get personal records
    */
-  async getPersonalRecords(): Promise<PersonalRecord[]> {
+  async getPersonalRecords(): Promise<LegacyPersonalRecord[]> {
     try {
-      const response = await apiClient.get<{ data: PersonalRecord[] }>(
+      const response = await apiClient.get<{ data: LegacyPersonalRecord[] }>(
         API_ENDPOINTS.STATISTICS.PERSONAL_RECORDS
       );
       return response.data.data;
     } catch (error) {
       errorHandler.log(error, 'StatisticsService.getPersonalRecords');
+      throw error;
+    }
+  }
+
+  /**
+   * Get time analytics (weekly/monthly trends)
+   */
+  async getTimeAnalytics(): Promise<TimeAnalytics> {
+    try {
+      const response = await apiClient.get<{ data: TimeAnalytics }>(
+        API_ENDPOINTS.STATISTICS.TIME_ANALYTICS
+      );
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'StatisticsService.getTimeAnalytics');
+      throw error;
+    }
+  }
+
+  /**
+   * Get muscle group statistics with balance analysis
+   */
+  async getMuscleGroupStatistics(): Promise<MuscleGroupStatistics> {
+    try {
+      const response = await apiClient.get<{ data: any }>(
+        API_ENDPOINTS.STATISTICS.MUSCLE_GROUP_STATISTICS
+      );
+      const raw = response.data.data || {};
+      // Map API shape { muscle_group_stats: [...] } -> domain { muscle_groups: [...] }
+      const mapped: MuscleGroupStatistics = {
+        muscle_groups: raw.muscle_groups ?? raw.muscle_group_stats ?? [],
+        balance_analysis: raw.balance_analysis ?? null,
+      };
+      return mapped;
+    } catch (error) {
+      errorHandler.log(error, 'StatisticsService.getMuscleGroupStatistics');
+      throw error;
+    }
+  }
+
+  /**
+   * Get exercise statistics used by ProgressChartWidget
+   */
+  async getExerciseStatistics(): Promise<ExerciseStatistics> {
+    try {
+      const response = await apiClient.get<{ data: ExerciseStatistics }>(
+        API_ENDPOINTS.STATISTICS.EXERCISE_STATISTICS
+      );
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'StatisticsService.getExerciseStatistics');
       throw error;
     }
   }
