@@ -59,6 +59,7 @@ import {
 import { useDataFetching } from '@/composables/useDataFetching';
 import { useModal } from '@/composables/useModal';
 import apiClient from '@/services/api';
+import { metricsService } from '@/services/metrics.service';
 import { statisticsService } from '@/services/statistics.service';
 import { workoutsService } from '@/services/workouts.service';
 import PageContainer from '@/components/ui/PageContainer.vue';
@@ -214,7 +215,7 @@ const handleSaveMetric = async () => {
       note: metricFormData.value.note || null
     };
     
-    await apiClient.post('/metrics', metricData);
+    await metricsService.create(metricData as any);
     
     window.dispatchEvent(new CustomEvent('metric-added'));
     await refreshAllData();

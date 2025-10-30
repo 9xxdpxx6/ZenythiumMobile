@@ -29,13 +29,7 @@
             :personal-records="records?.data?.personal_records"
           />
 
-          <!-- Filters -->
-          <StatisticsFilters
-            v-model:date-from="filterDateFrom"
-            v-model:date-to="filterDateTo"
-            @change="handleFilterChange"
-            @reset="handleFilterReset"
-          />
+          <!-- Filters removed: API doesn't support date filtering for these endpoints -->
 
           <!-- Charts Section -->
           <section class="stats-section" v-if="timeAnalytics">
@@ -101,11 +95,9 @@ import {
 import { refreshOutline } from 'ionicons/icons';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
-import apiClient from '@/services/api';
 import { statisticsApi } from '@/services/api';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
-import StatisticsFilters from '@/components/filters/StatisticsFilters.vue';
 import KPICardsWidget from '@/components/widgets/KPICardsWidget.vue';
 import WorkoutVolumeChart from '@/components/charts/WorkoutVolumeChart.vue';
 import MuscleGroupDistributionChart from '@/components/charts/MuscleGroupDistributionChart.vue';
@@ -121,21 +113,19 @@ import type {
 
 const loading = ref(false);
 const error = ref<string | null>(null);
-const filterDateFrom = ref<Date | null>(null);
-const filterDateTo = ref<Date | null>(null);
+// Filters were removed as API doesn't support them for these endpoints
 
 // Fetch statistics
 const { data: statisticsData, loading: statsLoading, execute: fetchStatistics } = useDataFetching(
   async () => {
-    const response = await apiClient.get<StatisticsResponse>('/api/v1/user/statistics');
-    const processedData = {
-      ...response.data.data,
-      total_volume: typeof response.data.data.total_volume === 'string' 
-        ? parseFloat(response.data.data.total_volume) || 0 
-        : response.data.data.total_volume,
-      weight_change_30_days: response.data.data.weight_change_30_days || 0,
-    };
-    return processedData;
+    const overview = await statisticsService.getOverview();
+    return {
+      ...overview,
+      total_volume: typeof (overview as any).total_volume === 'string'
+        ? parseFloat((overview as any).total_volume as unknown as string) || 0
+        : (overview as any).total_volume,
+      weight_change_30_days: (overview as any).weight_change_30_days || 0,
+    } as any;
   },
   { immediate: true }
 );
@@ -164,21 +154,33 @@ const { data: recordsData, execute: fetchRecords } = useDataFetching(
 
 const records = computed(() => recordsData.value);
 
+// Fetch exercise statistics for progression chart
+const { data: exerciseStatsData, execute: fetchExerciseStats } = useDataFetching(
+  async () => {
+    const response = await statisticsApi.getExerciseStatistics();
+    return response.data;
+  },
+  { immediate: true }
+);
+
 // Computed properties
 const balanceRecommendation = computed(() => {
   return timeAnalytics.value?.balance_analysis?.recommendations?.[0] || null;
 });
 
 const exerciseProgressData = computed(() => {
-  if (!records.value?.data?.personal_records) return [];
-  
-  return records.value.data.personal_records.slice(0, 5).map((record: any) => ({
-    name: record.exercise_name,
-    data: [{
-      date: record.achieved_date,
-      weight: record.max_weight,
-      reps: record.max_reps,
-    }]
+  const stats = exerciseStatsData.value;
+  if (!stats?.exercise_progress || stats.exercise_progress.length === 0) return [];
+
+  return stats.exercise_progress.map((item: any) => ({
+    name: item.exercise_name,
+    data: Array.isArray(item.weight_progression)
+      ? item.weight_progression.map((wp: any) => ({
+          date: wp.date,
+          weight: wp.max_weight,
+          reps: undefined,
+        }))
+      : []
   }));
 });
 
@@ -193,6 +195,7 @@ const refreshAllData = async () => {
       fetchStatistics(),
       fetchTimeAnalytics(),
       fetchRecords(),
+      fetchExerciseStats(),
     ]);
   } catch (err) {
     console.error('Error refreshing data:', err);
@@ -207,15 +210,7 @@ const handleRefresh = async (event: CustomEvent) => {
   event.detail.complete();
 };
 
-const handleFilterChange = () => {
-  refreshAllData();
-};
-
-const handleFilterReset = () => {
-  filterDateFrom.value = null;
-  filterDateTo.value = null;
-  refreshAllData();
-};
+// No filter handlers
 
 const clearError = () => {
   error.value = null;
