@@ -29,7 +29,7 @@
         >
           <!-- Exercise Header -->
           <div class="exercise-header">
-            <h3 class="exercise-title">{{ exercise.exercise.name }}</h3>
+            <h3 class="exercise-title">{{ exercise.order }}. {{ exercise.exercise.name }}</h3>
           </div>
 
           <!-- Previous Sets -->
