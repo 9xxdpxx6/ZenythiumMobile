@@ -71,7 +71,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -212,10 +212,6 @@ const duplicatePlan = async (plan: Plan) => {
     duplicatingPlanId.value = null;
   }
 };
-
-onActivated(() => {
-  fetchData();
-});
 
 const handlePlansUpdated = () => {
   fetchData();

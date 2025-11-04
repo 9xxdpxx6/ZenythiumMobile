@@ -7,6 +7,9 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
       <PageContainer>
         <h1 class="page-title">Профиль</h1>
 
@@ -92,6 +95,8 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonSpinner,
 } from '@ionic/vue';
 import { useAuth } from '@/composables/useAuth';
@@ -112,7 +117,7 @@ const { data: statistics, execute: fetchStatistics } = useDataFetching(
   async () => {
     return await statisticsService.getOverview();
   },
-  { immediate: false }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'profile_statistics' }
 );
 
 const navigateToExercises = () => {
@@ -144,13 +149,19 @@ const handleLogout = async () => {
   }
 };
 
+const handleRefresh = async (event: CustomEvent) => {
+  await fetchUser();
+  await fetchStatistics();
+  event.detail.complete();
+};
+
 onMounted(async () => {
   try {
     await fetchUser();
   } finally {
     userLoading.value = false;
   }
-  await fetchStatistics();
+  // fetchStatistics уже вызывается автоматически через useDataFetching с immediate: true
 });
 </script>
 

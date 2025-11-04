@@ -70,19 +70,19 @@ const loading = ref(false);
 // Fetch statistics
 const { data: statsData, loading: statsLoading } = useDataFetching(
   () => statisticsService.getOverview(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_statistics' }
 );
 
 // Fetch time analytics
 const { data: timeData, loading: timeLoading } = useDataFetching(
   () => statisticsService.getTimeAnalytics(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_time_analytics' }
 );
 
 // Fetch muscle group stats
 const { data: muscleData, loading: muscleLoading } = useDataFetching(
   () => statisticsService.getMuscleGroupStatistics(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_muscle_groups' }
 );
 
 // Update local refs when data loads

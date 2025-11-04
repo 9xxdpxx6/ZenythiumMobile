@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -128,10 +128,6 @@ const handleCyclesUpdated = () => fetchCycles();
 onMounted(() => {
   fetchCycles();
   window.addEventListener('cycles-updated', handleCyclesUpdated);
-});
-
-onActivated(() => {
-  fetchCycles();
 });
 
 onUnmounted(() => {
