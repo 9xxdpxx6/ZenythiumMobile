@@ -1,0 +1,120 @@
+/**
+ * Tab Swipe Navigation Styles
+ * Provides smooth, finger-following animations for tab navigation
+ */
+
+/* Pages container - holds both current and next page during swipe */
+.pages-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Swipe page - both current and next */
+.swipe-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.swipe-page.swiping {
+  transition: none;
+}
+
+/* Disable transition after completion to prevent Ionic animations */
+.swipe-page.current-page:not(.swiping):not(.completing) {
+  transition: none !important;
+  transform: translateX(0) !important;
+}
+
+/* Current page - below next page */
+.swipe-page.current-page {
+  z-index: 1;
+}
+
+/* Next page (preview) - above current page */
+.swipe-page.next-page {
+  z-index: 2;
+}
+
+/* Disable transition when hiding next page after completion */
+.swipe-page.next-page:not(.completing) {
+  transition: none;
+}
+
+/* Ensure ion-router-outlet fills container */
+.swipe-page ion-router-outlet {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Ensure ion-page fills container in next page component */
+.swipe-page.next-page ion-page {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Prevent vertical scrolling during horizontal swipe */
+.pages-container.swiping {
+  touch-action: pan-y;
+}
+
+/* Optimize rendering performance */
+.swipe-container {
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* Override Ionic default transitions for tabs */
+ion-router-outlet {
+  --offset-bottom: 0px;
+  --offset-end: 0px;
+  --offset-start: 0px;
+  --offset-top: 0px;
+}
+
+/* Disable Ionic's built-in page transitions for tabs */
+.pages-container ion-router-outlet {
+  --transition-duration: 0ms !important;
+}
+
+/* Disable Ionic page animations - use ::part for shadow DOM */
+.pages-container ion-router-outlet::part(container) {
+  transition: none !important;
+}
+
+.pages-container ion-router-outlet::part(page) {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Disable Ionic page transition animations */
+.pages-container ion-router-outlet .ion-page {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Disable any Ionic page enter/leave animations */
+.pages-container ion-router-outlet ion-page {
+  transition: none !important;
+  animation: none !important;
+  --offset-bottom: 0px !important;
+  --offset-end: 0px !important;
+  --offset-start: 0px !important;
+  --offset-top: 0px !important;
+}
+
+/* Disable Ionic page transitions globally for tabs */
+.pages-container ion-router-outlet,
+.pages-container ion-router-outlet * {
+  --transition-duration: 0ms !important;
+  --transition-easing: linear !important;
+}
