@@ -3,7 +3,7 @@
  * Handles swipe gestures for tab navigation with finger-following animation
  */
 
-import { ref, computed, nextTick, type Ref } from 'vue';
+import { ref, computed, type Ref } from 'vue';
 
 export interface UseTabSwipeNavigationOptions {
   currentTab: Ref<string>;
@@ -25,6 +25,9 @@ export interface UseTabSwipeNavigationReturn {
   isSwiping: Ref<boolean>;
   isCompleting: Ref<boolean>;
   nextTab: Ref<string | null>;
+  
+  // Tab indicator position
+  activeTabIndicatorStyle: Ref<{ transform: string; width: string; left: string }>;
 }
 
 /**
@@ -50,6 +53,8 @@ export function useTabSwipeNavigation(
   const swipeDirection = ref<'left' | 'right' | null>(null);
   const finalDirection = ref<'left' | 'right' | null>(null);
   const completingNextTab = ref<string | null>(null); // Fixed next tab during completion
+  const swipeStartTabIndex = ref<number | null>(null); // Fixed tab index at swipe start
+  const completingTargetTabIndex = ref<number | null>(null); // Fixed target tab index during completion
 
   // Compute current tab index
   const currentTabIndex = computed(() => {
@@ -85,6 +90,18 @@ export function useTabSwipeNavigation(
     return tabs[nextIndex];
   });
 
+  // Compute swipe progress (0 to 1) for tab indicator animation
+  const swipeProgress = computed(() => {
+    const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    if (windowWidth === 0) return 0;
+    
+    const currentTranslate = translateX.value;
+    const absTranslate = Math.abs(currentTranslate);
+    
+    // Progress from 0 to 1 based on how far we've swiped
+    return Math.min(absTranslate / windowWidth, 1);
+  });
+
   // Compute translateX for current page based on touch position
   const translateX = computed(() => {
     const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
@@ -118,6 +135,117 @@ export function useTabSwipeNavigation(
     if (isVerticalSwipe.value) return 0;
     
     return clampedDelta;
+  });
+  
+  // Compute active tab indicator position and width
+  const activeTabIndicatorStyle = computed(() => {
+    const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+    if (windowWidth === 0) {
+      return { transform: 'translateX(0)', width: '80px', left: '0px' };
+    }
+    
+    // Tab button styling: max-width: 80px, margin: 0 4px (left and right), flex: 1
+    // With flex: 1 and justify-content: center, tabs are distributed evenly
+    const tabMaxWidth = 80;
+    const tabMargin = 4; // margin-left and margin-right each
+    const tabCount = tabs.length;
+    
+    // Calculate actual tab width: tabs use flex: 1, so they share space equally
+    // But are limited by max-width: 80px
+    // Each tab has margin on both sides: left margin (4px) + width + right margin (4px)
+    // Total width needed for tabs at max-width = tabCount * tabMaxWidth + (tabCount + 1) * tabMargin
+    // But actually, flex layout distributes margins differently
+    // Better approach: calculate based on actual flex behavior
+    const totalMarginSpace = tabCount * tabMargin * 2; // Each tab has margin on both sides
+    const totalContentWidth = windowWidth - totalMarginSpace;
+    const flexTabWidth = totalContentWidth / tabCount;
+    
+    // Actual tab width is limited by max-width
+    const actualTabWidth = Math.min(flexTabWidth, tabMaxWidth);
+    
+    // Calculate padding if tabs are centered (when at max-width)
+    const totalWidthAtMax = (tabCount * tabMaxWidth) + totalMarginSpace;
+    const tabBarPadding = windowWidth >= totalWidthAtMax 
+      ? (windowWidth - totalWidthAtMax) / 2 
+      : 0;
+    
+    // Calculate position of each tab
+    // Each tab has: left margin (4px) + width + right margin (4px)
+    // Position = padding + (left margin) + index * (width + left margin + right margin)
+    const getTabLeft = (index: number): number => {
+      return tabBarPadding + tabMargin + (index * (actualTabWidth + tabMargin * 2));
+    };
+    
+    // If not swiping or completing, indicator is on current tab
+    if (!isSwiping.value && !isCompleting.value) {
+      const currentIndex = currentTabIndex.value;
+      if (currentIndex === -1) {
+        return { transform: 'translateX(0)', width: '80px', left: '0px' };
+      }
+      const currentTabLeft = getTabLeft(currentIndex);
+      return {
+        transform: 'translateX(0)',
+        width: `${actualTabWidth}px`,
+        left: `${currentTabLeft}px`,
+      };
+    }
+    
+    // During completion, use fixed target index to prevent double jump
+    if (isCompleting.value && completingTargetTabIndex.value !== null) {
+      const targetIndex = completingTargetTabIndex.value;
+      const targetTabLeft = getTabLeft(targetIndex);
+      return {
+        transform: 'translateX(0)',
+        width: `${actualTabWidth}px`,
+        left: `${targetTabLeft}px`,
+      };
+    }
+    
+    // During swipe, interpolate between start tab and next tab
+    const baseIndex = swipeStartTabIndex.value !== null ? swipeStartTabIndex.value : currentTabIndex.value;
+    if (baseIndex === -1) {
+      return { transform: 'translateX(0)', width: '80px', left: '0px' };
+    }
+    
+    const baseTabLeft = getTabLeft(baseIndex);
+    let progress = swipeProgress.value;
+    const direction = swipeDirection.value || finalDirection.value;
+    
+    if (!direction || !nextTab.value) {
+      return {
+        transform: 'translateX(0)',
+        width: `${actualTabWidth}px`,
+        left: `${baseTabLeft}px`,
+      };
+    }
+    
+    // Calculate next index based on base index (start index), not current index
+    let nextIndex: number;
+    if (direction === 'left') {
+      nextIndex = baseIndex + 1;
+    } else {
+      nextIndex = baseIndex - 1;
+    }
+    
+    if (nextIndex < 0 || nextIndex >= tabs.length) {
+      return {
+        transform: 'translateX(0)',
+        width: `${actualTabWidth}px`,
+        left: `${baseTabLeft}px`,
+      };
+    }
+    
+    const nextTabLeft = getTabLeft(nextIndex);
+    const deltaLeft = nextTabLeft - baseTabLeft;
+    
+    // Apply transform based on swipe progress
+    const translateXValue = deltaLeft * progress;
+    
+    return {
+      transform: `translateX(${translateXValue}px)`,
+      width: `${actualTabWidth}px`,
+      left: `${baseTabLeft}px`,
+    };
   });
 
   // Compute translateX for next page - it starts from opposite side and follows
@@ -195,6 +323,25 @@ export function useTabSwipeNavigation(
     return true;
   };
 
+  /**
+   * Reset tab transform via direct DOM access
+   * NOTE: This is a workaround for Ionic's built-in page transitions.
+   * Direct DOM manipulation is required to override Ionic's internal animations
+   * that interfere with custom swipe navigation.
+   */
+  const resetTabTransform = (): void => {
+    requestAnimationFrame(() => {
+      if (typeof window === 'undefined') return;
+      
+      const tabsElement = document.querySelector('.swipe-page.current-page');
+      if (!tabsElement) return;
+      
+      const element = tabsElement as HTMLElement;
+      element.style.transform = 'translateX(0)';
+      element.style.transition = 'none';
+    });
+  };
+
   // Touch event handlers
   const handleTouchStart = (event: TouchEvent): void => {
     if (event.touches.length === 0) return;
@@ -203,6 +350,8 @@ export function useTabSwipeNavigation(
     isCompleting.value = false;
     finalDirection.value = null;
     completingNextTab.value = null;
+    swipeStartTabIndex.value = null;
+    completingTargetTabIndex.value = null;
     
     isSwiping.value = false;
     isVerticalSwipe.value = false;
@@ -210,6 +359,9 @@ export function useTabSwipeNavigation(
     touchStartX.value = event.touches[0].clientX;
     touchStartY.value = event.touches[0].clientY;
     currentX.value = touchStartX.value;
+    
+    // Save current tab index at swipe start
+    swipeStartTabIndex.value = currentTabIndex.value;
   };
 
   const handleTouchMove = (event: TouchEvent): void => {
@@ -257,6 +409,8 @@ export function useTabSwipeNavigation(
       finalDirection.value = null;
       isCompleting.value = false;
       completingNextTab.value = null;
+      swipeStartTabIndex.value = null;
+      completingTargetTabIndex.value = null;
       return;
     }
     
@@ -270,16 +424,17 @@ export function useTabSwipeNavigation(
       // Check if swipe is allowed in this direction
       if (canSwipe(direction)) {
         // Calculate and fix next tab BEFORE router navigation
-        const index = currentTabIndex.value;
-        let nextIndex: number;
+        const startIndex = swipeStartTabIndex.value !== null ? swipeStartTabIndex.value : currentTabIndex.value;
+        let targetIndex: number;
         if (direction === 'left') {
-          nextIndex = index + 1;
+          targetIndex = startIndex + 1;
         } else {
-          nextIndex = index - 1;
+          targetIndex = startIndex - 1;
         }
         
-        if (nextIndex >= 0 && nextIndex < tabs.length) {
-          completingNextTab.value = tabs[nextIndex];
+        if (targetIndex >= 0 && targetIndex < tabs.length) {
+          completingNextTab.value = tabs[targetIndex];
+          completingTargetTabIndex.value = targetIndex; // Fix target index for indicator
         }
         
         // Start completing animation
@@ -295,6 +450,8 @@ export function useTabSwipeNavigation(
         setTimeout(() => {
           // Clear completingNextTab first to prevent nextTab from recalculating
           completingNextTab.value = null;
+          swipeStartTabIndex.value = null;
+          completingTargetTabIndex.value = null;
           // Then clear other state
           isCompleting.value = false;
           finalDirection.value = null;
@@ -302,15 +459,9 @@ export function useTabSwipeNavigation(
           currentX.value = touchStartX.value;
           
           // Force DOM update to ensure transform is reset and prevent Ionic animations
-          requestAnimationFrame(() => {
-            if (typeof window !== 'undefined') {
-              const tabsElement = document.querySelector('.swipe-page.current-page');
-              if (tabsElement) {
-                (tabsElement as HTMLElement).style.transform = 'translateX(0)';
-                (tabsElement as HTMLElement).style.transition = 'none';
-              }
-            }
-          });
+          // NOTE: Direct DOM access is required here to override Ionic's internal animations
+          // This is a workaround for Ionic's built-in page transitions interfering with custom swipe
+          resetTabTransform();
         }, 300);
       } else {
         // Can't swipe in this direction, return to start
@@ -336,17 +487,12 @@ export function useTabSwipeNavigation(
       swipeDirection.value = null;
       finalDirection.value = null;
       completingNextTab.value = null;
+      swipeStartTabIndex.value = null;
+      completingTargetTabIndex.value = null;
       currentX.value = touchStartX.value;
       
       // Force DOM update to ensure transform is reset
-      requestAnimationFrame(() => {
-        if (typeof window !== 'undefined') {
-          const tabsElement = document.querySelector('.swipe-page.current-page');
-          if (tabsElement) {
-            (tabsElement as HTMLElement).style.transform = 'translateX(0)';
-          }
-        }
-      });
+      resetTabTransform();
     }, 300);
   };
 
@@ -359,6 +505,7 @@ export function useTabSwipeNavigation(
     isSwiping,
     isCompleting,
     nextTab,
+    activeTabIndicatorStyle,
   };
 }
 
