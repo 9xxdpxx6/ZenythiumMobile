@@ -45,7 +45,7 @@
 
       <div class="stat-card modern-card">
         <div class="stat-top">
-          <div class="stat-value">{{ (statistics as any)?.current_weight || 'N/A' }} кг</div>
+          <div class="stat-value">{{ formatCurrentWeight((statistics as any)?.current_weight) }}</div>
           <i class="fas fa-chart-line stat-icon"></i>
         </div>
         <div class="stat-content">
@@ -123,6 +123,11 @@ const formatWeight = (volume: number | string) => {
     return `${floored.toFixed(floored >= 10 ? 0 : 2)}K кг`;
   }
   return `${Math.round(numVolume)} кг`;
+};
+
+const formatCurrentWeight = (weight: number | null | undefined) => {
+  if (weight === null || weight === undefined) return '—';
+  return `${weight} кг`;
 };
 </script>
 

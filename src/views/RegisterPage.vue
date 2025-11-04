@@ -102,7 +102,7 @@ import CustomInput from '@/components/ui/CustomInput.vue';
 import { validators } from '@/utils/validators';
 
 const router = useRouter();
-const { register, loading: authLoading, error, clearError } = useAuth();
+const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
 const { showError } = useToast();
 
 const passwordRef = ref('');
@@ -139,10 +139,25 @@ const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setF
 );
 
 const onSubmit = async (values: RegisterRequest) => {
+  // Clear previous form errors
+  Object.keys(errors).forEach(key => {
+    setFieldError(key as keyof RegisterRequest, null);
+  });
+
   const success = await register(values);
   if (success) {
     // Use replace instead of push to avoid back button issues
     router.replace('/tabs/home');
+  } else {
+    // Set validation errors from API response if available
+    if (validationErrors.value) {
+      Object.keys(validationErrors.value).forEach(field => {
+        const fieldErrors = validationErrors.value![field];
+        if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
+          setFieldError(field as keyof RegisterRequest, fieldErrors[0]);
+        }
+      });
+    }
   }
 };
 </script>
