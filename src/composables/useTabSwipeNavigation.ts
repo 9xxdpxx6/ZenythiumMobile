@@ -394,7 +394,8 @@ export function useTabSwipeNavigation(
       currentX.value = newX;
       
       // Prevent default scrolling during horizontal swipe
-      if (preventVerticalScroll && deltaX > 10) {
+      // Only prevent if event is cancelable and we're doing a horizontal swipe
+      if (preventVerticalScroll && deltaX > 10 && event.cancelable) {
         event.preventDefault();
       }
     }

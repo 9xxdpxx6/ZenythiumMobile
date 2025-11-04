@@ -32,6 +32,12 @@ export const API_ENDPOINTS = {
   PLAN_BY_ID: (id: string) => `/plans/${id}`,
   PLAN_DUPLICATE: (id: string) => `/plans/${id}/duplicate`,
 
+  // Training Programs
+  TRAINING_PROGRAMS: '/training-programs',
+  TRAINING_PROGRAM_BY_ID: (id: string) => `/training-programs/${id}`,
+  TRAINING_PROGRAM_INSTALL: (id: string) => `/training-programs/${id}/install`,
+  TRAINING_PROGRAM_UNINSTALL: (id: string) => `/training-programs/${id}/uninstall`,
+
   // Workouts
   WORKOUTS: '/workouts',
   WORKOUT_BY_ID: (id: string) => `/workouts/${id}`,
