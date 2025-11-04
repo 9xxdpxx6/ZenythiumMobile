@@ -48,11 +48,17 @@ import '@vuepic/vue-datepicker/dist/main.css';
 /* Import CustomInput component */
 import CustomInput from './components/ui/CustomInput.vue';
 
+/* Initialize cache manager */
+import { initializeCacheManager } from './utils/cache-manager';
+
 const app = createApp(App)
   .use(IonicVue)
   .use(router)
   .component('CustomInput', CustomInput)
   .component('VueDatePicker', VueDatePicker);
+
+// Инициализация менеджера кеша
+initializeCacheManager();
 
 router.isReady().then(() => {
   app.mount('#app');

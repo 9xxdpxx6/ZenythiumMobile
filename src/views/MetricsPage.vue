@@ -17,6 +17,9 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
       <PageContainer>
         <MetricFilters
           v-model:filters="filters"
@@ -108,6 +111,8 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonButton,
   IonSpinner,
   IonModal,
@@ -148,6 +153,7 @@ const {
   resetFilters,
   applyFilters,
   goToPage,
+  fetchData,
 } = useMetrics();
 
 // Utility function for time formatting (not in composable)
@@ -162,6 +168,11 @@ const formatTime = (dateString: string) => {
 // Wrapper for page change
 const changePage = (page: number) => {
   goToPage(page);
+};
+
+const handleRefresh = async (event: CustomEvent) => {
+  await fetchData();
+  event.detail.complete();
 };
 </script>
 

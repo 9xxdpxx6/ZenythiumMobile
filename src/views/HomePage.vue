@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onActivated, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -90,7 +90,7 @@ const { data: workoutsData, loading: workoutsLoading, execute: fetchWorkouts } =
     const result = await workoutsService.getPaginated({ limit: 100, page: 1 });
     return result.data || [];
   },
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_workouts' }
 );
 
 const workouts = computed(() => workoutsData.value as Workout[] || []);
@@ -98,7 +98,7 @@ const workouts = computed(() => workoutsData.value as Workout[] || []);
 // Fetch statistics
 const { data: statisticsData, loading: statsLoading } = useDataFetching(
   () => statisticsService.getOverview(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_statistics' }
 );
 
 const statistics = computed(() => statisticsData.value);
@@ -113,13 +113,13 @@ const totalVolume = computed(() => {
 // Fetch personal records
 const { data: recordsData } = useDataFetching(
   () => statisticsService.getPersonalRecords(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_personal_records' }
 );
 
 // Fetch muscle group stats
 const { data: muscleGroupStats } = useDataFetching(
   () => statisticsService.getMuscleGroupStatistics(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_muscle_groups' }
 );
 
 const bestPersonalRecord = computed(() => {
@@ -247,10 +247,6 @@ onMounted(() => {
   window.addEventListener('workout-updated', handleWorkoutUpdated);
   window.addEventListener('metric-added', handleMetricAdded);
   window.addEventListener('metric-updated', handleMetricUpdated);
-});
-
-onActivated(() => {
-  refreshAllData();
 });
 
 onBeforeUnmount(() => {

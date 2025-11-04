@@ -17,6 +17,9 @@
     </ion-header>
 
     <ion-content :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
       <PageContainer>
         <div class="exercises-container">
           <div class="exercises-header">
@@ -138,6 +141,8 @@ import {
   IonToolbar,
   IonTitle,
   IonContent,
+  IonRefresher,
+  IonRefresherContent,
   IonButtons,
   IonButton,
 } from '@ionic/vue';
@@ -373,6 +378,12 @@ const resetFilters = () => {
   };
   currentPage.value = 1;
   fetchData();
+};
+
+const handleRefresh = async (event: CustomEvent) => {
+  await fetchData();
+  await fetchMuscleGroups();
+  event.detail.complete();
 };
 
 onMounted(async () => {

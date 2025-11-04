@@ -155,13 +155,30 @@ const { data: metrics, loading, execute: fetchMetrics } = useDataFetching(
     const result = await metricsService.getAll();
     return result;
   },
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_metrics' }
 );
 
 const { data: exerciseStats, loading: exerciseLoading } = useDataFetching(
   () => statisticsService.getExerciseStatistics(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_exercise_stats' }
 );
+
+// Функция должна быть объявлена до использования в watch
+const calculateWeightChange = (progressData: any) => {
+  if (!progressData?.weight_progression || progressData.weight_progression.length < 2) {
+    return null;
+  }
+  const progression = progressData.weight_progression;
+  const firstWeight = progression[0].max_weight;
+  const lastWeight = progression[progression.length - 1].max_weight;
+  const change = lastWeight - firstWeight;
+  return {
+    value: change,
+    isPositive: change > 0,
+    isNegative: change < 0,
+    isStable: change === 0
+  };
+};
 
 watch(metrics, (newMetrics) => {
   if (newMetrics && Array.isArray(newMetrics)) {
@@ -200,22 +217,6 @@ watch(exerciseStats, (stats) => {
     });
   }
 }, { immediate: true });
-
-const calculateWeightChange = (progressData: any) => {
-  if (!progressData?.weight_progression || progressData.weight_progression.length < 2) {
-    return null;
-  }
-  const progression = progressData.weight_progression;
-  const firstWeight = progression[0].max_weight;
-  const lastWeight = progression[progression.length - 1].max_weight;
-  const change = lastWeight - firstWeight;
-  return {
-    value: change,
-    isPositive: change > 0,
-    isNegative: change < 0,
-    isStable: change === 0
-  };
-};
 
 const weightChartData = computed(() => {
   if (weightData.value.length === 0) return null;

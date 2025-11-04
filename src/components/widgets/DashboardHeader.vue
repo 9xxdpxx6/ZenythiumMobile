@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-header">
     <div class="main-header">
-      <h1 class="page-title">Zenythium</h1>
+      <img src="@/assets/images/logo.png" alt="Zenythium" class="logo" />
     </div>
 
     <!-- Main Action Grid 3x2 -->
@@ -64,14 +64,16 @@ defineEmits<{
 
 .main-header {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
-.main-header .page-title {
-  color: var(--ion-text-color) !important;
-  font-size: 24px !important;
-  margin: 0 !important;
-  font-weight: 600;
+.main-header .logo {
+  max-width: 200px;
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  object-fit: contain;
 }
 
 /* Action Grid 2x2 */

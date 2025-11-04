@@ -151,6 +151,7 @@ const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
 
 // Use composables
+// Не используем кеш для WorkoutsPage, так как фильтры могут меняться динамически
 const { data: workouts, loading, error, execute, refresh } = useDataFetching(
   () => {
     const filters: any = {};
@@ -166,7 +167,7 @@ const { data: workouts, loading, error, execute, refresh } = useDataFetching(
     }
     return workoutsService.getAll(filters);
   },
-  { immediate: true }
+  { immediate: true, skipIfDataExists: false }
 );
 
 const { showError, showSuccess } = useToast();
