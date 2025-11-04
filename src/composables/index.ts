@@ -13,6 +13,7 @@ export { useToast } from './useToast';
 export { useModal } from './useModal';
 export { useWorkoutTimer } from './useWorkoutTimer';
 export { useLongPress } from './useLongPress';
+export { useTabSwipeNavigation } from './useTabSwipeNavigation';
 
 // Export types
 export type { UseDataFetchingOptions, UseDataFetchingReturn } from './useDataFetching';
@@ -23,4 +24,5 @@ export type { UseToastReturn, ToastOptions } from './useToast';
 export type { UseModalReturn } from './useModal';
 export type { UseWorkoutTimerReturn } from './useWorkoutTimer';
 export type { UseLongPressReturn, UseLongPressOptions } from './useLongPress';
+export type { UseTabSwipeNavigationReturn, UseTabSwipeNavigationOptions } from './useTabSwipeNavigation';
 

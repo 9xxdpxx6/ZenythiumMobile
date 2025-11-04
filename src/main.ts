@@ -36,6 +36,7 @@ import './theme/variables.css';
 import './theme/modern-dark.css';
 import './theme/utilities.css';
 import './theme/datepicker.css';
+import './theme/tab-transitions.css';
 
 /* Font Awesome */
 import '@fortawesome/fontawesome-free/css/all.css';
