@@ -18,18 +18,17 @@
   left: 0;
   width: 100%;
   height: 100%;
-  will-change: transform;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.swipe-page.swiping {
-  transition: none;
+/* Current page - keep tab bar visible */
+.swipe-page.current-page {
+  display: flex;
+  flex-direction: column;
 }
 
-/* Disable transition after completion to prevent Ionic animations */
-.swipe-page.current-page:not(.swiping):not(.completing) {
-  transition: none !important;
-  transform: translateX(0) !important;
+.swipe-page.current-page ion-router-outlet {
+  flex: 1;
+  overflow: hidden;
 }
 
 /* Current page - below next page */
@@ -37,9 +36,22 @@
   z-index: 1;
 }
 
+/* Tab bar should always be visible above everything */
+.pages-container ion-tab-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 100 !important;
+  pointer-events: auto !important;
+}
+
 /* Next page (preview) - above current page */
 .swipe-page.next-page {
   z-index: 2;
+  /* Limit height to not overlap tab bar - leave space for 60px tab bar */
+  height: calc(100% - 60px);
+  /* top: 0 is already set by .swipe-page, so we just limit height */
 }
 
 /* Disable transition when hiding next page after completion */
@@ -52,6 +64,17 @@
   width: 100%;
   height: 100%;
   display: block;
+  will-change: transform;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.swipe-page ion-router-outlet.swiping {
+  transition: none;
+}
+
+.swipe-page.current-page ion-router-outlet:not(.swiping):not(.completing) {
+  transition: none !important;
+  transform: translateX(0) !important;
 }
 
 /* Ensure ion-page fills container in next page component */
@@ -59,6 +82,14 @@
   width: 100%;
   height: 100%;
   position: relative;
+  overflow: hidden;
+}
+
+/* Prevent next page content from overflowing below tab bar */
+.swipe-page.next-page ion-content,
+.swipe-page.next-page ion-page > * {
+  max-height: 100%;
+  overflow-y: auto;
 }
 
 /* Prevent vertical scrolling during horizontal swipe */
