@@ -9,6 +9,8 @@ export { useDataFetching } from './useDataFetching';
 export { useForm } from './useForm';
 export { usePagination } from './usePagination';
 export { useFilters } from './useFilters';
+export { useSearch } from './useSearch';
+export { useLocalStorageFilters } from './useLocalStorageFilters';
 export { useToast } from './useToast';
 export { useModal } from './useModal';
 export { useWorkoutTimer } from './useWorkoutTimer';
@@ -20,6 +22,7 @@ export type { UseDataFetchingOptions, UseDataFetchingReturn } from './useDataFet
 export type { UseFormReturn } from './useForm';
 export type { UsePaginationReturn } from './usePagination';
 export type { UseFiltersReturn } from './useFilters';
+export type { UseSearchReturn, UseSearchOptions } from './useSearch';
 export type { UseToastReturn, ToastOptions } from './useToast';
 export type { UseModalReturn } from './useModal';
 export type { UseWorkoutTimerReturn } from './useWorkoutTimer';

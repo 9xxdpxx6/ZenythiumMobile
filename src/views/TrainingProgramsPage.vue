@@ -50,28 +50,11 @@
             />
           </div>
 
-          <!-- Пагинация -->
-          <div v-if="meta && meta.last_page > 1" class="pagination">
-            <button
-              @click="loadPage(meta.current_page - 1)"
-              :disabled="meta.current_page === 1 || loading"
-              class="pagination-button"
-            >
-              <i class="fas fa-chevron-left"></i>
-              Назад
-            </button>
-            <span class="pagination-info">
-              Страница {{ meta.current_page }} из {{ meta.last_page }}
-            </span>
-            <button
-              @click="loadPage(meta.current_page + 1)"
-              :disabled="meta.current_page === meta.last_page || loading"
-              class="pagination-button"
-            >
-              Вперёд
-              <i class="fas fa-chevron-right"></i>
-            </button>
-          </div>
+          <PaginationControls
+            :meta="meta"
+            :loading="loading"
+            @page-change="loadPage"
+          />
         </div>
 
         <EmptyState
@@ -107,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -115,10 +98,9 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
-import { useToast } from '@/composables';
+import { useToast, useSearch, useLocalStorageFilters } from '@/composables';
 import { trainingProgramsService } from '@/services';
 import { errorHandler } from '@/utils/error-handler';
-import { logger } from '@/utils/logger';
 import type { PaginationMeta } from '@/types/api';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import TrainingProgramsFilters from '@/components/filters/TrainingProgramsFilters.vue';
@@ -127,18 +109,16 @@ import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import SearchLoading from '@/components/ui/SearchLoading.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PaginationControls from '@/components/ui/PaginationControls.vue';
 import TrainingProgramCard from '@/components/cards/TrainingProgramCard.vue';
 import InstallTrainingProgramModal from '@/components/modals/InstallTrainingProgramModal.vue';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
 import type { TrainingProgram } from '@/types/models/training-program.types';
 
 const router = useRouter();
-const searchQuery = ref('');
-const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const programs = ref<TrainingProgram[]>([]);
 const meta = ref<PaginationMeta | null>(null);
 const loading = ref(false);
-const searchLoading = ref(false);
 const installingProgramId = ref<number | null>(null);
 const uninstallingProgramId = ref<number | null>(null);
 const isInstallModalOpen = ref(false);
@@ -153,48 +133,33 @@ interface Filters {
   is_installed: boolean | null;
 }
 
-const FILTERS_STORAGE_KEY = 'training-programs-filters';
-
-const saveFilters = (filters: Filters): void => {
-  try {
-    localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
-  } catch (e) {
-    logger.warn('Failed to save filters', e);
-  }
-};
-
-const loadFilters = (): Filters | null => {
-  try {
-    const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
-    if (!saved) return null;
-    const parsed = JSON.parse(saved) as Filters;
-    // Если is_active не установлен, возвращаем null чтобы использовать дефолт
-    if (parsed.is_active === null || parsed.is_active === undefined) {
-      return null;
-    }
-    return parsed;
-  } catch (e) {
-    logger.warn('Failed to load filters', e);
-    return null;
-  }
-};
-
 const defaultFilters: Filters = {
   is_active: '1',
   is_installed: null,
 };
 
-const loadedFilters = loadFilters();
-const currentFilters = ref<Filters>(loadedFilters || defaultFilters);
-
-// Если фильтры не были загружены или is_active не установлен, применяем дефолтные
-if (!loadedFilters || !loadedFilters.is_active) {
-  currentFilters.value = { ...defaultFilters };
-  // Сохраняем дефолтные фильтры для будущих сессий
-  saveFilters(defaultFilters);
-}
+const {
+  filters: currentFilters,
+  updateFilter,
+  resetFilters: resetFiltersComposable,
+} = useLocalStorageFilters<Filters>({
+  storageKey: 'training-programs-filters',
+  defaultFilters,
+});
 
 const currentPage = ref(1);
+
+const { searchQuery, searchLoading, handleSearch: handleSearchInput, clearSearch } = useSearch({
+  debounceMs: 300,
+  onSearch: async () => {
+    currentPage.value = 1;
+    await fetchData();
+  },
+  onClear: async () => {
+    currentPage.value = 1;
+    await fetchData();
+  },
+});
 
 const { showSuccess, showError } = useToast();
 
@@ -225,7 +190,7 @@ const fetchData = async (): Promise<void> => {
       params.search = searchQuery.value.trim();
     }
     
-    const f = currentFilters.value;
+    const f = currentFilters;
     if (f.is_active !== null && f.is_active !== undefined) {
       params.is_active = String(f.is_active);
     }
@@ -325,39 +290,19 @@ const cancelInstall = (): void => {
 };
 
 const handleSearch = (value: string): void => {
-  searchQuery.value = value;
-  if (searchTimeout.value) clearTimeout(searchTimeout.value);
-  searchLoading.value = true;
-  currentPage.value = 1;
-  searchTimeout.value = setTimeout(async () => {
-    await fetchData();
-    searchLoading.value = false;
-  }, 300);
-};
-
-const clearSearch = (): void => {
-  searchQuery.value = '';
-  if (searchTimeout.value) clearTimeout(searchTimeout.value);
-  searchLoading.value = true;
-  currentPage.value = 1;
-  fetchData();
-  setTimeout(() => { searchLoading.value = false; }, 300);
+  handleSearchInput(value);
 };
 
 const handleFiltersChanged = (filters: Filters): void => {
-  currentFilters.value = { ...filters };
-  saveFilters(filters);
+  Object.keys(filters).forEach(key => {
+    updateFilter(key as keyof Filters, filters[key as keyof Filters]);
+  });
   currentPage.value = 1;
   fetchData();
 };
 
 const resetFilters = (): void => {
-  currentFilters.value = { ...defaultFilters };
-  try {
-    localStorage.removeItem(FILTERS_STORAGE_KEY);
-  } catch (e) {
-    logger.warn('Failed to remove filters', e);
-  }
+  resetFiltersComposable();
   currentPage.value = 1;
   fetchData();
 };
@@ -370,12 +315,6 @@ const loadPage = async (page: number): Promise<void> => {
 
 onMounted(() => {
   fetchData();
-});
-
-onUnmounted(() => {
-  if (searchTimeout.value) {
-    clearTimeout(searchTimeout.value);
-  }
 });
 </script>
 
@@ -438,42 +377,5 @@ onUnmounted(() => {
   }
 }
 
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 16px;
-  margin-top: 24px;
-  padding: 16px;
-}
-
-.pagination-button {
-  background: var(--ion-color-step-100);
-  border: 1px solid var(--ion-color-step-200);
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ion-text-color);
-  cursor: pointer;
-  transition: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.pagination-button:hover:not(:disabled) {
-  background: var(--ion-color-step-200);
-}
-
-.pagination-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.pagination-info {
-  font-size: 14px;
-  color: var(--ion-color-medium);
-}
 </style>
 

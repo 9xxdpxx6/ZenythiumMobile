@@ -2,9 +2,9 @@
   <ion-page>
     <PageHeader title="Упражнения" :end-button="{ icon: 'fas fa-plus', onClick: openCreateModal, class: 'add-button' }">
       <template #start>
-        <ion-button @click="router.back()">
-          <i class="fas fa-arrow-left"></i>
-        </ion-button>
+          <ion-button @click="router.back()">
+            <i class="fas fa-arrow-left"></i>
+          </ion-button>
       </template>
     </PageHeader>
 

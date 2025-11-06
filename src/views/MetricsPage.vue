@@ -2,9 +2,9 @@
   <ion-page>
     <PageHeader title="Записи веса" :end-button="{ icon: 'fas fa-plus', onClick: openAddModal, class: 'add-button' }">
       <template #start>
-        <ion-button @click="router.back()">
-          <i class="fas fa-arrow-left"></i>
-        </ion-button>
+          <ion-button @click="router.back()">
+            <i class="fas fa-arrow-left"></i>
+          </ion-button>
       </template>
     </PageHeader>
 

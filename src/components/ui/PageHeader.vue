@@ -59,6 +59,8 @@ withDefaults(defineProps<Props>(), {
 /* Центрирование заголовка относительно всей ширины шапки */
 :deep(ion-toolbar) {
   position: relative;
+  --min-height: 46px;
+  min-height: 46px;
 }
 
 :deep(ion-title) {
@@ -72,6 +74,19 @@ withDefaults(defineProps<Props>(), {
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  font-size: 18px;
+}
+
+/* Уменьшаем размеры кнопок для новой высоты шапки */
+:deep(ion-buttons) {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+:deep(ion-back-button) {
+  --min-height: 36px;
+  --min-width: 36px;
 }
 
 /* Стили для кнопки добавления, если нужны */
@@ -88,18 +103,37 @@ withDefaults(defineProps<Props>(), {
   --color-focused: white !important;
   --color-activated: rgba(255, 255, 255, 0.8) !important;
   --box-shadow: none !important;
-  --padding-start: 8px !important;
-  --padding-end: 8px !important;
-  --padding-top: 8px !important;
-  --padding-bottom: 8px !important;
+  --padding-start: 6px !important;
+  --padding-end: 6px !important;
+  --padding-top: 6px !important;
+  --padding-bottom: 6px !important;
   margin: 0 !important;
-  width: 40px !important;
-  height: 40px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
 }
 
 :deep(.add-button i) {
-  font-size: 20px !important;
+  font-size: 18px !important;
   color: white !important;
+}
+
+/* Уменьшаем размеры кастомных кнопок в слотах */
+:deep(ion-button) {
+  --min-height: 36px;
+  --min-width: 36px;
+  height: 36px;
+  width: 36px;
+  margin: 0;
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --padding-top: 6px;
+  --padding-bottom: 6px;
+}
+
+:deep(ion-button i) {
+  font-size: 18px;
 }
 </style>
 

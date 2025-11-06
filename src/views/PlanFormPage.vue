@@ -2,9 +2,9 @@
   <ion-page>
     <PageHeader :title="isEditMode ? 'Редактировать план' : 'Создать план'">
       <template #start>
-        <ion-button @click="handleBack">
-          <i class="fas fa-arrow-left"></i>
-        </ion-button>
+          <ion-button @click="handleBack">
+            <i class="fas fa-arrow-left"></i>
+          </ion-button>
       </template>
     </PageHeader>
 
