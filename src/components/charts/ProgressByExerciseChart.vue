@@ -29,6 +29,7 @@
 import { computed, ref } from 'vue';
 import CustomSelect from '@/components/ui/CustomSelect.vue';
 import { Line } from 'vue-chartjs';
+import { getColorFromString } from '@/utils/formatters';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -160,19 +161,8 @@ const chartOptions = {
   },
 };
 
-function hashStringToHue(input: string): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0; // Convert to 32bit integer
-  }
-  // Map to [0, 360)
-  return Math.abs(hash) % 360;
-}
-
 function getColor(name: string): string {
-  const hue = hashStringToHue(name);
-  return `hsl(${hue}, 70%, 55%)`;
+  return getColorFromString(name);
 }
 </script>
 

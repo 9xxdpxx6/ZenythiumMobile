@@ -5,14 +5,23 @@
     @click="$emit('click', program)"
   >
 
-    <!-- Ленточка "NEW" в правом верхнем углу -->
-    <div v-if="isNew && !program.is_installed" class="ribbon ribbon-new">
+    <!-- Ленточка "TOP" или "NEW" в правом верхнем углу (только для активных программ) -->
+    <div v-if="isTop && !program.is_installed && program.is_active" class="ribbon ribbon-top">
+      <span>TOP</span>
+    </div>
+    <div v-else-if="isNew && !program.is_installed && program.is_active" class="ribbon ribbon-new">
       <span>NEW</span>
     </div>
 
     <!-- Заголовок с названием -->
     <div class="program-header">
-      <h2 class="program-title">{{ program.name }}</h2>
+      <div class="program-title-wrapper">
+        <h2 class="program-title">{{ program.name }}</h2>
+        <!-- Бейдж "Неактивна" для неактивных программ -->
+        <div v-if="!program.is_active" class="inactive-badge">
+          <span>Неактивна</span>
+        </div>
+      </div>
     </div>
 
     <!-- Автор как доверительный сигнал -->
@@ -69,7 +78,7 @@
     <!-- Кнопка действия - крупная и привлекательная -->
     <div class="program-footer">
       <button 
-        v-if="!program.is_installed"
+        v-if="!program.is_installed && program.is_active"
         @click.stop="$emit('install', program)"
         class="install-button primary-button"
         :disabled="isInstalling"
@@ -84,7 +93,7 @@
         </span>
       </button>
       <button 
-        v-else
+        v-else-if="program.is_active"
         @click.stop="$emit('uninstall', program)"
         class="uninstall-button secondary-button"
         :disabled="isUninstalling"
@@ -108,6 +117,7 @@ import type { TrainingProgram } from '@/types/models/training-program.types';
 
 interface Props {
   program: TrainingProgram;
+  isTop?: boolean;
   isInstalling?: boolean;
   isUninstalling?: boolean;
 }
@@ -121,11 +131,23 @@ defineEmits<{
 
 // Определяем, является ли программа новой (создана не более 2 недель назад)
 const isNew = computed(() => {
+  if (!props.program.created_at) {
+    return false;
+  }
+  
   const createdDate = new Date(props.program.created_at);
   const now = new Date();
-  const diffTime = Math.abs(now.getTime() - createdDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays <= 14;
+  
+  // Проверяем, что дата создания валидна
+  if (isNaN(createdDate.getTime())) {
+    return false;
+  }
+  
+  // Проверяем, что программа создана не более 14 дней назад
+  const diffTime = now.getTime() - createdDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  
+  return diffDays >= 0 && diffDays <= 14;
 });
 
 // Определяем, является ли программа "featured" (популярная/рекомендуемая)
@@ -213,7 +235,7 @@ const formatCycles = (count: number): string => {
 
 <style scoped>
 .training-program-card {
-  padding: 24px !important;
+  padding: 16px 24px !important;
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -250,7 +272,6 @@ const formatCycles = (count: number): string => {
   right: -17px;
   width: 70px;
   padding: 3px 0;
-  background: #f59e0b;
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -260,6 +281,14 @@ const formatCycles = (count: number): string => {
   transform: rotate(45deg);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   line-height: 1;
+}
+
+.ribbon-new span {
+  background: #f59e0b;
+}
+
+.ribbon-top span {
+  background: #8b5cf6;
 }
 
 /* Header */
@@ -272,15 +301,36 @@ const formatCycles = (count: number): string => {
   gap: 12px;
 }
 
+.program-title-wrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .program-title {
   margin: 0;
   font-size: 24px;
   font-weight: 700;
   color: var(--ion-text-color);
   line-height: 1.2;
-  flex: 1;
-  min-width: 0;
   word-break: break-word;
+}
+
+.inactive-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: rgba(156, 163, 175, 0.15);
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
 }
 
 /* Author */

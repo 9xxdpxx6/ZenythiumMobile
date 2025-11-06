@@ -195,6 +195,27 @@ export function formatList(items: string[], maxItems: number = 3): string {
   return `${visible.join(', ')} +${remaining} more`;
 }
 
+/**
+ * Converts a string to a hue value (0-360) for color generation
+ */
+export function hashStringToHue(input: string): number {
+  let hash = 0;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  // Map to [0, 360)
+  return Math.abs(hash) % 360;
+}
+
+/**
+ * Generates a color from a string using HSL format
+ */
+export function getColorFromString(name: string, saturation: number = 70, lightness: number = 55): string {
+  const hue = hashStringToHue(name);
+  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+}
+
 export const formatters = {
   date: formatDate,
   time: formatTime,
@@ -208,5 +229,6 @@ export const formatters = {
   truncate,
   capitalize,
   list: formatList,
+  getColorFromString,
 };
 

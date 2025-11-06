@@ -13,10 +13,14 @@
         </div>
       </div>
 
-      <div class="grid-item" @click="$emit('navigate', '/tabs/workouts')">
+      <div class="grid-item" @click="$emit('navigate', '/training-programs')">
+        <!-- Ленточка NEW в правом верхнем углу -->
+        <div v-if="showNewRibbon" class="ribbon ribbon-new">
+          <span>NEW</span>
+        </div>
         <div class="grid-card modern-card">
-          <i class="fas fa-dumbbell grid-icon"></i>
-          <h3>Тренировки</h3>
+          <i class="fas fa-layer-group grid-icon"></i>
+          <h3>Программы</h3>
         </div>
       </div>
 
@@ -52,9 +56,20 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 defineEmits<{
   navigate: [path: string];
 }>();
+
+// Дата окончания показа ленточки NEW
+const NEW_RIBBON_END_DATE = new Date('2025-11-25');
+
+// Ленточка NEW видна до 25.11.2025
+const showNewRibbon = computed(() => {
+  const today = new Date();
+  return today <= NEW_RIBBON_END_DATE;
+});
 </script>
 
 <style scoped>
@@ -83,6 +98,7 @@ defineEmits<{
 
 .grid-item {
   cursor: pointer;
+  position: relative;
 }
 
 .grid-card {
@@ -125,13 +141,13 @@ defineEmits<{
 
 .grid-item:nth-child(2) .grid-card.modern-card {
   background: var(--ion-card-background) !important;
-  border: 2px solid rgba(168, 85, 247, 0.6) !important;
+  border: 2px solid rgba(139, 92, 246, 0.6) !important;
   position: relative;
   overflow: hidden;
 }
 
 .grid-item:nth-child(2) .grid-card.modern-card::after {
-  background: radial-gradient(circle at center, transparent 0%, rgba(168, 85, 247, 0.3) 60%);
+  background: radial-gradient(circle at center, transparent 0%, rgba(139, 92, 246, 0.3) 60%);
 }
 
 .grid-item:nth-child(3) .grid-card.modern-card::after {
@@ -178,6 +194,36 @@ defineEmits<{
   overflow: hidden;
 }
 
+/* Ribbon для кнопки "Программы" */
+.grid-item:nth-child(2) .ribbon {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 10;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.grid-item:nth-child(2) .ribbon span {
+  position: absolute;
+  top: 7px;
+  right: -14px;
+  width: 60px;
+  padding: 2px 0;
+  background: #ef4444;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transform: rotate(45deg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
 .grid-icon {
   font-size: 2rem;
   margin-bottom: 8px;
@@ -191,7 +237,7 @@ defineEmits<{
 }
 
 .grid-item:nth-child(2) .grid-icon {
-  color: #a855f7;
+  color: #8b5cf6;
 }
 
 .grid-item:nth-child(3) .grid-icon {

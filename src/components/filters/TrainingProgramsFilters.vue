@@ -198,21 +198,28 @@ watch(() => props.filters, (newFilters) => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: stretch;
 }
 
 .toggle-button {
   background: var(--ion-color-step-100);
   border: 1px solid var(--ion-color-step-200);
   border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 8px 10px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ion-color-medium);
   cursor: pointer;
   transition: none;
-  flex: 1;
-  min-width: 0;
-  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 110px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-wrap: anywhere;
 }
 
 .toggle-button:hover {

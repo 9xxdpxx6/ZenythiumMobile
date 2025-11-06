@@ -55,11 +55,6 @@ const routes: Array<RouteRecordRaw> = [
         path: 'profile',
         name: 'Profile',
         component: () => import('@/views/ProfilePage.vue')
-      },
-      {
-        path: 'training-programs',
-        name: 'TrainingPrograms',
-        component: () => import('@/views/TrainingProgramsPage.vue')
       }
     ]
   },
@@ -125,6 +120,19 @@ const routes: Array<RouteRecordRaw> = [
     path: '/statistics',
     name: 'Statistics',
     component: () => import('@/views/StatisticsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/training-programs',
+    name: 'TrainingPrograms',
+    component: () => import('@/views/TrainingProgramsPage.vue'),
+    meta: { requiresAuth: true }
+  },
+  // Training Program detail route
+  {
+    path: '/training-program/:id',
+    name: 'TrainingProgramDetail',
+    component: () => import('@/views/TrainingProgramDetailPage.vue'),
     meta: { requiresAuth: true }
   }
 ]
