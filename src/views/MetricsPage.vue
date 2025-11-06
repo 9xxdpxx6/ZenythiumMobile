@@ -1,20 +1,12 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button @click="router.back()">
-            <i class="fas fa-arrow-left"></i>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>Записи веса</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="openAddModal">
-            <i class="fas fa-plus"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Записи веса" :end-button="{ icon: 'fas fa-plus', onClick: openAddModal, class: 'add-button' }">
+      <template #start>
+        <ion-button @click="router.back()">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -107,9 +99,6 @@ import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
@@ -124,6 +113,7 @@ import MetricFilters from '@/components/filters/MetricFilters.vue';
 import MetricFormModal from '@/components/modals/MetricFormModal.vue';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 
 const router = useRouter();

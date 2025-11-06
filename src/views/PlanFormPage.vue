@@ -1,15 +1,12 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button @click="handleBack">
-            <i class="fas fa-arrow-left"></i>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>{{ isEditMode ? 'Редактировать план' : 'Создать план' }}</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader :title="isEditMode ? 'Редактировать план' : 'Создать план'">
+      <template #start>
+        <ion-button @click="handleBack">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -123,15 +120,12 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButtons,
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import PlanBasicInfo from '@/components/plan/PlanBasicInfo.vue';
 import PlanExercisesList from '@/components/plan/PlanExercisesList.vue';

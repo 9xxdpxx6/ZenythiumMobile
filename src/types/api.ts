@@ -404,28 +404,23 @@ export interface UpdateExerciseRequest {
 }
 
 // Exercise responses
+export interface PaginationMeta {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+  from: number;
+  to: number;
+}
+
 export interface ExercisesResponse {
   data: ExerciseResource[];
   message: string;
-  meta?: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-  };
+  meta?: PaginationMeta;
 }
 
 export interface MuscleGroupsResponse {
   data: MuscleGroupResource[];
   message: string;
-  meta?: {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-    from: number;
-    to: number;
-  };
+  meta?: PaginationMeta;
 }

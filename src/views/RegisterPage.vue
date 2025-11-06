@@ -1,10 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Регистрация</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Регистрация" />
 
     <ion-content :fullscreen="true" :scroll-y="false">
       <div class="auth-page register-page">
@@ -88,9 +84,6 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonButton,
   IonSpinner,
@@ -99,6 +92,7 @@ import {
 import { useAuth, useForm, useToast } from '@/composables';
 import { RegisterRequest } from '@/types/api';
 import CustomInput from '@/components/ui/CustomInput.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { validators } from '@/utils/validators';
 
 const router = useRouter();

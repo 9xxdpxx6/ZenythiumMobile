@@ -93,7 +93,7 @@
         </span>
       </button>
       <button 
-        v-else-if="program.is_active"
+        v-else-if="program.is_active && program.is_installed && program.install_id"
         @click.stop="$emit('uninstall', program)"
         class="uninstall-button secondary-button"
         :disabled="isUninstalling"

@@ -39,6 +39,7 @@ export interface TrainingProgram {
   installations_count?: number;
   is_active: boolean;
   is_installed: boolean;
+  install_id?: number | null;
   created_at: string;
   updated_at: string;
 }

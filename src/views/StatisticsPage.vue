@@ -1,18 +1,12 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Статистика</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="refreshAllData" :disabled="loading">
-            <ion-icon :icon="refreshOutline"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Статистика" show-back-button default-back-href="/">
+      <template #end>
+        <ion-button @click="refreshAllData" :disabled="loading">
+          <ion-icon :icon="refreshOutline"></ion-icon>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -82,23 +76,19 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonToast,
   IonRefresher,
   IonRefresherContent,
   IonButton,
-  IonButtons,
   IonIcon,
-  IonBackButton,
 } from '@ionic/vue';
 import { refreshOutline } from 'ionicons/icons';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
 import { statisticsApi } from '@/services/api';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import KPICardsWidget from '@/components/widgets/KPICardsWidget.vue';
 import WorkoutVolumeChart from '@/components/charts/WorkoutVolumeChart.vue';

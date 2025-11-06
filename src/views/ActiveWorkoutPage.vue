@@ -1,15 +1,12 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button @click="router.back()">
-            <i class="fas fa-arrow-left"></i>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>Активная тренировка</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Активная тренировка">
+      <template #start>
+        <ion-button @click="router.back()">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -161,17 +158,14 @@ import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButtons,
   IonButton,
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
 import CustomInput from '@/components/ui/CustomInput.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import { useActiveWorkout } from '@/composables/useActiveWorkout';
 

@@ -9,7 +9,7 @@
           <i class="fas fa-chart-line stat-icon"></i>
         </div>
         <div class="stat-content">
-          <h3>Тренировок за неделю</h3>
+          <h3>Тренировок в неделю</h3>
         </div>
       </div>
 

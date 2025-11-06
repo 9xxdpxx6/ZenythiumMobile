@@ -1,13 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="'/tabs/home'"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Программы</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Программы" show-back-button default-back-href="/tabs/home" />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -97,6 +90,18 @@
         @confirm="confirmInstall"
         @cancel="cancelInstall"
       />
+
+      <!-- Модалка подтверждения удаления программы -->
+      <DeleteConfirmationModal
+        :is-open="isUninstallModalOpen"
+        title="Удалить программу"
+        message="Вы уверены, что хотите удалить программу"
+        :item-name="selectedUninstallProgram?.name"
+        warning-text="Это действие нельзя отменить."
+        :is-deleting="uninstallingProgramId !== null"
+        @confirm="confirmUninstall"
+        @cancel="cancelUninstall"
+      />
     </ion-content>
   </ion-page>
 </template>
@@ -106,39 +111,32 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonButtons,
-  IonBackButton,
 } from '@ionic/vue';
 import { useToast } from '@/composables';
 import { trainingProgramsService } from '@/services';
+import { errorHandler } from '@/utils/error-handler';
+import { logger } from '@/utils/logger';
+import type { PaginationMeta } from '@/types/api';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import TrainingProgramsFilters from '@/components/filters/TrainingProgramsFilters.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import SearchLoading from '@/components/ui/SearchLoading.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import TrainingProgramCard from '@/components/cards/TrainingProgramCard.vue';
 import InstallTrainingProgramModal from '@/components/modals/InstallTrainingProgramModal.vue';
+import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
 import type { TrainingProgram } from '@/types/models/training-program.types';
 
 const router = useRouter();
 const searchQuery = ref('');
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const programs = ref<TrainingProgram[]>([]);
-const meta = ref<{
-  current_page: number;
-  last_page: number;
-  per_page: number;
-  total: number;
-  from: number;
-  to: number;
-} | null>(null);
+const meta = ref<PaginationMeta | null>(null);
 const loading = ref(false);
 const searchLoading = ref(false);
 const installingProgramId = ref<number | null>(null);
@@ -147,6 +145,8 @@ const isInstallModalOpen = ref(false);
 const selectedProgram = ref<TrainingProgram | null>(null);
 const selectedProgramName = ref('');
 const isInstalling = ref(false);
+const isUninstallModalOpen = ref(false);
+const selectedUninstallProgram = ref<TrainingProgram | null>(null);
 
 interface Filters {
   is_active: string | null;
@@ -159,7 +159,7 @@ const saveFilters = (filters: Filters): void => {
   try {
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
   } catch (e) {
-    console.warn('Failed to save filters:', e);
+    logger.warn('Failed to save filters', e);
   }
 };
 
@@ -174,6 +174,7 @@ const loadFilters = (): Filters | null => {
     }
     return parsed;
   } catch (e) {
+    logger.warn('Failed to load filters', e);
     return null;
   }
 };
@@ -233,6 +234,7 @@ const fetchData = async (): Promise<void> => {
     programs.value = response.data;
     meta.value = response.meta || null;
   } catch (error: unknown) {
+    errorHandler.log(error, 'TrainingProgramsPage.fetchData');
     await showError('Ошибка при загрузке программ');
   } finally {
     loading.value = false;
@@ -257,24 +259,40 @@ const handleInstallClick = (program: TrainingProgram): void => {
   isInstallModalOpen.value = true;
 };
 
-const handleUninstallClick = async (program: TrainingProgram): Promise<void> => {
-  // Для uninstall можно использовать простой confirm или тоже модалку
-  if (!confirm(`Вы уверены, что хотите удалить программу "${program.name}"?`)) {
+const handleUninstallClick = (program: TrainingProgram): void => {
+  if (uninstallingProgramId.value) return;
+  selectedUninstallProgram.value = program;
+  isUninstallModalOpen.value = true;
+};
+
+const confirmUninstall = async (): Promise<void> => {
+  const program = selectedUninstallProgram.value;
+  if (!program) return;
+  
+  if (!program.install_id) {
+    await showError('ID установки программы не найден');
     return;
   }
   
   uninstallingProgramId.value = program.id;
   try {
-    // Для uninstall нужен install_id, но в API он передаётся как id в пути
-    // Пока используем id программы, но нужно будет уточнить логику
-    await trainingProgramsService.uninstall(program.id.toString());
+    await trainingProgramsService.uninstall(program.install_id.toString());
     await showSuccess('Программа успешно удалена');
     await fetchData();
   } catch (err: unknown) {
-    await showError('Ошибка при удалении программы');
+    errorHandler.log(err, 'TrainingProgramsPage.confirmUninstall');
+    const errorMessage = errorHandler.format(err);
+    await showError(errorMessage);
   } finally {
     uninstallingProgramId.value = null;
+    isUninstallModalOpen.value = false;
+    selectedUninstallProgram.value = null;
   }
+};
+
+const cancelUninstall = (): void => {
+  isUninstallModalOpen.value = false;
+  selectedUninstallProgram.value = null;
 };
 
 const confirmInstall = async (): Promise<void> => {
@@ -291,7 +309,8 @@ const confirmInstall = async (): Promise<void> => {
     selectedProgramName.value = '';
     await fetchData();
   } catch (err: unknown) {
-    const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ошибка при установке программы';
+    errorHandler.log(err, 'TrainingProgramsPage.confirmInstall');
+    const errorMessage = errorHandler.format(err);
     await showError(errorMessage);
   } finally {
     isInstalling.value = false;
@@ -336,7 +355,9 @@ const resetFilters = (): void => {
   currentFilters.value = { ...defaultFilters };
   try {
     localStorage.removeItem(FILTERS_STORAGE_KEY);
-  } catch (e) {}
+  } catch (e) {
+    logger.warn('Failed to remove filters', e);
+  }
   currentPage.value = 1;
   fetchData();
 };

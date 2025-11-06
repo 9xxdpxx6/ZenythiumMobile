@@ -1,15 +1,9 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Циклы</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="createCycle" class="add-button">
-            <i class="fas fa-plus"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader 
+      title="Циклы" 
+      :end-button="{ icon: 'fas fa-plus', onClick: createCycle, class: 'add-button' }"
+    />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -34,7 +28,7 @@
           <div class="cycles-list card-list">
             <CycleCard
               v-for="cycle in cycles"
-              :key="(cycle as any).id"
+              :key="cycle.id"
               :cycle="cycle as Cycle"
               @click="handleCycleClick"
             />
@@ -60,18 +54,14 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonButtons,
-  IonButton,
 } from '@ionic/vue';
 import { useDataFetching, useFilters, useToast } from '@/composables';
 import { cyclesService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';

@@ -1,10 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Главная</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Главная" />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -23,7 +19,7 @@
 
         <AdditionalStatsWidget
           :total-volume="totalVolume"
-          :active-cycles="(statistics as any)?.active_cycles_count"
+          :active-cycles="(statistics as ApiStatistics | null)?.active_cycles_count"
           :best-personal-record="bestPersonalRecord"
           :balance-analysis="balanceAnalysis"
         />
@@ -49,9 +45,6 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
@@ -62,6 +55,7 @@ import { metricsService } from '@/services/metrics.service';
 import { statisticsService } from '@/services/statistics.service';
 import { workoutsService } from '@/services/workouts.service';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import DashboardHeader from '@/components/widgets/DashboardHeader.vue';
 import QuickStatsWidget from '@/components/widgets/QuickStatsWidget.vue';
@@ -69,7 +63,7 @@ import ProgressChartWidget from '@/components/widgets/ProgressChartWidget.vue';
 import AdditionalStatsWidget from '@/components/widgets/AdditionalStatsWidget.vue';
 import MetricFormModal from '@/components/modals/MetricFormModal.vue';
 import type { Workout } from '@/types/models/workout.types';
-import type { Statistics } from '@/types/api';
+import type { Statistics as ApiStatistics } from '@/types/api';
 import type { MetricFormData } from '@/composables/useMetrics';
 
 const router = useRouter();
