@@ -2,9 +2,9 @@
   <ion-page>
     <PageHeader title="Статистика" show-back-button default-back-href="/">
       <template #end>
-        <ion-button @click="refreshAllData" :disabled="loading">
-          <ion-icon :icon="refreshOutline"></ion-icon>
-        </ion-button>
+          <ion-button @click="refreshAllData" :disabled="loading">
+            <ion-icon :icon="refreshOutline"></ion-icon>
+          </ion-button>
       </template>
     </PageHeader>
 

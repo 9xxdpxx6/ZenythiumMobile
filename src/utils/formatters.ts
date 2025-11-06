@@ -196,6 +196,28 @@ export function formatList(items: string[], maxItems: number = 3): string {
 }
 
 /**
+ * Format weeks count with proper Russian pluralization
+ */
+export function formatWeeks(weeks: number): string {
+  const lastDigit = weeks % 10;
+  const lastTwoDigits = weeks % 100;
+  
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'недель';
+  }
+  
+  if (lastDigit === 1) {
+    return 'неделя';
+  }
+  
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'недели';
+  }
+  
+  return 'недель';
+}
+
+/**
  * Converts a string to a hue value (0-360) for color generation
  */
 export function hashStringToHue(input: string): number {
@@ -230,5 +252,6 @@ export const formatters = {
   capitalize,
   list: formatList,
   getColorFromString,
+  weeks: formatWeeks,
 };
 
