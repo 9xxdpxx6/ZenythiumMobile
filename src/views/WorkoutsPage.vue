@@ -270,7 +270,7 @@ onUnmounted(() => {
 /* Фиксированная кнопка внизу экрана */
 .fixed-bottom-action {
   position: fixed;
-  bottom: 0;
+  bottom: 60px; /* Высота табс бара */
   left: 0;
   right: 0;
   z-index: 10;
@@ -293,5 +293,11 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding-bottom: 100px; /* Отступ для фиксированной кнопки (60px табс бар + 40px кнопка с padding) */
+}
+
+/* Отступ для EmptyState, чтобы не перекрывался кнопкой */
+:deep(.empty-state) {
+  padding-bottom: 100px;
 }
 </style>
