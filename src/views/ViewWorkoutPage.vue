@@ -1,12 +1,8 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/tabs/workouts"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Тренировка</ion-title>
-        <div slot="end" class="workout-status-header">
+    <PageHeader title="Тренировка" show-back-button default-back-href="/tabs/workouts">
+      <template #end>
+        <div class="workout-status-header">
           <CustomChip 
             :color="workout?.finished_at ? 'success' : 'warning'"
             size="small"
@@ -15,8 +11,8 @@
             {{ workout?.finished_at ? 'Завершена' : 'Активна' }}
           </CustomChip>
         </div>
-      </ion-toolbar>
-    </ion-header>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -102,19 +98,15 @@ import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonSpinner,
-  IonBackButton,
-  IonButtons,
 } from '@ionic/vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomChip from '@/components/ui/CustomChip.vue';
 import CustomToast from '@/components/ui/CustomToast.vue';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import WorkoutSummary from '@/components/workout/WorkoutSummary.vue';
 import WorkoutExerciseHistory from '@/components/workout/WorkoutExerciseHistory.vue';

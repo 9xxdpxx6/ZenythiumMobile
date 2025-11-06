@@ -7,6 +7,7 @@ import { BaseService } from './base.service';
 import apiClient from './api';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
 import type { TrainingProgram, TrainingProgramDetail, InstallTrainingProgramResponse } from '../types/models/training-program.types';
+import type { PaginationMeta } from '../types/api';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
 
@@ -24,11 +25,14 @@ class TrainingProgramsService extends BaseService<TrainingProgram, never, never>
 
   /**
    * Get paginated training programs
+   * Returns data with meta (API format) instead of pagination (base format)
+   * Note: This method overrides base getPaginated with different return type to match API
    */
-  async getPaginated(filters?: TrainingProgramFilters): Promise<{ data: TrainingProgram[]; meta: any }> {
+  // @ts-ignore - Override with different return type to match API response format
+  async getPaginated(filters?: TrainingProgramFilters): Promise<{ data: TrainingProgram[]; meta: PaginationMeta }> {
     try {
       const params = this.buildQueryParams(filters);
-      const response = await apiClient.get<{ data: TrainingProgram[]; message?: string; meta: any }>(this.baseUrl, { params });
+      const response = await apiClient.get<{ data: TrainingProgram[]; message?: string; meta: PaginationMeta }>(this.baseUrl, { params });
       return {
         data: response.data.data,
         meta: response.data.meta,

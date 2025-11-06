@@ -1,10 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Тренировки</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Тренировки" />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -126,9 +122,6 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
@@ -139,6 +132,7 @@ import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomToast from '@/components/ui/CustomToast.vue';
 import WorkoutActionModal from '@/components/modals/WorkoutActionModal.vue';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';

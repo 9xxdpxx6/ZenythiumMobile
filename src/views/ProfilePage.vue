@@ -1,10 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Профиль</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Профиль" />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -91,9 +87,6 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
@@ -103,6 +96,7 @@ import { useAuth } from '@/composables/useAuth';
 import { useDataFetching, useToast } from '@/composables';
 import { statisticsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import ProfileStatistics from '@/components/charts/ProfileStatistics.vue';
 

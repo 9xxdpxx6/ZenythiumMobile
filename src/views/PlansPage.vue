@@ -1,15 +1,9 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Планы</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="createNewPlan" class="add-button">
-            <i class="fas fa-plus"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader 
+      title="Планы" 
+      :end-button="{ icon: 'fas fa-plus', onClick: createNewPlan, class: 'add-button' }"
+    />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -67,6 +61,17 @@
         />
       </PageContainer>
     </ion-content>
+
+    <!-- Duplicate Confirmation Modal -->
+    <DuplicateConfirmationModal
+      :is-open="duplicateModal.isOpen"
+      title="Дублировать план"
+      message="Вы уверены, что хотите дублировать план"
+      :item-name="duplicateModal.selectedPlan?.name"
+      :is-duplicating="duplicatingPlanId !== null"
+      @confirm="confirmDuplicate"
+      @cancel="cancelDuplicate"
+    />
   </ion-page>
 </template>
 
@@ -75,25 +80,32 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonButtons,
-  IonButton,
 } from '@ionic/vue';
 import { useDataFetching, useToast } from '@/composables';
 import { plansService } from '@/services';
+import { logger } from '@/utils/logger';
+import { errorHandler } from '@/utils/error-handler';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import PlansFilters from '@/components/filters/PlansFilters.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import SearchLoading from '@/components/ui/SearchLoading.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PlanCard from '@/components/cards/PlanCard.vue';
+import DuplicateConfirmationModal from '@/components/modals/DuplicateConfirmationModal.vue';
 import type { Plan } from '@/types/api';
+
+interface PlanFilters {
+  is_active: boolean | null;
+  standalone: boolean | null;
+  cycle_id: number | null;
+  sort_by: string;
+  sort_order: string;
+}
 
 const router = useRouter();
 const searchQuery = ref('');
@@ -101,24 +113,35 @@ const searchTimeout = ref<NodeJS.Timeout | null>(null);
 const duplicatingPlanId = ref<number | null>(null);
 const FILTERS_STORAGE_KEY = 'plans-filters';
 
-const saveFilters = (filters: any) => {
+const duplicateModal = ref<{
+  isOpen: boolean;
+  selectedPlan: Plan | null;
+}>({
+  isOpen: false,
+  selectedPlan: null,
+});
+
+const saveFilters = (filters: PlanFilters): void => {
   try {
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
   } catch (e) {
-    console.warn('Failed to save filters:', e);
+    logger.warn('Failed to save filters', e);
   }
 };
 
-const loadFilters = () => {
+const loadFilters = (): PlanFilters | null => {
   try {
     const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const parsed = JSON.parse(saved) as PlanFilters;
+    return parsed;
   } catch (e) {
+    logger.warn('Failed to load filters', e);
     return null;
   }
 };
 
-const defaultFilters = {
+const defaultFilters: PlanFilters = {
   is_active: true,
   standalone: null,
   cycle_id: null,
@@ -148,19 +171,19 @@ const { data: plans, loading, execute: fetchData } = useDataFetching(
 
 const searchLoading = ref(false);
 
-const handleRefresh = async (event: CustomEvent) => {
+const handleRefresh = async (event: CustomEvent): Promise<void> => {
   await fetchData();
   event.detail.complete();
 };
 
-const handlePlanClick = (plan: Plan) => {
+const handlePlanClick = (plan: Plan): void => {
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
   router.push(`/plan/${plan.id}`);
 };
 
-const handleSearch = (value: string) => {
+const handleSearch = (value: string): void => {
   searchQuery.value = value;
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   searchLoading.value = true;
@@ -170,13 +193,13 @@ const handleSearch = (value: string) => {
   }, 300);
 };
 
-const handleFiltersChanged = (filters: any) => {
+const handleFiltersChanged = (filters: PlanFilters): void => {
   currentFilters.value = { ...filters };
   saveFilters(filters);
   fetchData();
 };
 
-const clearSearch = () => {
+const clearSearch = (): void => {
   searchQuery.value = '';
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   searchLoading.value = true;
@@ -184,36 +207,61 @@ const clearSearch = () => {
   setTimeout(() => { searchLoading.value = false; }, 300);
 };
 
-const resetFilters = () => {
+const resetFilters = (): void => {
   currentFilters.value = { ...defaultFilters };
   try {
     localStorage.removeItem(FILTERS_STORAGE_KEY);
-  } catch (e) {}
+  } catch (e) {
+    logger.warn('Failed to remove filters', e);
+  }
   fetchData();
 };
 
-const createNewPlan = () => {
+const createNewPlan = (): void => {
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
   router.push('/plan/new');
 };
 
-const duplicatePlan = async (plan: Plan) => {
+const duplicatePlan = (plan: Plan): void => {
   if (duplicatingPlanId.value) return;
+  duplicateModal.value = {
+    isOpen: true,
+    selectedPlan: plan,
+  };
+};
+
+const confirmDuplicate = async () => {
+  const plan = duplicateModal.value.selectedPlan;
+  if (!plan) return;
+  
   duplicatingPlanId.value = plan.id;
   try {
     await plansService.duplicate(plan.id.toString());
     await showSuccess('План успешно скопирован');
     await fetchData();
-  } catch (err) {
-    await showError('Ошибка при копировании плана');
+  } catch (err: unknown) {
+    errorHandler.log(err, 'PlansPage.confirmDuplicate');
+    const errorMessage = errorHandler.format(err);
+    await showError(errorMessage);
   } finally {
     duplicatingPlanId.value = null;
+    duplicateModal.value = {
+      isOpen: false,
+      selectedPlan: null,
+    };
   }
 };
 
-const handlePlansUpdated = () => {
+const cancelDuplicate = (): void => {
+  duplicateModal.value = {
+    isOpen: false,
+    selectedPlan: null,
+  };
+};
+
+const handlePlansUpdated = (): void => {
   fetchData();
 };
 

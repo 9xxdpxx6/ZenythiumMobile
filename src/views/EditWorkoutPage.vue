@@ -1,13 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/tabs/workouts"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Редактировать тренировку</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Редактировать тренировку" show-back-button default-back-href="/tabs/workouts" />
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -85,18 +78,14 @@ import { onIonViewWillEnter, onIonViewDidLeave } from '@ionic/vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonSpinner,
-  IonButtons,
-  IonBackButton,
   IonButton,
   IonIcon,
 } from '@ionic/vue';
 import { trashOutline, addOutline } from 'ionicons/icons';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomToast from '@/components/ui/CustomToast.vue';

@@ -1,20 +1,12 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button @click="router.back()">
-            <i class="fas fa-arrow-left"></i>
-          </ion-button>
-        </ion-buttons>
-        <ion-title>Упражнения</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="openCreateModal">
-            <i class="fas fa-plus"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Упражнения" :end-button="{ icon: 'fas fa-plus', onClick: openCreateModal, class: 'add-button' }">
+      <template #start>
+        <ion-button @click="router.back()">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -137,19 +129,16 @@ import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonButtons,
   IonButton,
 } from '@ionic/vue';
 import { useDataFetching, useToast, usePagination, useModal } from '@/composables';
 import { exercisesService, muscleGroupsService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import ExercisesFilters from '@/components/filters/ExercisesFilters.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import ExerciseCard from '@/components/cards/ExerciseCard.vue';

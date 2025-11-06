@@ -1,13 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button :default-href="'/training-programs'"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Программа</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Программа" show-back-button default-back-href="/training-programs" />
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -131,16 +124,12 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButtons,
-  IonBackButton,
 } from '@ionic/vue';
 import { useToast } from '@/composables';
 import { trainingProgramsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import InstallTrainingProgramModal from '@/components/modals/InstallTrainingProgramModal.vue';
 import { getColorFromString } from '@/utils/formatters';

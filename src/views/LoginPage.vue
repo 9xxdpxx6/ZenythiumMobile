@@ -1,10 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Вход</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Вход" />
 
     <ion-content :fullscreen="true" :scroll-y="false">
       <div class="auth-page">
@@ -67,9 +63,6 @@
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
   IonButton,
   IonSpinner,
@@ -78,6 +71,7 @@ import {
 import { useAuth, useForm, useToast } from '@/composables';
 import { LoginRequest } from '@/types/api';
 import CustomInput from '@/components/ui/CustomInput.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import { validators } from '@/utils/validators';
 
 const router = useRouter();

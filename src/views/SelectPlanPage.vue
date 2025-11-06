@@ -1,13 +1,6 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/"></ion-back-button>
-        </ion-buttons>
-        <ion-title>Начать тренировку</ion-title>
-      </ion-toolbar>
-    </ion-header>
+    <PageHeader title="Начать тренировку" show-back-button default-back-href="/" />
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -59,13 +52,7 @@ import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonButtons,
-  IonBackButton,
-  IonButton,
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
@@ -73,6 +60,7 @@ import { useDataFetching, useToast } from '@/composables';
 import { errorHandler } from '@/utils/error-handler';
 import { plansService, workoutsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
+import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import CustomSelect from '@/components/ui/CustomSelect.vue';
 // Avoid strict coupling to API Plan type here; we only need id/name/is_active
