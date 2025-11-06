@@ -2,6 +2,9 @@
   <ion-page>
     <ion-header :translucent="true">
       <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button :default-href="'/tabs/home'"></ion-back-button>
+        </ion-buttons>
         <ion-title>Программы</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -44,6 +47,7 @@
               v-for="program in programs"
               :key="program.id"
               :program="program"
+              :is-top="isTopProgram(program.id)"
               :is-installing="installingProgramId === program.id"
               :is-uninstalling="uninstallingProgramId === program.id"
               @click="handleProgramClick"
@@ -98,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -108,6 +112,8 @@ import {
   IonContent,
   IonRefresher,
   IonRefresherContent,
+  IonButtons,
+  IonBackButton,
 } from '@ionic/vue';
 import { useToast } from '@/composables';
 import { trainingProgramsService } from '@/services';
@@ -142,9 +148,14 @@ const selectedProgram = ref<TrainingProgram | null>(null);
 const selectedProgramName = ref('');
 const isInstalling = ref(false);
 
+interface Filters {
+  is_active: string | null;
+  is_installed: boolean | null;
+}
+
 const FILTERS_STORAGE_KEY = 'training-programs-filters';
 
-const saveFilters = (filters: Record<string, any>): void => {
+const saveFilters = (filters: Filters): void => {
   try {
     localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters));
   } catch (e) {
@@ -152,24 +163,54 @@ const saveFilters = (filters: Record<string, any>): void => {
   }
 };
 
-const loadFilters = (): Record<string, any> | null => {
+const loadFilters = (): Filters | null => {
   try {
     const saved = localStorage.getItem(FILTERS_STORAGE_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const parsed = JSON.parse(saved) as Filters;
+    // Если is_active не установлен, возвращаем null чтобы использовать дефолт
+    if (parsed.is_active === null || parsed.is_active === undefined) {
+      return null;
+    }
+    return parsed;
   } catch (e) {
     return null;
   }
 };
 
-const defaultFilters = {
-  is_active: null,
+const defaultFilters: Filters = {
+  is_active: '1',
   is_installed: null,
 };
 
-const currentFilters = ref(loadFilters() || defaultFilters);
+const loadedFilters = loadFilters();
+const currentFilters = ref<Filters>(loadedFilters || defaultFilters);
+
+// Если фильтры не были загружены или is_active не установлен, применяем дефолтные
+if (!loadedFilters || !loadedFilters.is_active) {
+  currentFilters.value = { ...defaultFilters };
+  // Сохраняем дефолтные фильтры для будущих сессий
+  saveFilters(defaultFilters);
+}
+
 const currentPage = ref(1);
 
 const { showSuccess, showError } = useToast();
+
+// Определяем топ-3 программы (installations_count > 5)
+const topProgramIds = computed(() => {
+  const programsWithInstalls = programs.value
+    .filter(p => (p.installations_count ?? 0) > 5)
+    .sort((a, b) => (b.installations_count ?? 0) - (a.installations_count ?? 0))
+    .slice(0, 3)
+    .map(p => p.id);
+  
+  return new Set(programsWithInstalls);
+});
+
+const isTopProgram = (programId: number): boolean => {
+  return topProgramIds.value.has(programId);
+};
 
 const fetchData = async (): Promise<void> => {
   loading.value = true;
@@ -191,7 +232,7 @@ const fetchData = async (): Promise<void> => {
     const response = await trainingProgramsService.getPaginated(params);
     programs.value = response.data;
     meta.value = response.meta || null;
-  } catch (error) {
+  } catch (error: unknown) {
     await showError('Ошибка при загрузке программ');
   } finally {
     loading.value = false;
@@ -207,8 +248,7 @@ const handleProgramClick = (program: TrainingProgram): void => {
   if (document.activeElement instanceof HTMLElement) {
     document.activeElement.blur();
   }
-  // Можно добавить переход на детальную страницу
-  // router.push(`/training-program/${program.id}`);
+  router.push(`/training-program/${program.id}`);
 };
 
 const handleInstallClick = (program: TrainingProgram): void => {
@@ -230,7 +270,7 @@ const handleUninstallClick = async (program: TrainingProgram): Promise<void> => 
     await trainingProgramsService.uninstall(program.id.toString());
     await showSuccess('Программа успешно удалена');
     await fetchData();
-  } catch (err) {
+  } catch (err: unknown) {
     await showError('Ошибка при удалении программы');
   } finally {
     uninstallingProgramId.value = null;
@@ -250,8 +290,8 @@ const confirmInstall = async (): Promise<void> => {
     selectedProgram.value = null;
     selectedProgramName.value = '';
     await fetchData();
-  } catch (err: any) {
-    const errorMessage = err?.response?.data?.message || 'Ошибка при установке программы';
+  } catch (err: unknown) {
+    const errorMessage = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Ошибка при установке программы';
     await showError(errorMessage);
   } finally {
     isInstalling.value = false;
@@ -285,7 +325,7 @@ const clearSearch = (): void => {
   setTimeout(() => { searchLoading.value = false; }, 300);
 };
 
-const handleFiltersChanged = (filters: Record<string, any>): void => {
+const handleFiltersChanged = (filters: Filters): void => {
   currentFilters.value = { ...filters };
   saveFilters(filters);
   currentPage.value = 1;
