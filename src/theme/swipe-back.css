@@ -4,8 +4,9 @@
  */
 
 /* Animation duration - change here to adjust all animations */
+/* Увеличено до 0.25s для более плавной анимации */
 :root {
-  --swipe-back-duration: 0.1s;
+  --swipe-back-duration: 0.25s;
 }
 
 /* Swipe back page wrapper */
@@ -36,11 +37,16 @@
   overflow: hidden;
 }
 
-/* Optimize rendering performance */
+/* Optimize rendering performance - принудительное аппаратное ускорение */
 .swipe-back-page {
   backface-visibility: hidden;
   perspective: 1000px;
   transform-style: preserve-3d;
+  /* Принудительное аппаратное ускорение через translateZ(0) */
+  transform: translateZ(0);
+  /* Оптимизация для GPU */
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
 }
 
 /* Disable Ionic router outlet transitions for swipe-back pages */
@@ -92,6 +98,11 @@ ion-router-outlet ion-page.swipe-back-page {
   background: transparent !important; /* Let inner ion-page handle background */
   visibility: visible !important;
   overflow: hidden !important;
+  /* Принудительное аппаратное ускорение */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   /* opacity is controlled by previousPageOpacity ref */
 }
 

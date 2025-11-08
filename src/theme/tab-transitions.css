@@ -66,6 +66,11 @@
   display: block;
   will-change: transform;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Принудительное аппаратное ускорение */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .swipe-page ion-router-outlet.swiping {
@@ -97,11 +102,21 @@
   touch-action: pan-y;
 }
 
-/* Optimize rendering performance */
+/* Optimize rendering performance - принудительное аппаратное ускорение */
 .swipe-container {
   backface-visibility: hidden;
   perspective: 1000px;
   transform-style: preserve-3d;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+}
+
+/* Оптимизация для swipe-page - используем will-change вместо фиксированного transform */
+.swipe-page {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /* transform будет применяться динамически через translateX, поэтому не устанавливаем translateZ(0) здесь */
 }
 
 /* Override Ionic default transitions for tabs */
