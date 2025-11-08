@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
+import { StatusBar, Style } from '@capacitor/status-bar';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -65,6 +66,19 @@ const app = createApp(App)
 // Инициализация менеджера кеша
 initializeCacheManager();
 
-router.isReady().then(() => {
+// Инициализация Status Bar (без overlay - контент не перекрывает системные панели)
+const initializeStatusBar = async () => {
+  try {
+    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setOverlaysWebView({ overlay: false });
+  } catch {
+    // StatusBar доступен только в нативных приложениях (Android/iOS)
+    // В веб-версии это нормально, не выводим ошибку в консоль
+  }
+};
+
+// Инициализация приложения
+router.isReady().then(async () => {
+  await initializeStatusBar();
   app.mount('#app');
 });

@@ -78,7 +78,9 @@ export function useActiveWorkout(workoutId: number) {
         .sort((a: any, b: any) => new Date(b.workout_date).getTime() - new Date(a.workout_date).getTime());
       
       if (previousHistory.length > 0 && previousHistory[0].sets.length > 0) {
-        return previousHistory[0].sets[previousHistory[0].sets.length - 1];
+        // Сортируем sets по id в порядке убывания, чтобы взять последний добавленный (с максимальным id)
+        const sortedSets = [...previousHistory[0].sets].sort((a: any, b: any) => (b.id || 0) - (a.id || 0));
+        return sortedSets[0];
       }
     }
     return null;
@@ -98,8 +100,15 @@ export function useActiveWorkout(workoutId: number) {
   const getPreviousSets = (exerciseId: number) => {
     const exercise = exercises.value.find(ex => ex.id === exerciseId);
     if (exercise && exercise.history) {
+      const now = new Date();
+      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
+      
       return exercise.history
-        .filter((h: any) => h.workout_id !== workoutId)
+        .filter((h: any) => {
+          if (h.workout_id === workoutId) return false;
+          const workoutDate = new Date(h.workout_date);
+          return workoutDate >= twoDaysAgo;
+        })
         .sort((a: any, b: any) => new Date(a.workout_date).getTime() - new Date(b.workout_date).getTime());
     }
     return [];

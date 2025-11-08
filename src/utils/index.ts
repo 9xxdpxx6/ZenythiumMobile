@@ -8,6 +8,7 @@ export { logger, Logger } from './logger';
 export { validators, combineValidators } from './validators';
 export { formatters } from './formatters';
 export * from './formatters';
+export { normalizeValidationError } from './validation-normalizer';
 
 // Export types
 export type { ValidationResult, ValidatorFn } from './validators';

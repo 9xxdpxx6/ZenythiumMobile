@@ -1,7 +1,7 @@
 {
   "name": "ionic-vue-fitness-app",
   "private": true,
-  "version": "0.0.3",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "version:patch": "node scripts/version.js patch",
     "version:minor": "node scripts/version.js minor",
     "version:major": "node scripts/version.js major",
+    "sync:android": "npm run build && npx cap sync android",
     "build:android": "npm run build && npx cap sync android",
     "build:android:release": "npm run build && npx cap sync android && cd android && gradlew.bat assembleRelease"
   },

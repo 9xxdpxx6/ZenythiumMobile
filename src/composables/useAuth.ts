@@ -6,6 +6,7 @@ import {
   User, 
   ApiError 
 } from '@/types/api';
+import { normalizeValidationError } from '@/utils/validation-normalizer';
 
 export function useAuth() {
   const user = ref<User | null>(null);
@@ -34,7 +35,8 @@ export function useAuth() {
         // Extract specific validation errors if available
         const firstError = Object.values(apiError.errors)[0];
         if (Array.isArray(firstError) && firstError.length > 0) {
-          error.value = firstError[0];
+          const fieldName = Object.keys(apiError.errors)[0];
+          error.value = normalizeValidationError(firstError[0], fieldName);
         } else {
           error.value = apiError.message;
         }
@@ -75,12 +77,13 @@ export function useAuth() {
         // Extract specific validation errors if available
         // Priority: email errors first, then other field errors
         if (apiError.errors.email && apiError.errors.email.length > 0) {
-          error.value = apiError.errors.email[0];
+          error.value = normalizeValidationError(apiError.errors.email[0], 'email');
         } else {
           // Get first error from any field
+          const firstField = Object.keys(apiError.errors)[0];
           const firstError = Object.values(apiError.errors)[0];
           if (Array.isArray(firstError) && firstError.length > 0) {
-            error.value = firstError[0];
+            error.value = normalizeValidationError(firstError[0], firstField);
           } else {
             error.value = apiError.message;
           }

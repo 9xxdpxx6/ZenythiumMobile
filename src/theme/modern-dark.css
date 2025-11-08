@@ -161,6 +161,12 @@ ion-content {
   --padding-bottom: 0 !important;
 }
 
+/* For pages with tab bar, Ionic automatically adds padding for tab bar */
+/* No need for safe-area padding as we're not in edge-to-edge mode */
+ion-tabs ion-content {
+  --padding-bottom: 60px !important;
+}
+
 /* Page titles and headers are handled by utilities.css */
 
 /* Tab bar styling */
@@ -246,6 +252,9 @@ ion-list-header {
   font-size: 18px !important;
 }
 
+/* Header styling - Ionic автоматически учитывает safe area через --ion-safe-area-top */
+/* Не добавляем padding-top к ion-header, так как это конфликтует с translucent режимом */
+
 /* Toolbar styling */
 ion-toolbar {
   --background: var(--ion-toolbar-background) !important;
@@ -255,6 +264,7 @@ ion-toolbar {
 
 ion-header ion-toolbar {
   border-radius: 0 0 16px 16px !important;
+  /* Safe area для header учитывается автоматически через translucent режим */
 }
 
 /* Tab bar styling - centered alignment */
