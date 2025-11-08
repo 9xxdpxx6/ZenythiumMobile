@@ -50,7 +50,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { clearDataCache } from '@/composables/useDataFetching';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -76,9 +77,14 @@ const { filters, updateFilter } = useFilters({
 });
 
 // Use composables
+
 const { data: cycles, loading, error, execute, refresh } = useDataFetching(
   () => cyclesService.getAll(filters),
-  { immediate: false }
+  { 
+    immediate: false,
+    skipIfDataExists: true, // Включаем кеш
+    cacheKey: 'cycles_list'
+  }
 );
 
 const searchQuery = ref('');
@@ -90,6 +96,8 @@ const fetchCycles = async () => {
 };
 
 const handleRefresh = async (event: CustomEvent) => {
+  // Очищаем кеш при ручном обновлении
+  clearDataCache('cycles_list');
   await refresh();
   event.detail.complete();
 };
@@ -97,12 +105,16 @@ const handleRefresh = async (event: CustomEvent) => {
 const handleSearchInput = (value: string) => {
   searchQuery.value = value;
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  // Очищаем кеш при поиске, чтобы загрузить новые данные
+  clearDataCache('cycles_list');
   searchTimeout.value = setTimeout(() => fetchCycles(), 300);
 };
 
 const clearSearch = () => {
   searchQuery.value = '';
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  // Очищаем кеш при очистке поиска
+  clearDataCache('cycles_list');
   fetchCycles();
 };
 
@@ -113,7 +125,11 @@ const handleCycleClick = (cycle: Cycle | null) => {
 
 const createCycle = () => router.push('/cycle/new');
 
-const handleCyclesUpdated = () => fetchCycles();
+const handleCyclesUpdated = () => {
+  // Очищаем кеш при обновлении циклов извне
+  clearDataCache('cycles_list');
+  fetchCycles();
+};
 
 onMounted(() => {
   fetchCycles();

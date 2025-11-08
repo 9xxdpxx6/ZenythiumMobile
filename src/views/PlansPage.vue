@@ -76,7 +76,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { clearDataCache } from '@/composables/useDataFetching';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -152,6 +153,7 @@ const defaultFilters: PlanFilters = {
 const currentFilters = ref(loadFilters() || defaultFilters);
 
 const { showSuccess, showError } = useToast();
+
 const { data: plans, loading, execute: fetchData } = useDataFetching(
   async () => {
     const params: Record<string, string> = {};
@@ -166,12 +168,18 @@ const { data: plans, loading, execute: fetchData } = useDataFetching(
     
     return await plansService.getAll(params) || [];
   },
-  { immediate: true }
+  { 
+    immediate: true,
+    skipIfDataExists: true, // Включаем кеш
+    cacheKey: 'plans_list'
+  }
 );
 
 const searchLoading = ref(false);
 
 const handleRefresh = async (event: CustomEvent): Promise<void> => {
+  // Очищаем кеш при ручном обновлении
+  clearDataCache('plans_list');
   await fetchData();
   event.detail.complete();
 };
@@ -187,6 +195,8 @@ const handleSearch = (value: string): void => {
   searchQuery.value = value;
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   searchLoading.value = true;
+  // Очищаем кеш при поиске, чтобы загрузить новые данные
+  clearDataCache('plans_list');
   searchTimeout.value = setTimeout(async () => {
     await fetchData();
     searchLoading.value = false;
@@ -196,6 +206,8 @@ const handleSearch = (value: string): void => {
 const handleFiltersChanged = (filters: PlanFilters): void => {
   currentFilters.value = { ...filters };
   saveFilters(filters);
+  // Очищаем кеш при изменении фильтров
+  clearDataCache('plans_list');
   fetchData();
 };
 
@@ -203,6 +215,8 @@ const clearSearch = (): void => {
   searchQuery.value = '';
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   searchLoading.value = true;
+  // Очищаем кеш при очистке поиска
+  clearDataCache('plans_list');
   fetchData();
   setTimeout(() => { searchLoading.value = false; }, 300);
 };
@@ -214,6 +228,8 @@ const resetFilters = (): void => {
   } catch (e) {
     logger.warn('Failed to remove filters', e);
   }
+  // Очищаем кеш при сбросе фильтров
+  clearDataCache('plans_list');
   fetchData();
 };
 
@@ -240,6 +256,8 @@ const confirmDuplicate = async () => {
   try {
     await plansService.duplicate(plan.id.toString());
     await showSuccess('План успешно скопирован');
+    // Очищаем кеш при успешном дублировании
+    clearDataCache('plans_list');
     await fetchData();
   } catch (err: unknown) {
     errorHandler.log(err, 'PlansPage.confirmDuplicate');
@@ -262,6 +280,8 @@ const cancelDuplicate = (): void => {
 };
 
 const handlePlansUpdated = (): void => {
+  // Очищаем кеш при обновлении планов извне
+  clearDataCache('plans_list');
   fetchData();
 };
 
