@@ -1,12 +1,51 @@
 [build]
-  publish = "dist"  # или "build", в зависимости от твоего проекта
+  publish = "dist"
   command = "npm run build"
 
 [functions]
   directory = "netlify/functions"
 
+# 🚀 SPA Redirect: Все запросы, кроме статики, в index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+  force = false
+
+# 📦 Исключаем статику — чтобы JS/CSS/изображения отдавались как есть
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/favicon.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/robots.txt"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# 🔒 Если используешь service worker (PWA)
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# 🖼️ Дополнительно: если у тебя есть другие статичные файлы (например, fonts, icons)
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/icons/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

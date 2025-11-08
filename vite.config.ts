@@ -23,5 +23,6 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // <-- Добавьте эту строку
     port: 5173,      // Убедитесь, что порт указан
-  }
+  },
+  base: './',
 })
