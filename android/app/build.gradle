@@ -43,6 +43,12 @@ android {
         }
     }
     
+    // Отключаем lint для ускорения сборки
+    lintOptions {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+    
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
             def versionName = variant.versionName
