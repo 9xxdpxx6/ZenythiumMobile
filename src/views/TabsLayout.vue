@@ -26,7 +26,7 @@
 
           <ion-tab-button tab="plans" href="/tabs/plans">
             <i class="fas fa-book"></i>
-          </ion-tab-button>
+          </ion-tab-button> 
 
           <ion-tab-button tab="home" href="/tabs/home">
             <i class="fas fa-home"></i>
