@@ -110,7 +110,7 @@ const updatePasswordRef = (value: string): true => {
   return true;
 };
 
-const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched } = useForm<RegisterRequest>(
+const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched, setFieldError } = useForm<RegisterRequest>(
   {
     name: '',
     email: '',
