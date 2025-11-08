@@ -1,0 +1,128 @@
+/**
+ * Swipe Back Navigation Styles
+ * Provides smooth slide animation for back navigation on non-tabs pages
+ */
+
+/* Animation duration - change here to adjust all animations */
+:root {
+  --swipe-back-duration: 0.1s;
+}
+
+/* Swipe back page wrapper */
+.swipe-back-page {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+  transition: transform var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  /* Disable Ionic's built-in page transitions */
+  --offset-bottom: 0px !important;
+  --offset-end: 0px !important;
+  --offset-start: 0px !important;
+  --offset-top: 0px !important;
+  animation: none !important;
+}
+
+.swipe-back-page.swiping {
+  transition: none;
+}
+
+.swipe-back-page.completing {
+  transition: transform var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Ensure page content doesn't overflow during swipe */
+.swipe-back-page ion-content {
+  overflow: hidden;
+}
+
+/* Optimize rendering performance */
+.swipe-back-page {
+  backface-visibility: hidden;
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+
+/* Disable Ionic router outlet transitions for swipe-back pages */
+/* Using more specific selector to avoid :has() compatibility issues */
+ion-router-outlet .swipe-back-page {
+  --transition-duration: 0ms !important;
+}
+
+/* Disable Ionic page animations through shadow DOM parts */
+ion-router-outlet .swipe-back-page {
+  transition: transform var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: none !important;
+}
+
+/* Disable Ionic page transition animations for swipe-back pages */
+ion-router-outlet .ion-page.swipe-back-page,
+ion-router-outlet .swipe-back-page.ion-page {
+  transition: transform var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: none !important;
+  --offset-bottom: 0px !important;
+  --offset-end: 0px !important;
+  --offset-start: 0px !important;
+  --offset-top: 0px !important;
+}
+
+/* Disable any Ionic page enter/leave animations */
+ion-router-outlet ion-page.swipe-back-page {
+  transition: transform var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+  animation: none !important;
+  --offset-bottom: 0px !important;
+  --offset-end: 0px !important;
+  --offset-start: 0px !important;
+  --offset-top: 0px !important;
+  z-index: 9999 !important; /* Ensure current page is above previous page (9998) */
+  position: relative !important;
+}
+
+/* Previous page (rendered behind current page during swipe via Teleport) */
+.swipe-back-previous-page {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9998 !important; /* Below current page (9999) but above everything else */
+  will-change: opacity;
+  transition: opacity var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none; /* Don't block interactions with current page */
+  background: transparent !important; /* Let inner ion-page handle background */
+  visibility: visible !important;
+  overflow: hidden !important;
+  /* opacity is controlled by previousPageOpacity ref */
+}
+
+/* Ensure ion-page inside previous page also has correct styles */
+.swipe-back-previous-page > ion-page,
+.swipe-back-previous-page ion-page {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+  background: var(--ion-background-color, #000) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important; /* Let parent handle transform */
+}
+
+.swipe-back-previous-page.completing {
+  transition: opacity var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.swipe-back-previous-page.completing ion-page {
+  transition: opacity var(--swipe-back-duration) cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Swipe back container - now merged with ion-page */
+/* When both classes are on ion-page, ensure proper positioning */
+.swipe-back-page.swipe-back-container {
+  overflow: visible; /* Allow previous page to be visible behind */
+  pointer-events: auto; /* Ensure events are handled */
+  touch-action: pan-y pan-x; /* Allow both vertical and horizontal gestures */
+}
+

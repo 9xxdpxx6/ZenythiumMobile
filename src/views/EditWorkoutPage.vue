@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Редактировать тренировку" show-back-button default-back-href="/tabs/workouts" />
 
     <ion-content :fullscreen="true">
@@ -69,7 +69,7 @@
       color="danger"
       @didDismiss="clearError"
     />
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
@@ -77,7 +77,6 @@ import { ref, onMounted, computed } from 'vue';
 import { onIonViewWillEnter, onIonViewDidLeave } from '@ionic/vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonSpinner,
   IonButton,

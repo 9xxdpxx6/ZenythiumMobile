@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Записи веса" :end-button="{ icon: 'fas fa-plus', onClick: openAddModal, class: 'add-button' }">
       <template #start>
           <ion-button @click="router.back()">
@@ -91,14 +91,13 @@
       @confirm="deleteMetric"
       @cancel="handleCloseDeleteModal"
     />
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonRefresher,
   IonRefresherContent,

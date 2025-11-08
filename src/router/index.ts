@@ -133,7 +133,10 @@ const routes: Array<RouteRecordRaw> = [
     path: '/training-program/:id',
     name: 'TrainingProgramDetail',
     component: () => import('@/views/TrainingProgramDetailPage.vue'),
-    meta: { requiresAuth: true }
+    meta: { 
+      requiresAuth: true,
+      disableSwipeBack: true // Disable swipe-back for this page due to conflicts with Ionic Router
+    }
   }
 ]
 
@@ -146,6 +149,11 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = AuthService.isAuthenticated();
+
+  // Save previous route for swipe-back navigation
+  if (from.path && typeof sessionStorage !== 'undefined') {
+    sessionStorage.setItem('previousRoute', from.path);
+  }
 
   if (requiresAuth && !isAuthenticated) {
     next('/login');

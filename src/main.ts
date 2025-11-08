@@ -37,6 +37,7 @@ import './theme/modern-dark.css';
 import './theme/utilities.css';
 import './theme/datepicker.css';
 import './theme/tab-transitions.css';
+import './theme/swipe-back.css';
 
 /* Font Awesome */
 import '@fortawesome/fontawesome-free/css/all.css';
@@ -48,6 +49,9 @@ import '@vuepic/vue-datepicker/dist/main.css';
 /* Import CustomInput component */
 import CustomInput from './components/ui/CustomInput.vue';
 
+/* Import BasePage component for automatic swipe-back */
+import BasePage from './components/swipe-back/BasePage.vue';
+
 /* Initialize cache manager */
 import { initializeCacheManager } from './utils/cache-manager';
 
@@ -55,7 +59,8 @@ const app = createApp(App)
   .use(IonicVue)
   .use(router)
   .component('CustomInput', CustomInput)
-  .component('VueDatePicker', VueDatePicker);
+  .component('VueDatePicker', VueDatePicker)
+  .component('BasePage', BasePage);
 
 // Инициализация менеджера кеша
 initializeCacheManager();

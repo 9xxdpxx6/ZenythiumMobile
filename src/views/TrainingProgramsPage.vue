@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Программы" show-back-button default-back-href="/tabs/home" />
 
     <ion-content :fullscreen="true">
@@ -86,14 +86,13 @@
         @cancel="cancelUninstall"
       />
     </ion-content>
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonRefresher,
   IonRefresherContent,
@@ -336,7 +335,7 @@ onMounted(() => {
 }
 
 .page-header {
-  margin-bottom: 32px;
+  margin: 16px 0;
   text-align: center;
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage :swipe-back-options="{ onBeforeBack: handleSwipeBack }">
     <PageHeader :title="isEditMode ? 'Редактировать цикл' : 'Создать цикл'">
       <template #start>
           <ion-button @click="handleBack">
@@ -112,7 +112,7 @@
       @confirm="confirmLeave"
       @cancel="cancelLeave"
     />
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
@@ -195,6 +195,16 @@ const deleteCycleModal = useModal();
 const unsavedChangesModal = useModal();
 const pendingNavigation = ref<any>(null);
 const isLeaving = ref(false);
+
+// Swipe back handler for unsaved changes check
+const handleSwipeBack = async (): Promise<boolean> => {
+  if (hasUnsavedChanges.value) {
+    pendingNavigation.value = () => router.back();
+    unsavedChangesModal.open();
+    return false; // Cancel navigation, show modal
+  }
+  return true; // Allow navigation
+};
 
 const originalFormData = ref<CycleFormData | null>(null);
 const originalCyclePlans = ref<CyclePlan[]>([]);

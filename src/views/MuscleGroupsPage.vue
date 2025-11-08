@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Группы мышц">
       <template #start>
           <ion-button @click="router.back()">
@@ -51,13 +51,12 @@
       duration="3000"
       @didDismiss="clearError"
     ></ion-toast>
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonButton,
   IonToast,
