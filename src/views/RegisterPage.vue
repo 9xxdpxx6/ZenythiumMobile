@@ -94,6 +94,7 @@ import { RegisterRequest } from '@/types/api';
 import CustomInput from '@/components/ui/CustomInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { validators } from '@/utils/validators';
+import { normalizeValidationError } from '@/utils/validation-normalizer';
 
 const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
@@ -148,7 +149,9 @@ const onSubmit = async (values: RegisterRequest) => {
       Object.keys(validationErrors.value).forEach(field => {
         const fieldErrors = validationErrors.value![field];
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-          setFieldError(field as keyof RegisterRequest, fieldErrors[0]);
+          const rawError = fieldErrors[0];
+          const normalizedError = normalizeValidationError(rawError, field);
+          setFieldError(field as keyof RegisterRequest, normalizedError);
         }
       });
     }

@@ -24,6 +24,8 @@ export const ERROR_MESSAGES = {
   REQUIRED_FIELD: 'Это поле обязательно для заполнения.',
   INVALID_FORMAT: 'Неверный формат.',
   INVALID_EMAIL: 'Неверный адрес электронной почты.',
+  EMAIL_ALREADY_EXISTS: 'Этот email уже зарегистрирован.',
+  VALUE_ALREADY_EXISTS: 'Это значение уже используется.',
   PASSWORD_TOO_SHORT: 'Пароль должен содержать минимум 8 символов.',
 
   // Operation errors
