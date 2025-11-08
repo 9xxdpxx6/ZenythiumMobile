@@ -159,6 +159,10 @@ ion-content {
   --padding-end: 0 !important;
   --padding-top: 0 !important;
   --padding-bottom: 0 !important;
+  /* Оптимизация производительности - аппаратное ускорение для скролла */
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 /* For pages with tab bar, Ionic automatically adds padding for tab bar */
