@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Начать тренировку" show-back-button default-back-href="/" />
 
     <ion-content :fullscreen="true">
@@ -43,15 +43,14 @@
       :message="error"
       duration="3000"
       @didDismiss="clearError"
-    ></ion-toast>
-  </ion-page>
+    >    </ion-toast>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonSpinner,
   IonToast,

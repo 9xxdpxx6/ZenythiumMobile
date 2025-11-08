@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Программа" show-back-button default-back-href="/training-programs" />
 
     <ion-content :fullscreen="true">
@@ -35,11 +35,11 @@
         @cancel="cancelInstall"
       />
     </ion-content>
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -59,6 +59,11 @@ const route = useRoute();
 const router = useRouter();
 const programId = route.params.id as string;
 
+// Guard: don't fetch if programId is undefined (e.g., when rendered as previousPageComponent)
+const isValidProgramId = computed(() => {
+  return programId && programId !== 'undefined' && programId.trim() !== '';
+});
+
 const program = ref<TrainingProgramDetail | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -67,7 +72,14 @@ const isInstallModalOpen = ref(false);
 
 const { showSuccess, showError } = useToast();
 
+// Swipe back is handled automatically by BasePage
+
 const fetchProgram = async (): Promise<void> => {
+  // Don't fetch if programId is invalid (e.g., when rendered as previousPageComponent)
+  if (!isValidProgramId.value) {
+    return;
+  }
+  
   loading.value = true;
   error.value = null;
   
@@ -110,7 +122,10 @@ const cancelInstall = (): void => {
 };
 
 onMounted(() => {
-  fetchProgram();
+  // Only fetch if programId is valid
+  if (isValidProgramId.value) {
+    fetchProgram();
+  }
 });
 </script>
 

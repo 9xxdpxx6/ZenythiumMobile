@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage :swipe-back-options="{ onBeforeBack: handleSwipeBack }">
     <PageHeader :title="isEditMode ? 'Редактировать план' : 'Создать план'">
       <template #start>
           <ion-button @click="handleBack">
@@ -112,7 +112,7 @@
       @confirm="confirmLeave"
       @cancel="cancelLeave"
     />
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
@@ -186,6 +186,16 @@ const hasUnsavedChanges = ref(false);
 const initialFormData = ref<PlanFormData>({ name: '', is_active: true });
 const initialExercises = ref<Exercise[]>([]);
 const isLeaving = ref(false); // Флаг для предотвращения повторных проверок
+
+// Swipe back handler for unsaved changes check
+const handleSwipeBack = async (): Promise<boolean> => {
+  if (checkForUnsavedChanges()) {
+    pendingNavigation.value = () => router.back();
+    unsavedChangesModal.open();
+    return false; // Cancel navigation, show modal
+  }
+  return true; // Allow navigation
+};
 
 const formData = ref<PlanFormData>({
   name: '',

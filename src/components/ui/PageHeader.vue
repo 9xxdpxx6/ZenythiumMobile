@@ -61,6 +61,7 @@ withDefaults(defineProps<Props>(), {
   position: relative;
   --min-height: 46px;
   min-height: 46px;
+  border-radius: 0 !important;
 }
 
 :deep(ion-title) {

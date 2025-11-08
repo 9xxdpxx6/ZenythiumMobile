@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Тренировка" show-back-button default-back-href="/tabs/workouts">
       <template #end>
         <div class="workout-status-header">
@@ -90,7 +90,7 @@
       @confirm="handleDeleteConfirmWithRouter"
       @cancel="handleDeleteCancel"
     />
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
@@ -116,6 +116,8 @@ import type { DetailedWorkout } from '@/types/api';
 const route = useRoute();
 const router = useRouter();
 const workoutId = route.params.id as string;
+
+// Swipe back is handled automatically by BasePage
 
 const {
   workout,

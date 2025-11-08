@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Упражнения" :end-button="{ icon: 'fas fa-plus', onClick: openCreateModal, class: 'add-button' }">
       <template #start>
           <ion-button @click="router.back()">
@@ -121,14 +121,13 @@
       @cancel="closeDeleteModal"
     />
 
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonRefresher,
   IonRefresherContent,

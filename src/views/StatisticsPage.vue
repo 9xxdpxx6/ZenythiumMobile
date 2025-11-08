@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <BasePage>
     <PageHeader title="Статистика" show-back-button default-back-href="/">
       <template #end>
           <ion-button @click="refreshAllData" :disabled="loading">
@@ -69,13 +69,12 @@
       duration="3000"
       @didDismiss="clearError"
     ></ion-toast>
-  </ion-page>
+  </BasePage>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import {
-  IonPage,
   IonContent,
   IonToast,
   IonRefresher,
