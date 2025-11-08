@@ -118,7 +118,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { clearDataCache } from '@/composables/useDataFetching';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -145,7 +146,8 @@ const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
 
 // Use composables
-// Не используем кеш для WorkoutsPage, так как фильтры могут меняться динамически
+// Используем кеш, но очищаем его при изменении фильтров по датам
+
 const { data: workouts, loading, error, execute, refresh } = useDataFetching(
   () => {
     const filters: any = {};
@@ -161,7 +163,11 @@ const { data: workouts, loading, error, execute, refresh } = useDataFetching(
     }
     return workoutsService.getAll(filters);
   },
-  { immediate: true, skipIfDataExists: false }
+  { 
+    immediate: true, 
+    skipIfDataExists: true, // Включаем кеш
+    cacheKey: 'workouts_list'
+  }
 );
 
 const { showError, showSuccess } = useToast();
@@ -179,6 +185,8 @@ const isDeleting = ref(false);
 const filteredWorkouts = computed(() => workouts.value || []);
 
 const handleRefresh = async (event: CustomEvent) => {
+  // Очищаем кеш при ручном обновлении
+  clearDataCache('workouts_list');
   await execute();
   event.detail.complete();
 };
@@ -231,6 +239,8 @@ const handleDeleteConfirm = async () => {
   isDeleting.value = true;
   try {
     await workoutsService.delete(deleteModal.data.value.id.toString());
+    // Очищаем кеш при успешном удалении
+    clearDataCache('workouts_list');
     await execute();
     await showSuccess('Тренировка удалена');
     deleteModal.close();
@@ -249,10 +259,18 @@ const clearError = () => {
   error.value = null;
 };
 
-const handleDateFilterChange = () => execute();
+const handleDateFilterChange = () => {
+  // Очищаем кеш при изменении фильтров, чтобы загрузить новые данные
+  clearDataCache('workouts_list');
+  execute();
+};
 
 // Refresh workouts when a workout is started/finished elsewhere
-const handleExternalRefresh = () => execute();
+const handleExternalRefresh = () => {
+  // Очищаем кеш при обновлении тренировок извне
+  clearDataCache('workouts_list');
+  execute();
+};
 
 onMounted(() => {
   window.addEventListener('workout-started', handleExternalRefresh as EventListener);
