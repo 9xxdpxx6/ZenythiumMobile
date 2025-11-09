@@ -10,7 +10,7 @@
  * Format: http://host:port or https://host:port
  */
 const getServerUrl = (): string => {
-  return import.meta.env.VITE_API_SERVER_URL || 'http://127.0.0.1:8000';
+  return import.meta.env.VITE_API_SERVER_URL || 'https://api-zenythium.ru';
 };
 
 /**
