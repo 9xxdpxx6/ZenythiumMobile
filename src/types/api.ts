@@ -56,6 +56,51 @@ export interface RegisterResponse {
   token_type: string;
 }
 
+// Password change types
+export interface ChangePasswordRequest {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ChangePasswordResponse {
+  message: string;
+  data: null;
+}
+
+// Forgot password types
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  data: null;
+}
+
+// Reset password types
+export interface ResetPasswordRequest {
+  token: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  data: null;
+}
+
+// Update user name types
+export interface UpdateUserNameRequest {
+  name: string;
+}
+
+export interface UpdateUserNameResponse {
+  message: string;
+  data: User;
+}
+
 // Workout related types
 export interface Workout {
   id: number;

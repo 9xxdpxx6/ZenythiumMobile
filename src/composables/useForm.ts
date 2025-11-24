@@ -24,6 +24,8 @@ export interface UseFormReturn<T> {
   validate: () => boolean;
   handleSubmit: (onSubmit: (values: T) => Promise<void> | void) => Promise<void>;
   reset: (newValues?: Partial<T>) => void;
+  resetForm: (newValues?: Partial<T>) => void;
+  setValues: (newValues: Partial<T>) => void;
 }
 
 /**
@@ -152,6 +154,11 @@ export function useForm<T extends Record<string, any>>(
   const handleSubmit = async (
     onSubmit: (values: T) => Promise<void> | void
   ): Promise<void> => {
+    // Prevent double submission
+    if (isSubmitting.value) {
+      return;
+    }
+
     // Mark all fields as touched
     Object.keys(values).forEach(field => {
       (touched as any)[field as keyof T] = true;
@@ -194,6 +201,22 @@ export function useForm<T extends Record<string, any>>(
     isSubmitting.value = false;
   };
 
+  /**
+   * Alias for reset (for consistency with some components)
+   */
+  const resetForm = (newValues?: Partial<T>): void => {
+    reset(newValues);
+  };
+
+  /**
+   * Set multiple field values at once
+   */
+  const setValues = (newValues: Partial<T>): void => {
+    Object.keys(newValues).forEach(key => {
+      (values as any)[key as keyof T] = (newValues as any)[key];
+    });
+  };
+
   return {
     values: values as T & Record<string, any>,
     errors: errors as Partial<Record<keyof T, string>>,
@@ -208,6 +231,8 @@ export function useForm<T extends Record<string, any>>(
     validate,
     handleSubmit,
     reset,
+    resetForm,
+    setValues,
   };
 }
 

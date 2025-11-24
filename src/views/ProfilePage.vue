@@ -1,6 +1,13 @@
 <template>
   <ion-page>
-    <PageHeader title="Профиль" />
+    <PageHeader 
+      title="Профиль"
+      :end-button="{
+        icon: 'fas fa-cog',
+        onClick: openSettingsModal,
+        class: 'settings-button'
+      }"
+    />
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -58,17 +65,6 @@
              </div>
            </div>
 
-           <div class="logout-section">
-             <button
-               @click="handleLogout"
-               :disabled="loggingOut"
-               class="modern-button logout-button"
-             >
-               <ion-spinner v-if="loggingOut" name="crescent"></ion-spinner>
-               <i v-else class="fas fa-sign-out-alt"></i>
-               <span v-if="!loggingOut">Выйти</span>
-             </button>
-           </div>
          </div>
 
          <div v-else class="empty-state">
@@ -79,6 +75,13 @@
       </PageContainer>
     </ion-content>
 
+    <!-- Settings Modal -->
+    <SettingsModal
+      :is-open="settingsModal.isOpen.value"
+      :current-name="user?.name"
+      @close="settingsModal.close"
+      @name-changed="handleNameChanged"
+    />
   </ion-page>
 </template>
 
@@ -93,18 +96,20 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import { useAuth } from '@/composables/useAuth';
-import { useDataFetching, useToast } from '@/composables';
+import { useDataFetching, useToast, useModal } from '@/composables';
 import { statisticsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import ProfileStatistics from '@/components/charts/ProfileStatistics.vue';
+import SettingsModal from '@/components/modals/SettingsModal.vue';
 
 const router = useRouter();
-const { user, logout, fetchUser, loading } = useAuth();
-const { showError } = useToast();
-const loggingOut = ref(false);
+const { user, fetchUser, loading } = useAuth();
 const userLoading = ref(true);
+
+// Settings modal
+const settingsModal = useModal();
 
 // Fetch statistics
 const { data: statistics, execute: fetchStatistics } = useDataFetching(
@@ -131,22 +136,18 @@ const formatDate = (dateString: string) => {
   });
 };
 
-const handleLogout = async () => {
-  loggingOut.value = true;
-  try {
-    await logout();
-    router.push('/login');
-  } catch (err) {
-    await showError('Ошибка выхода из системы');
-  } finally {
-    loggingOut.value = false;
-  }
-};
-
 const handleRefresh = async (event: CustomEvent) => {
   await fetchUser();
   await fetchStatistics();
   event.detail.complete();
+};
+
+const openSettingsModal = () => {
+  settingsModal.open();
+};
+
+const handleNameChanged = async () => {
+  await fetchUser();
 };
 
 onMounted(async () => {
