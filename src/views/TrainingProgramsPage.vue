@@ -1,6 +1,12 @@
 <template>
   <BasePage>
-    <PageHeader title="Программы" show-back-button default-back-href="/tabs/home" />
+    <PageHeader title="Программы">
+      <template #start>
+        <ion-button @click="router.push('/tabs/home')">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
@@ -96,6 +102,7 @@ import {
   IonContent,
   IonRefresher,
   IonRefresherContent,
+  IonButton,
 } from '@ionic/vue';
 import { useToast, useSearch, useLocalStorageFilters } from '@/composables';
 import { trainingProgramsService } from '@/services';

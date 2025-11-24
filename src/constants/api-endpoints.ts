@@ -8,11 +8,14 @@
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
-    LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
-    LOGOUT: '/auth/logout',
-    REFRESH: '/auth/refresh',
-    ME: '/auth/me',
+    LOGIN: '/login',
+    REGISTER: '/register',
+    LOGOUT: '/logout',
+    REFRESH: '/refresh',
+    ME: '/me',
+    FORGOT_PASSWORD: '/forgot-password',
+    RESET_PASSWORD: '/reset-password',
+    CHANGE_PASSWORD: '/change-password',
   },
 
   // Metrics
@@ -71,6 +74,7 @@ export const API_ENDPOINTS = {
   USER: {
     PROFILE: '/user/profile',
     SETTINGS: '/user/settings',
+    UPDATE: '/user',
   },
 } as const;
 

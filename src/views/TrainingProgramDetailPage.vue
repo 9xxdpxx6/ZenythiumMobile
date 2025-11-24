@@ -1,6 +1,12 @@
 <template>
   <BasePage>
-    <PageHeader title="Программа" show-back-button default-back-href="/training-programs" />
+    <PageHeader title="Программа">
+      <template #start>
+        <ion-button @click="router.push('/training-programs')">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
+      </template>
+    </PageHeader>
 
     <ion-content :fullscreen="true">
       <PageContainer>
@@ -44,6 +50,7 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
   IonContent,
+  IonButton,
 } from '@ionic/vue';
 import { useToast } from '@/composables';
 import { trainingProgramsService } from '@/services';
