@@ -100,16 +100,22 @@ export function useActiveWorkout(workoutId: number) {
   const getPreviousSets = (exerciseId: number) => {
     const exercise = exercises.value.find(ex => ex.id === exerciseId);
     if (exercise && exercise.history) {
-      const now = new Date();
-      const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000);
-      
+      // Показываем все предыдущие тренировки (не только последние 2 дня)
+      // Исключаем только текущую тренировку
       return exercise.history
         .filter((h: any) => {
+          // Исключаем текущую тренировку
           if (h.workout_id === workoutId) return false;
-          const workoutDate = new Date(h.workout_date);
-          return workoutDate >= twoDaysAgo;
+          // Исключаем тренировки без даты (активные незавершенные)
+          if (!h.workout_date) return false;
+          return true;
         })
-        .sort((a: any, b: any) => new Date(a.workout_date).getTime() - new Date(b.workout_date).getTime());
+        .sort((a: any, b: any) => {
+          // Сортируем по дате в порядке убывания (новые сначала)
+          const dateA = new Date(a.workout_date).getTime();
+          const dateB = new Date(b.workout_date).getTime();
+          return dateB - dateA;
+        });
     }
     return [];
   };
