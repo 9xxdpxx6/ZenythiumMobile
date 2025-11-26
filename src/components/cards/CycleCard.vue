@@ -32,6 +32,10 @@
           :style="{ width: (cycle.progress || 0) + '%' }"
         ></div>
       </div>
+      <div v-if="cycle.weeks && cycle.current_week !== undefined" class="progress-weeks">
+        <span>неделя</span>
+        <span>{{ cycle.current_week }} из {{ cycle.weeks }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -148,6 +152,14 @@ const formatDate = (dateString: string | undefined) => {
   background: var(--ion-color-primary);
   border-radius: 4px;
   transition: width 0.3s ease;
+}
+
+.progress-weeks {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  display: flex;
+  justify-content: space-between;
 }
 </style>
 

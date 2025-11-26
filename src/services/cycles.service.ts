@@ -24,6 +24,7 @@ interface CycleApiResponse {
   start_date: string | null;
   end_date: string | null;
   progress_percentage: number;
+  current_week: number;
   completed_workouts_count: number;
   plans_count: number;
   created_at?: string;
@@ -66,6 +67,7 @@ class CyclesService extends BaseService<Cycle, CreateCycleDto, UpdateCycleDto> {
       progress: apiCycle.progress_percentage || 0,
       // Additional fields for backward compatibility
       weeks: apiCycle.weeks,
+      current_week: apiCycle.current_week,
       start_date: apiCycle.start_date,
       end_date: apiCycle.end_date,
       plans: apiCycle.plans,
