@@ -18,6 +18,7 @@ export interface Cycle {
   progress?: number;
   // Additional fields for backward compatibility and form usage
   weeks?: number;
+  current_week?: number;
   start_date?: string | null;
   end_date?: string | null;
   plans?: any[];
