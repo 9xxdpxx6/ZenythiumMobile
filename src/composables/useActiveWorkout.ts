@@ -111,10 +111,10 @@ export function useActiveWorkout(workoutId: number) {
           return true;
         })
         .sort((a: any, b: any) => {
-          // Сортируем по дате в порядке убывания (новые сначала)
+          // Сортируем по дате в порядке возрастания (старые сначала)
           const dateA = new Date(a.workout_date).getTime();
           const dateB = new Date(b.workout_date).getTime();
-          return dateB - dateA;
+          return dateA - dateB;
         });
     }
     return [];

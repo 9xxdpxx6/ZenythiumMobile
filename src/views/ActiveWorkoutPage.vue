@@ -15,8 +15,12 @@
         <div v-else-if="workout && exercises.length > 0" class="workout-container">
         <!-- Workout Title -->
         <div class="workout-title-section">
-          <h1 class="workout-title">{{ workout?.plan?.name || 'Тренировка' }}</h1>
-          <p class="workout-start-time">{{ formatStartTime(workout?.started_at) }}</p>
+          <h1 class="workout-title">
+            {{ workout?.plan?.name || 'Тренировка' }}
+            <span v-if="workout?.startedAt" class="workout-date-time">
+              {{ formatStartTime(workout.startedAt) }}
+            </span>
+          </h1>
         </div>
 
         <div 
@@ -238,13 +242,18 @@ onMounted(() => {
   color: var(--ion-text-color) !important;
   margin: 0 0 6px 0 !important;
   padding-left: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.workout-start-time {
+.workout-date-time {
   font-size: 14px !important;
+  font-weight: 400 !important;
   color: var(--ion-color-medium) !important;
-  margin: 0 !important;
-  padding-left: 0 !important;
+  margin-top: 4px;
+  opacity: 0.8;
+  display: block;
 }
 
 /* Exercise Card */
