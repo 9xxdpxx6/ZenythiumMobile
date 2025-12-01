@@ -91,7 +91,9 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
       exercises: apiWorkout.exercises || [],
       createdAt: apiWorkout.created_at,
       updatedAt: apiWorkout.updated_at,
-    };
+      // Keep plan from API for components that need it
+      plan: apiWorkout.plan,
+    } as any;
   }
 
   /**
