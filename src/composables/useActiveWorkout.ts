@@ -87,6 +87,16 @@ export function useActiveWorkout(workoutId: number) {
   };
 
   const getPlaceholderValue = (exerciseId: number, field: 'weight' | 'reps') => {
+    // Сначала проверяем текущие (сегодняшние) подходы
+    const lastCurrentSet = getLastCurrentSet(exerciseId);
+    if (lastCurrentSet) {
+      if (field === 'weight') {
+        return formatWeight(lastCurrentSet[field]);
+      }
+      return lastCurrentSet[field].toString();
+    }
+    
+    // Если текущих подходов нет, используем исторические данные
     const lastSet = getLastHistoricalSet(exerciseId);
     if (lastSet) {
       if (field === 'weight') {
