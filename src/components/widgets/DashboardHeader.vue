@@ -14,10 +14,6 @@
       </div>
 
       <div class="grid-item" @click="$emit('navigate', '/training-programs')">
-        <!-- Ленточка NEW в правом верхнем углу -->
-        <div v-if="showNewRibbon" class="ribbon ribbon-new">
-          <span>NEW</span>
-        </div>
         <div class="grid-card modern-card">
           <i class="fas fa-layer-group grid-icon"></i>
           <h3>Программы</h3>
@@ -56,20 +52,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 
 defineEmits<{
   navigate: [path: string];
 }>();
-
-// Дата окончания показа ленточки NEW
-const NEW_RIBBON_END_DATE = new Date('2025-11-25');
-
-// Ленточка NEW видна до 25.11.2025
-const showNewRibbon = computed(() => {
-  const today = new Date();
-  return today <= NEW_RIBBON_END_DATE;
-});
 </script>
 
 <style scoped>
@@ -192,36 +178,6 @@ const showNewRibbon = computed(() => {
   border: 2px solid rgba(6, 182, 212, 0.6) !important;
   position: relative;
   overflow: hidden;
-}
-
-/* Ribbon для кнопки "Программы" */
-.grid-item:nth-child(2) .ribbon {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 10;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.grid-item:nth-child(2) .ribbon span {
-  position: absolute;
-  top: 7px;
-  right: -14px;
-  width: 60px;
-  padding: 2px 0;
-  background: #ef4444;
-  color: white;
-  font-size: 9px;
-  font-weight: 700;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transform: rotate(45deg);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  line-height: 1;
 }
 
 .grid-icon {

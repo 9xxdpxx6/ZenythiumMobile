@@ -126,7 +126,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import {
   IonContent,
   IonRefresher,
@@ -147,6 +147,7 @@ import LoadingState from '@/components/ui/LoadingState.vue';
 import type { ExerciseResource } from '@/types/api';
 
 const router = useRouter();
+const route = useRoute();
 
 const searchQuery = ref('');
 const searchTimeout = ref<NodeJS.Timeout | null>(null);
@@ -377,6 +378,14 @@ const handleRefresh = async (event: CustomEvent) => {
 onMounted(async () => {
   await fetchData();
   await fetchMuscleGroups();
+  
+  // Проверяем query параметр для автоматического открытия модалки создания
+  if (route.query.create === 'true') {
+    // Убираем параметр из URL
+    router.replace({ path: '/exercises', query: {} });
+    // Открываем модалку создания упражнения
+    openCreateModal();
+  }
 });
 
 onUnmounted(() => {

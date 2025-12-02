@@ -77,7 +77,7 @@
       :is-open="exerciseModal.isOpen.value"
       :available-exercises="availableExercises"
       :loading-exercises="loadingExercises"
-      @close="exerciseModal.close()"
+      @close="closeExerciseModal"
       @select-exercise="addExerciseToPlan"
       @create-new-exercise="createNewExercise"
       @search="handleExerciseSearch"
@@ -116,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
   IonPage,
@@ -173,6 +173,7 @@ const exercises = ref<Exercise[]>([]);
 const availableExercises = ref<AvailableExercise[]>([]);
 const exerciseModal = useModal();
 const loadingExercises = ref(false);
+const exerciseSearchTimeout = ref<NodeJS.Timeout | null>(null);
 // Флаг hasExercisesChanged больше не нужен - порядок передается через массив exercise_ids
 
 // Delete confirmation dialogs
@@ -377,10 +378,25 @@ const fetchAvailableExercises = async (searchTerm: string = '') => {
 };
 
 const openExerciseModal = async () => {
+  // Очищаем таймер поиска при открытии модалки
+  if (exerciseSearchTimeout.value) {
+    clearTimeout(exerciseSearchTimeout.value);
+    exerciseSearchTimeout.value = null;
+  }
+  
   if (availableExercises.value.length === 0) {
     await fetchAvailableExercises('');
   }
   exerciseModal.open();
+};
+
+const closeExerciseModal = () => {
+  // Очищаем таймер поиска при закрытии модалки
+  if (exerciseSearchTimeout.value) {
+    clearTimeout(exerciseSearchTimeout.value);
+    exerciseSearchTimeout.value = null;
+  }
+  exerciseModal.close();
 };
 
 const addExerciseToPlan = async (exercise: AvailableExercise) => {
@@ -433,16 +449,25 @@ const cancelDeleteExercise = () => {
 };
 
 const handleExerciseSearch = (value: string) => {
-  // Выполняем поиск на сервере
-  fetchAvailableExercises(value);
+  // Очищаем предыдущий таймер debounce
+  if (exerciseSearchTimeout.value) {
+    clearTimeout(exerciseSearchTimeout.value);
+  }
+  
+  // Устанавливаем новый таймер для debounce (300ms)
+  exerciseSearchTimeout.value = setTimeout(() => {
+    // Выполняем поиск на сервере
+    fetchAvailableExercises(value);
+    exerciseSearchTimeout.value = null;
+  }, 300);
 };
 
 const createNewExercise = async () => {
   // Закрываем модал выбора упражнений
-  exerciseModal.close();
+  closeExerciseModal();
   
-  // Переходим на страницу создания нового упражнения
-  // TODO: Implement exercise creation page or modal
+  // Переходим на страницу упражнений с параметром для открытия модалки создания
+  router.push({ path: '/exercises', query: { create: 'true' } });
 };
 
 // Delete plan functions
@@ -558,6 +583,14 @@ onMounted(() => {
     // Сохраняем начальные значения для отслеживания изменений
     initialFormData.value = { ...formData.value };
     initialExercises.value = [...exercises.value];
+  }
+});
+
+onUnmounted(() => {
+  // Очищаем таймер поиска при размонтировании компонента
+  if (exerciseSearchTimeout.value) {
+    clearTimeout(exerciseSearchTimeout.value);
+    exerciseSearchTimeout.value = null;
   }
 });
 
