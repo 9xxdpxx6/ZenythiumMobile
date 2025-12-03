@@ -75,6 +75,14 @@
       @close="changePasswordModal.close"
       @submit="handleChangePassword"
     />
+
+    <!-- Logout Confirmation Modal -->
+    <LogoutConfirmationModal
+      :is-open="logoutConfirmationModal.isOpen.value"
+      :is-logging-out="loggingOut"
+      @confirm="confirmLogout"
+      @cancel="cancelLogout"
+    />
   </ion-modal>
 </template>
 
@@ -95,6 +103,7 @@ import { useAuth, useModal, useToast } from '@/composables';
 import { AuthService } from '@/services';
 import ChangeNameModal from '@/components/modals/ChangeNameModal.vue';
 import ChangePasswordModal from '@/components/modals/ChangePasswordModal.vue';
+import LogoutConfirmationModal from '@/components/modals/LogoutConfirmationModal.vue';
 import type { ChangePasswordRequest, UpdateUserNameRequest } from '@/types/api';
 
 interface Props {
@@ -117,6 +126,7 @@ const { showError, showSuccess } = useToast();
 // Nested modals
 const changeNameModal = useModal();
 const changePasswordModal = useModal();
+const logoutConfirmationModal = useModal();
 const changeNameError = ref<string>('');
 const changePasswordError = ref<string>('');
 const loggingOut = ref(false);
@@ -177,7 +187,11 @@ const handleChangePassword = async (payload: ChangePasswordRequest) => {
   }
 };
 
-const handleLogout = async () => {
+const handleLogout = () => {
+  logoutConfirmationModal.open();
+};
+
+const confirmLogout = async () => {
   loggingOut.value = true;
   try {
     await logout();
@@ -187,7 +201,12 @@ const handleLogout = async () => {
     await showError('Ошибка выхода из системы');
   } finally {
     loggingOut.value = false;
+    logoutConfirmationModal.close();
   }
+};
+
+const cancelLogout = () => {
+  logoutConfirmationModal.close();
 };
 </script>
 

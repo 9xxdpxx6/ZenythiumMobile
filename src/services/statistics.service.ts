@@ -6,12 +6,12 @@
 import apiClient from './api';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
 import type {
-  Statistics,
   ChartData,
   ProgressData,
   DateRangeParams,
 } from '../types/models/statistics.types';
 import type {
+  Statistics,
   PersonalRecord as LegacyPersonalRecord,
   TimeAnalytics,
   MuscleGroupStatistics,
