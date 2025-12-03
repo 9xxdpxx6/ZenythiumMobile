@@ -79,48 +79,68 @@ const initializeStatusBar = async () => {
 };
 
 // Обработка deeplinks для сброса пароля
+const parseResetPasswordUrl = (urlString: string): { token: string; email: string } | null => {
+  try {
+    // Поддержка custom scheme (zenythium://reset-password?token=...&email=...)
+    // и обычных https ссылок (https://zenythium.netlify.app/reset-password?token=...&email=...)
+    let url: URL;
+    
+    // Если это custom scheme, нужно добавить протокол для парсинга
+    if (urlString.startsWith('zenythium://')) {
+      url = new URL(urlString.replace('zenythium://', 'https://'));
+    } else {
+      url = new URL(urlString);
+    }
+    
+    // Проверяем, что это ссылка для сброса пароля
+    const isResetPassword = url.pathname === '/reset-password' || 
+                           url.host === 'reset-password' ||
+                           urlString.includes('/reset-password');
+    
+    if (isResetPassword) {
+      const token = url.searchParams.get('token');
+      const email = url.searchParams.get('email');
+      
+      if (token && email) {
+        return {
+          token,
+          email: decodeURIComponent(email)
+        };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to parse reset password URL:', error);
+  }
+  
+  return null;
+};
+
+const navigateToResetPassword = (token: string, email: string) => {
+  router.push({
+    path: '/reset-password',
+    query: {
+      token,
+      email
+    }
+  });
+};
+
 const initializeDeepLinks = () => {
   try {
     // Обработка deeplink при открытии приложения через ссылку
     CapacitorApp.addListener('appUrlOpen', (data: { url: string }) => {
-      const url = new URL(data.url);
-      
-      // Проверяем, что это ссылка для сброса пароля
-      if (url.pathname === '/reset-password') {
-        const token = url.searchParams.get('token');
-        const email = url.searchParams.get('email');
-        
-        if (token && email) {
-          // Навигируем на страницу сброса пароля с параметрами
-          router.push({
-            path: '/reset-password',
-            query: {
-              token,
-              email: decodeURIComponent(email)
-            }
-          });
-        }
+      const params = parseResetPasswordUrl(data.url);
+      if (params) {
+        navigateToResetPassword(params.token, params.email);
       }
     });
 
     // Обработка deeplink при запуске приложения (если оно было открыто через ссылку)
     CapacitorApp.getLaunchUrl().then((data) => {
       if (data?.url) {
-        const url = new URL(data.url);
-        
-        if (url.pathname === '/reset-password') {
-          const token = url.searchParams.get('token');
-          const email = url.searchParams.get('email');
-          
-          if (token && email) {
-            router.push({
-              path: '/reset-password',
-              query: {
-                token,
-                email: decodeURIComponent(email)
-              }
-            });
-          }
+        const params = parseResetPasswordUrl(data.url);
+        if (params) {
+          navigateToResetPassword(params.token, params.email);
         }
       }
     }).catch(() => {
