@@ -5,14 +5,6 @@
 [functions]
   directory = "netlify/functions"
 
-# 🔗 Исключение для .well-known (нужно для App Links верификации)
-# Должен быть ПЕРЕД общим редиректом, чтобы assetlinks.json был доступен напрямую
-[[redirects]]
-  from = "/.well-known/*"
-  to = "/.well-known/:splat"
-  status = 200
-  force = true
-
 # 🚀 SPA Redirect: Все запросы, кроме статики, в index.html
 [[redirects]]
   from = "/*"
@@ -57,3 +49,10 @@
   for = "/icons/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# 🔗 App Links: правильный Content-Type для .well-known файлов
+[[headers]]
+  for = "/.well-known/*"
+  [headers.values]
+    Content-Type = "application/json"
+    Cache-Control = "public, max-age=3600"
