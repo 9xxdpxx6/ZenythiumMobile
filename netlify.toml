@@ -5,6 +5,14 @@
 [functions]
   directory = "netlify/functions"
 
+# 🔗 Исключение для .well-known (нужно для App Links верификации)
+# Должен быть ПЕРЕД общим редиректом, чтобы assetlinks.json был доступен напрямую
+[[redirects]]
+  from = "/.well-known/*"
+  to = "/.well-known/:splat"
+  status = 200
+  force = true
+
 # 🚀 SPA Redirect: Все запросы, кроме статики, в index.html
 [[redirects]]
   from = "/*"
