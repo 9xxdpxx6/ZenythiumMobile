@@ -18,7 +18,7 @@
             {{ success }}
           </div>
 
-          <form v-if="!success && hasValidParams" @submit.prevent="handleSubmit(onSubmit)" novalidate>
+          <form v-if="!success && hasValidParams && !error" @submit.prevent="handleSubmit(onSubmit)" novalidate>
             <CustomInput
               v-model="form.password"
               label="Новый пароль"
@@ -174,12 +174,40 @@ const onSubmit = async (values: Omit<ResetPasswordRequest, 'token' | 'email'>) =
   } catch (err: any) {
     const apiError = err as { message?: string; errors?: Record<string, string[]> };
     
-    if (apiError.errors) {
-      // Обработка валидационных ошибок
+    // Проверяем, является ли ошибка связанной с токеном
+    const isTokenError = 
+      apiError.errors?.token ||
+      apiError.message?.toLowerCase().includes('token') ||
+      apiError.message?.toLowerCase().includes('expired') ||
+      apiError.message?.toLowerCase().includes('invalid') ||
+      apiError.message?.toLowerCase().includes('недействителен') ||
+      apiError.message?.toLowerCase().includes('истек') ||
+      apiError.message?.toLowerCase().includes('использован') ||
+      apiError.message?.toLowerCase().includes('expire');
+
+    if (isTokenError) {
+      // Токен невалидный или истек - показываем понятное сообщение
+      if (apiError.errors?.token && apiError.errors.token.length > 0) {
+        error.value = apiError.errors.token[0];
+      } else if (apiError.message) {
+        // Улучшаем сообщение, если оно не очень понятное
+        const message = apiError.message.toLowerCase();
+        if (message.includes('expired') || message.includes('истек')) {
+          error.value = 'Ссылка для сброса пароля недействительна или срок её действия истек. Пожалуйста, запросите новую ссылку.';
+        } else if (message.includes('invalid') || message.includes('недействителен')) {
+          error.value = 'Ссылка для сброса пароля недействительна. Пожалуйста, запросите новую ссылку.';
+        } else if (message.includes('использован') || message.includes('used')) {
+          error.value = 'Эта ссылка для сброса пароля уже была использована. Пожалуйста, запросите новую ссылку.';
+        } else {
+          error.value = apiError.message;
+        }
+      } else {
+        error.value = 'Ссылка для сброса пароля недействительна или срок её действия истек. Пожалуйста, запросите новую ссылку.';
+      }
+    } else if (apiError.errors) {
+      // Обработка других валидационных ошибок
       if (apiError.errors.password && apiError.errors.password.length > 0) {
         error.value = apiError.errors.password[0];
-      } else if (apiError.errors.token && apiError.errors.token.length > 0) {
-        error.value = apiError.errors.token[0];
       } else if (apiError.errors.email && apiError.errors.email.length > 0) {
         error.value = apiError.errors.email[0];
       } else if (apiError.message) {
@@ -228,5 +256,6 @@ const goToLogin = () => {
   align-items: center;
   gap: 8px;
 }
+
 </style>
 
