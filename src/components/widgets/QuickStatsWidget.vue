@@ -87,7 +87,7 @@ const { data: muscleData, loading: muscleLoading } = useDataFetching(
 
 // Update local refs when data loads
 const updateData = () => {
-  if (statsData.value) statistics.value = statsData.value as unknown as Statistics;
+  if (statsData.value) statistics.value = statsData.value as Statistics;
   if (timeData.value) timeAnalytics.value = timeData.value;
   if (muscleData.value) muscleGroupStats.value = muscleData.value;
   loading.value = statsLoading.value || timeLoading.value || muscleLoading.value;
@@ -98,28 +98,8 @@ import { watch } from 'vue';
 watch([statsData, timeData, muscleData, statsLoading, timeLoading, muscleLoading], updateData, { immediate: true });
 
 const weekWorkouts = computed(() => {
-  if (!props.workouts || props.workouts.length === 0) return 0;
-  
-  const now = new Date();
-  const startOfWeek = getStartOfWeek(now);
-  const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(endOfWeek.getDate() + 6);
-  endOfWeek.setHours(23, 59, 59, 999);
-  
-  return props.workouts.filter(workout => {
-    const workoutDate = new Date(workout.startedAt || '');
-    return workoutDate >= startOfWeek && workoutDate <= endOfWeek;
-  }).length;
+  return (statsData.value as Statistics)?.training_frequency_4_weeks || 0;
 });
-
-const getStartOfWeek = (date: Date) => {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  const startOfWeek = new Date(d.setDate(diff));
-  startOfWeek.setHours(0, 0, 0, 0);
-  return startOfWeek;
-};
 
 const avgTimePerMonth = computed(() => {
   if (!timeAnalytics.value?.monthly_trends || timeAnalytics.value.monthly_trends.length === 0) {
@@ -147,7 +127,7 @@ const avgTimePerMonth = computed(() => {
 });
 
 const trainingStreak = computed(() => {
-  return statistics.value?.training_streak_days || 0;
+  return (statsData.value as Statistics)?.training_streak_days || 0;
 });
 
 const mostTrainedMuscleGroup = computed(() => {
