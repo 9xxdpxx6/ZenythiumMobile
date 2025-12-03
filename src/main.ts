@@ -116,7 +116,16 @@ const parseResetPasswordUrl = (urlString: string): { token: string; email: strin
 };
 
 const navigateToResetPassword = (token: string, email: string) => {
-  router.push({
+  // Закрываем все открытые модалки перед навигацией
+  const modals = document.querySelectorAll('ion-modal');
+  modals.forEach((modal: any) => {
+    if (modal.isOpen) {
+      modal.dismiss();
+    }
+  });
+
+  // Используем replace вместо push, чтобы заменить текущий роут
+  router.replace({
     path: '/reset-password',
     query: {
       token,
