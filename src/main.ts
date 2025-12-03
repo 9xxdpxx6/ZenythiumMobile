@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
 import { StatusBar, Style } from '@capacitor/status-bar';
+import { App as CapacitorApp } from '@capacitor/app';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -77,8 +78,63 @@ const initializeStatusBar = async () => {
   }
 };
 
+// Обработка deeplinks для сброса пароля
+const initializeDeepLinks = () => {
+  try {
+    // Обработка deeplink при открытии приложения через ссылку
+    CapacitorApp.addListener('appUrlOpen', (data: { url: string }) => {
+      const url = new URL(data.url);
+      
+      // Проверяем, что это ссылка для сброса пароля
+      if (url.pathname === '/reset-password') {
+        const token = url.searchParams.get('token');
+        const email = url.searchParams.get('email');
+        
+        if (token && email) {
+          // Навигируем на страницу сброса пароля с параметрами
+          router.push({
+            path: '/reset-password',
+            query: {
+              token,
+              email: decodeURIComponent(email)
+            }
+          });
+        }
+      }
+    });
+
+    // Обработка deeplink при запуске приложения (если оно было открыто через ссылку)
+    CapacitorApp.getLaunchUrl().then((data) => {
+      if (data?.url) {
+        const url = new URL(data.url);
+        
+        if (url.pathname === '/reset-password') {
+          const token = url.searchParams.get('token');
+          const email = url.searchParams.get('email');
+          
+          if (token && email) {
+            router.push({
+              path: '/reset-password',
+              query: {
+                token,
+                email: decodeURIComponent(email)
+              }
+            });
+          }
+        }
+      }
+    }).catch(() => {
+      // Если getLaunchUrl не поддерживается или нет launch URL, это нормально
+    });
+  } catch (error) {
+    // В веб-версии Capacitor App может быть недоступен, это нормально
+    console.warn('Deep links initialization failed:', error);
+  }
+};
+
 // Инициализация приложения
 router.isReady().then(async () => {
   await initializeStatusBar();
+  initializeDeepLinks();
   app.mount('#app');
 });

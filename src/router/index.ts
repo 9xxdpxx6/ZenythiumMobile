@@ -21,6 +21,12 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/RegisterPage.vue'),
     meta: { requiresAuth: false }
   },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/ResetPasswordPage.vue'),
+    meta: { requiresAuth: false }
+  },
   // Protected routes
   {
     path: '/tabs/',
