@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue';
 import { AuthService } from '@/services/auth';
+import { PushNotificationService } from '@/services/push-notifications.service';
 import { 
   LoginRequest, 
   RegisterRequest, 
@@ -24,6 +25,16 @@ export function useAuth() {
     try {
       await AuthService.login(credentials);
       await fetchUser();
+      
+      // Инициализируем push-уведомления после успешного логина
+      try {
+        const pushService = PushNotificationService.getInstance();
+        await pushService.reinitialize();
+      } catch (pushError) {
+        // Не блокируем логин, если push-уведомления не инициализировались
+        console.warn('Failed to initialize push notifications after login:', pushError);
+      }
+      
       return true;
     } catch (err) {
       const apiError = err as ApiError;

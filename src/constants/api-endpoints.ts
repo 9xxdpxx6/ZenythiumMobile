@@ -75,6 +75,7 @@ export const API_ENDPOINTS = {
     PROFILE: '/user/profile',
     SETTINGS: '/user/settings',
     UPDATE: '/user',
+    DEVICE_TOKENS: '/user/device-tokens',
   },
 } as const;
 
