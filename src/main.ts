@@ -57,6 +57,10 @@ import BasePage from './components/swipe-back/BasePage.vue';
 /* Initialize cache manager */
 import { initializeCacheManager } from './utils/cache-manager';
 
+/* Push Notifications Service */
+import { PushNotificationService } from './services/push-notifications.service';
+import { logger } from './utils/logger';
+
 const app = createApp(App)
   .use(IonicVue)
   .use(router)
@@ -161,9 +165,40 @@ const initializeDeepLinks = () => {
   }
 };
 
+// Инициализация push-уведомлений
+const initializePushNotifications = async () => {
+  try {
+    const pushService = PushNotificationService.getInstance();
+    await pushService.initialize();
+
+    // Обработка получения уведомления (когда приложение в foreground)
+    pushService.onNotificationReceived((notification) => {
+      logger.info('Push notification received in app', { notification });
+      // Здесь можно показать toast или обновить UI
+    });
+
+    // Обработка нажатия на уведомление
+    pushService.onNotificationActionPerformed((action) => {
+      logger.info('Push notification action performed', { action });
+      // Здесь можно выполнить навигацию на нужный экран
+      // Например, если в data есть workout_id, открыть страницу тренировки
+      if (action.notification?.data) {
+        const data = action.notification.data;
+        if (data.workout_id) {
+          router.push(`/workout/${data.workout_id}`);
+        }
+      }
+    });
+  } catch (error) {
+    // Ошибки уже логируются в сервисе, здесь просто игнорируем
+    // чтобы не блокировать запуск приложения
+  }
+};
+
 // Инициализация приложения
 router.isReady().then(async () => {
   await initializeStatusBar();
   initializeDeepLinks();
+  await initializePushNotifications();
   app.mount('#app');
 });
