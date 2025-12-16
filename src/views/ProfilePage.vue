@@ -45,6 +45,14 @@
                <i class="fas fa-shapes"></i>
                <span>Группы мышц</span>
              </button>
+
+             <button
+               @click="navigateToGoals"
+               class="modern-button nav-button"
+             >
+               <i class="fas fa-bullseye"></i>
+               <span>Цели</span>
+             </button>
            </div>
 
            <div class="profile-info modern-card">
@@ -125,6 +133,10 @@ const navigateToExercises = () => {
 
 const navigateToMuscleGroups = () => {
   router.push('/muscle-groups');
+};
+
+const navigateToGoals = () => {
+  router.push('/goals');
 };
 
 const formatDate = (dateString: string) => {

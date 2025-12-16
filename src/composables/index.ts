@@ -15,6 +15,7 @@ export { useToast } from './useToast';
 export { useModal } from './useModal';
 export { useWorkoutTimer } from './useWorkoutTimer';
 export { useLongPress } from './useLongPress';
+export { useGoals } from './useGoals';
 export { useTabSwipeNavigation } from './tab-swipe/useTabSwipeNavigation';
 export { useSwipeBack } from './swipe-back/useSwipeBack';
 

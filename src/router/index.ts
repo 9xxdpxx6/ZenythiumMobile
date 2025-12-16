@@ -143,6 +143,13 @@ const routes: Array<RouteRecordRaw> = [
       requiresAuth: true,
       disableSwipeBack: true // Disable swipe-back for this page due to conflicts with Ionic Router
     }
+  },
+  // Goals route
+  {
+    path: '/goals',
+    name: 'Goals',
+    component: () => import('@/views/GoalsPage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 

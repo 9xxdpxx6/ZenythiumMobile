@@ -11,6 +11,7 @@ export { exercisesService } from './exercises.service';
 export { statisticsService } from './statistics.service';
 export { muscleGroupsService } from './muscle-groups.service';
 export { trainingProgramsService } from './training-programs.service';
+export { goalsService } from './goals.service';
 export { AuthService } from './auth';
 export { PushNotificationService } from './push-notifications.service';
 

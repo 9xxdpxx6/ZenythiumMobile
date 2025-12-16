@@ -58,6 +58,14 @@ export const API_ENDPOINTS = {
   // Muscle Groups
   MUSCLE_GROUPS: '/muscle-groups',
 
+  // Goals
+  GOALS: '/goals',
+  GOAL_BY_ID: (id: string) => `/goals/${id}`,
+  GOALS_TYPES: '/goals/types',
+  GOALS_STATISTICS: '/goals/statistics',
+  GOALS_COMPLETED: '/goals/completed',
+  GOALS_FAILED: '/goals/failed',
+
   // Statistics
   STATISTICS: {
     OVERVIEW: '/user/statistics',
