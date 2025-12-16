@@ -191,6 +191,6 @@ const getMedalEmoji = (index: number) => {
 }
 
 .weight-decrease {
-  color: #ef4444;
+  color: #3b82f6; /* blue when weight decreased */
 }
 </style>
