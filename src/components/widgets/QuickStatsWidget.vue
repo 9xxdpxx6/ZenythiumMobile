@@ -24,12 +24,23 @@
       </div>
 
       <div class="stat-card modern-card">
-        <div class="stat-top">
-          <div class="stat-value">{{ trainingStreak }}</div>
-          <i class="fas fa-fire stat-icon"></i>
+        <div v-if="activeGoal" class="stat-top">
+          <div class="stat-value">{{ goalRemaining }}</div>
+          <i class="fas fa-bullseye stat-icon"></i>
+        </div>
+        <div v-else class="stat-top stat-top-button">
+          <ion-button 
+            fill="clear" 
+            size="small" 
+            class="set-goal-button"
+            @click="handleSetGoal"
+          >
+            <i class="fas fa-plus"></i>
+          </ion-button>
+          <i class="fas fa-bullseye stat-icon"></i>
         </div>
         <div class="stat-content">
-          <h3>Серия тренировок</h3>
+          <h3>До цели</h3>
         </div>
       </div>
 
@@ -50,21 +61,28 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { IonButton } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { statisticsService } from '@/services/statistics.service';
+import { goalsService } from '@/services/goals.service';
+import { formatWeight, formatDuration } from '@/utils/formatters';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import type { Statistics } from '@/types/api';
 import type { Workout } from '@/types/models/workout.types';
+import type { Goal, GoalType } from '@/types/models/goal.types';
 
 interface Props {
   workouts?: Workout[];
 }
 
 const props = defineProps<Props>();
+const router = useRouter();
 
 const statistics = ref<Statistics | null>(null);
 const timeAnalytics = ref<any>(null);
 const muscleGroupStats = ref<any>(null);
+const activeGoals = ref<Goal[]>([]);
 const loading = ref(false);
 
 // Fetch statistics
@@ -85,17 +103,27 @@ const { data: muscleData, loading: muscleLoading } = useDataFetching(
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_muscle_groups' }
 );
 
+// Fetch active goals
+const { data: goalsData, loading: goalsLoading } = useDataFetching(
+  async () => {
+    const goals = await goalsService.getAll({ status: 'active' });
+    return goals;
+  },
+  { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_active_goals' }
+);
+
 // Update local refs when data loads
 const updateData = () => {
   if (statsData.value) statistics.value = statsData.value as Statistics;
   if (timeData.value) timeAnalytics.value = timeData.value;
   if (muscleData.value) muscleGroupStats.value = muscleData.value;
-  loading.value = statsLoading.value || timeLoading.value || muscleLoading.value;
+  if (goalsData.value) activeGoals.value = goalsData.value as Goal[];
+  loading.value = statsLoading.value || timeLoading.value || muscleLoading.value || goalsLoading.value;
 };
 
 // Watch for data changes
 import { watch } from 'vue';
-watch([statsData, timeData, muscleData, statsLoading, timeLoading, muscleLoading], updateData, { immediate: true });
+watch([statsData, timeData, muscleData, goalsData, statsLoading, timeLoading, muscleLoading, goalsLoading], updateData, { immediate: true });
 
 const weekWorkouts = computed(() => {
   return (statsData.value as Statistics)?.training_frequency_4_weeks || 0;
@@ -126,9 +154,115 @@ const avgTimePerMonth = computed(() => {
   return avgDuration * 60;
 });
 
-const trainingStreak = computed(() => {
-  return (statsData.value as Statistics)?.training_streak_days || 0;
+// Get first active goal or null
+const activeGoal = computed(() => {
+  if (!activeGoals.value || activeGoals.value.length === 0) return null;
+  // Sort by end_date (closest first), then by created_at
+  const sorted = [...activeGoals.value].sort((a, b) => {
+    if (a.end_date && b.end_date) {
+      return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
+    }
+    if (a.end_date) return -1;
+    if (b.end_date) return 1;
+    return (a.created_at || '').localeCompare(b.created_at || '');
+  });
+  return sorted[0];
 });
+
+// Calculate remaining value to goal
+const goalRemaining = computed(() => {
+  const goal = activeGoal.value;
+  if (!goal) return '';
+  
+  const current = goal.current_value ?? 0;
+  const target = goal.target_value;
+  const remaining = Math.max(0, target - current);
+  
+  return formatGoalRemaining(remaining, goal.type);
+});
+
+// Handle navigation to goals page
+const handleSetGoal = () => {
+  router.push('/goals');
+};
+
+// Format remaining value based on goal type
+const formatGoalRemaining = (value: number, type: GoalType): string => {
+  if (value === 0) return '0';
+  
+  switch (type) {
+    case 'target_weight':
+    case 'weight_loss':
+    case 'weight_gain':
+    case 'exercise_max_weight':
+      return formatWeight(value, 'kg');
+    
+    case 'total_volume':
+    case 'weekly_volume':
+    case 'exercise_volume':
+      return formatWeight(value, 'kg');
+    
+    case 'total_training_time':
+    case 'weekly_training_time':
+      // Convert to minutes if needed (assuming value is in minutes)
+      return formatDuration(value);
+    
+    case 'training_streak':
+      return `${Math.round(value)} ${getDaysLabel(Math.round(value))}`;
+    
+    case 'total_workouts':
+    case 'completed_workouts':
+    case 'training_frequency':
+      return `${Math.round(value)}`;
+    
+    case 'exercise_max_reps':
+      const reps = Math.round(value);
+      return `${reps} ${getRepsLabel(reps)}`;
+    
+    default:
+      return `${Math.round(value)}`;
+  }
+};
+
+// Get Russian pluralization for days
+const getDaysLabel = (days: number): string => {
+  const lastDigit = days % 10;
+  const lastTwoDigits = days % 100;
+  
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'дней';
+  }
+  
+  if (lastDigit === 1) {
+    return 'день';
+  }
+  
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'дня';
+  }
+  
+  return 'дней';
+};
+
+// Get Russian pluralization for reps
+const getRepsLabel = (reps: number): string => {
+  const lastDigit = reps % 10;
+  const lastTwoDigits = reps % 100;
+  
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+    return 'повторений';
+  }
+  
+  if (lastDigit === 1) {
+    return 'повторение';
+  }
+  
+  if (lastDigit >= 2 && lastDigit <= 4) {
+    return 'повторения';
+  }
+  
+  return 'повторений';
+};
 
 const mostTrainedMuscleGroup = computed(() => {
   // Normalize groups from service mapping or raw API
@@ -278,5 +412,35 @@ const formatTimeCompact = (seconds: number) => {
 
 .stat-card:nth-child(4) .stat-icon {
   color: #3b82f6;
+}
+
+.stat-top-button {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.set-goal-button {
+  --color: #f59e0b;
+  --background: transparent;
+  --border-radius: 50%;
+  --padding: 0;
+  margin: 0;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.set-goal-button i {
+  font-size: 20px;
+  margin: 0;
+}
+
+.set-goal-button:hover {
+  --color: #f59e0b;
+  --background: rgba(245, 158, 11, 0.1);
 }
 </style>
