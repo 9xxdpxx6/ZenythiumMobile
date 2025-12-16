@@ -13,7 +13,6 @@ export type GoalType =
   | 'total_training_time'
   | 'weekly_training_time'
   | 'training_frequency'
-  | 'training_streak'
   | 'exercise_max_weight'
   | 'exercise_max_reps'
   | 'exercise_volume';
@@ -79,7 +78,6 @@ export interface GoalStatistics {
   active_cycles_count?: number;
   weight_change_30_days?: number;
   training_frequency_4_weeks?: number;
-  training_streak_days?: number;
   [key: string]: unknown;
 }
 

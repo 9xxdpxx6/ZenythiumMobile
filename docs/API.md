@@ -283,7 +283,6 @@ interface Statistics {
   active_cycles_count: number
   weight_change_30_days: number | null
   training_frequency_4_weeks: number
-  training_streak_days: number
 }
 ```
 

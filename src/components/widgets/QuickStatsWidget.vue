@@ -207,9 +207,6 @@ const formatGoalRemaining = (value: number, type: GoalType): string => {
       // Convert to minutes if needed (assuming value is in minutes)
       return formatDuration(value);
     
-    case 'training_streak':
-      return `${Math.round(value)} ${getDaysLabel(Math.round(value))}`;
-    
     case 'total_workouts':
     case 'completed_workouts':
     case 'training_frequency':
@@ -222,26 +219,6 @@ const formatGoalRemaining = (value: number, type: GoalType): string => {
     default:
       return `${Math.round(value)}`;
   }
-};
-
-// Get Russian pluralization for days
-const getDaysLabel = (days: number): string => {
-  const lastDigit = days % 10;
-  const lastTwoDigits = days % 100;
-  
-  if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
-    return 'дней';
-  }
-  
-  if (lastDigit === 1) {
-    return 'день';
-  }
-  
-  if (lastDigit >= 2 && lastDigit <= 4) {
-    return 'дня';
-  }
-  
-  return 'дней';
 };
 
 // Get Russian pluralization for reps
