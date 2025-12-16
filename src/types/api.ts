@@ -36,6 +36,7 @@ export interface User {
 export interface LoginRequest {
   email: string;
   password: string;
+  smartcaptcha_token: string;
 }
 
 export interface LoginResponse {
@@ -48,6 +49,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   password_confirmation: string;
+  smartcaptcha_token: string;
 }
 
 export interface RegisterResponse {

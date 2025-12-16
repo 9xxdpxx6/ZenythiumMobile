@@ -59,6 +59,9 @@ export const appConfig = {
   // Workout Configuration
   defaultRestTime: 90, // seconds
   autoSaveInterval: 30000, // 30 seconds
+
+  // Yandex SmartCaptcha
+  yandexCaptchaSiteKey: import.meta.env.VITE_YANDEX_CAPTCHA_SITE_KEY || '',
 } as const;
 
 export type AppConfig = typeof appConfig;
