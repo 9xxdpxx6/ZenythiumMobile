@@ -29,6 +29,12 @@
               @blur="() => setFieldTouched('password')"
             />
 
+            <!-- Yandex SmartCaptcha -->
+            <div ref="captchaContainerRef" class="captcha-container"></div>
+            <div v-if="captchaError" class="captcha-error">
+              {{ captchaError }}
+            </div>
+
             <ion-button
               expand="block"
               type="submit"
@@ -85,7 +91,7 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth, useForm, useToast, useModal } from '@/composables';
+import { useAuth, useForm, useToast, useModal, useYandexCaptcha } from '@/composables';
 import { LoginRequest, ForgotPasswordRequest } from '@/types/api';
 import { AuthService } from '@/services';
 import CustomInput from '@/components/ui/CustomInput.vue';
@@ -96,6 +102,8 @@ import { validators } from '@/utils/validators';
 const router = useRouter();
 const { login, loading: authLoading, error, clearError } = useAuth();
 const { showError, showSuccess } = useToast();
+const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
+const captchaError = ref<string>('');
 
 // Forgot password modal
 const forgotPasswordModal = useModal();
@@ -103,7 +111,10 @@ const forgotPasswordError = ref<string>('');
 const forgotPasswordSuccess = ref<string>('');
 const forgotPasswordLoading = ref<boolean>(false);
 
-const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouched } = useForm<LoginRequest>({
+// Form values without captcha token (captcha token is added on submit)
+type LoginFormValues = Omit<LoginRequest, 'smartcaptcha_token'>;
+
+const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouched } = useForm<LoginFormValues>({
   email: '',
   password: '',
 }, {
@@ -111,10 +122,29 @@ const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouch
   password: [validators.required],
 });
 
-const onSubmit = async (values: LoginRequest) => {
-  const success = await login(values);
+const onSubmit = async (values: LoginFormValues) => {
+  captchaError.value = '';
+  
+  // Получаем токен капчи
+  const captchaToken = getToken();
+  if (!captchaToken) {
+    captchaError.value = 'Пожалуйста, пройдите проверку капчи';
+    return;
+  }
+
+  // Добавляем токен капчи к данным для входа
+  const loginData: LoginRequest = {
+    ...values,
+    smartcaptcha_token: captchaToken,
+  };
+
+  const success = await login(loginData);
   if (success) {
+    resetCaptcha(); // Сбрасываем капчу после успешного входа
     router.push('/tabs/home');
+  } else {
+    // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова
+    resetCaptcha();
   }
 };
 
@@ -164,5 +194,20 @@ const handleForgotPassword = async (payload: ForgotPasswordRequest) => {
   --color: var(--ion-color-primary);
   font-size: 14px;
   text-transform: none;
+}
+
+.captcha-container {
+  margin: 16px 0;
+  min-height: 65px;
+  display: flex;
+  justify-content: center;
+}
+
+.captcha-error {
+  color: var(--ion-color-danger);
+  font-size: 12px;
+  margin-top: -12px;
+  margin-bottom: 8px;
+  text-align: center;
 }
 </style>
