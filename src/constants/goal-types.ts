@@ -20,7 +20,6 @@ export const GOAL_TYPE_LABELS: Record<GoalType, string> = {
   total_training_time: 'Общее время тренировок',
   weekly_training_time: 'Недельное время тренировок',
   training_frequency: 'Частота тренировок',
-  training_streak: 'Серия тренировок',
   exercise_max_weight: 'Максимальный вес упражнения',
   exercise_max_reps: 'Максимальные повторения упражнения',
   exercise_volume: 'Объем упражнения',

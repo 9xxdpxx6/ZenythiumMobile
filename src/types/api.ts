@@ -269,7 +269,6 @@ export interface Statistics {
   active_cycles_count: number;
   weight_change_30_days: number | null; // API может возвращать null
   training_frequency_4_weeks: number;
-  training_streak_days: number;
 }
 
 export interface StatisticsResponse {

@@ -16,8 +16,6 @@ export interface StatisticsOverview {
   totalSets: number;
   totalReps: number;
   totalDuration: number;
-  currentStreak: number;
-  longestStreak: number;
   averageWorkoutsPerWeek: number;
   lastWorkoutDate?: string;
 }

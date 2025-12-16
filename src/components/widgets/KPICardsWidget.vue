@@ -27,14 +27,6 @@
       </div>
 
       <div class="kpi-card modern-card">
-        <div class="kpi-icon">🔥</div>
-        <div class="kpi-content">
-          <h3>Серия тренировок</h3>
-          <div class="kpi-value">{{ statistics?.training_streak_days || 0 }} дней</div>
-        </div>
-      </div>
-
-      <div class="kpi-card modern-card">
         <div class="kpi-icon">⚖️</div>
         <div class="kpi-content">
           <h3>Изменение веса (30 дней)</h3>
