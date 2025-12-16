@@ -13,6 +13,7 @@ export * from './models/exercise.types';
 export * from './models/user.types';
 export * from './models/statistics.types';
 export * from './models/training-program.types';
+export * from './models/goal.types';
 export * from './common/pagination.types';
 export * from './common/filters.types';
 export * from './common/api-response.types';
