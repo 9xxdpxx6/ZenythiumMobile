@@ -79,10 +79,7 @@ import { useRoute, useRouter } from 'vue-router';
 import {
   IonContent,
   IonSpinner,
-  IonButton,
-  IonIcon,
 } from '@ionic/vue';
-import { trashOutline, addOutline } from 'ionicons/icons';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
@@ -91,15 +88,13 @@ import CustomToast from '@/components/ui/CustomToast.vue';
 import WorkoutBasicInfo from '@/components/workout/WorkoutBasicInfo.vue';
 import WorkoutSetsEditor from '@/components/workout/WorkoutSetsEditor.vue';
 import { workoutsService } from '@/services/workouts.service';
-import { useToast } from '@/composables/useToast';
 import { errorHandler } from '@/utils/error-handler';
-import { Workout, WorkoutSet, ApiError } from '@/types/api';
+import type { Workout as ApiWorkout, WorkoutSet, ApiError } from '@/types/api';
 
 const route = useRoute();
 const router = useRouter();
-const { showSuccess, showError } = useToast();
 
-const workout = ref<Workout | null>(null);
+const workout = ref<ApiWorkout | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
@@ -162,7 +157,7 @@ const loadWorkout = async () => {
   
   try {
     // Загружаем тренировку (она уже содержит упражнения с историей подходов)
-    workout.value = await workoutsService.getById(workoutId.value.toString()) as any;
+    workout.value = await workoutsService.getApiById(workoutId.value.toString());
     
     // Инициализируем данные для редактирования
     if (workout.value) {
@@ -203,8 +198,8 @@ const loadWorkout = async () => {
     sets.value = allSets;
     
   } catch (err) {
-    console.error('Load workout error:', err);
-    error.value = (err as ApiError).message;
+    errorHandler.log(err, 'EditWorkoutPage.loadWorkout');
+    error.value = (err as ApiError).message || 'Не удалось загрузить тренировку';
   } finally {
     loading.value = false;
   }
@@ -218,7 +213,14 @@ const formatLocalDateTime = (date: Date): string => {
   const minutes = String(date.getMinutes()).padStart(2, '0');
   const seconds = String(date.getSeconds()).padStart(2, '0');
   
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+  // ISO 8601 with local timezone offset (e.g. 2024-01-15T10:00:00+03:00)
+  const offsetMinutes = -date.getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const abs = Math.abs(offsetMinutes);
+  const offsetHours = String(Math.floor(abs / 60)).padStart(2, '0');
+  const offsetMins = String(abs % 60).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${sign}${offsetHours}:${offsetMins}`;
 };
 
 const saveWorkout = async () => {
@@ -253,10 +255,34 @@ const saveWorkout = async () => {
   error.value = null;
   
   try {
-    // Обновляем тренировку
-    const workoutData: any = {
-      plan_id: workout.value?.plan?.id // Передаем ID существующего плана
+    if (!workout.value) {
+      error.value = 'Тренировка не загружена';
+      return;
+    }
+
+    const planIdRaw = (workout.value as any).plan_id ?? (workout.value as any).plan?.id;
+    const planId = Number(planIdRaw);
+    if (!planId || Number.isNaN(planId)) {
+      error.value = 'План обязателен';
+      return;
+    }
+
+    // Обновляем тренировку (API требует plan_id и started_at)
+    const workoutData: { plan_id: number; started_at: string; finished_at?: string | null } = {
+      plan_id: planId,
+      started_at: workout.value.started_at,
     };
+
+    // Если на бэке стоит валидация "started_at обязателен" — не даём отправить пустое
+    if (!workoutData.started_at) {
+      error.value = 'Дата начала обязательна';
+      return;
+    }
+
+    // По умолчанию сохраняем текущее finished_at, чтобы не "стереть" его отсутствием поля
+    if (workout.value.finished_at !== undefined) {
+      workoutData.finished_at = workout.value.finished_at;
+    }
     
     if (editData.value.started_at) {
       workoutData.started_at = formatLocalDateTime(editData.value.started_at);
@@ -266,7 +292,7 @@ const saveWorkout = async () => {
       workoutData.finished_at = formatLocalDateTime(editData.value.finished_at);
     }
     
-    await workoutsService.update(workoutId.value.toString(), workoutData);
+    await workoutsService.updateApiById(workoutId.value.toString(), workoutData);
     
     // Удаляем помеченные подходы (404 игнорируем как уже удалённые)
     for (const setId of setsToDelete.value) {
@@ -312,7 +338,7 @@ const saveWorkout = async () => {
     // Возвращаемся к списку тренировок
     router.push('/tabs/workouts');
   } catch (err) {
-    console.error('Save workout error:', err);
+    errorHandler.log(err, 'EditWorkoutPage.saveWorkout');
     error.value = errorHandler.format(err as any);
   } finally {
     loading.value = false;

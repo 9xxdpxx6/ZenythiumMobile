@@ -23,6 +23,80 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
     super(API_ENDPOINTS.WORKOUTS);
   }
 
+  private extractPlanIdFromApiWorkout(workout: Partial<ApiWorkout> | any): number | null {
+    const raw = workout?.plan_id ?? workout?.planId ?? workout?.plan?.id;
+    const num = Number(raw);
+    if (!num || Number.isNaN(num)) return null;
+    return num;
+  }
+
+  private extractStartedAtFromApiWorkout(workout: Partial<ApiWorkout> | any): string | null {
+    return (workout?.started_at ?? workout?.startedAt ?? workout?.start_date ?? null) as string | null;
+  }
+
+  /**
+   * Get workout by ID (raw API shape)
+   * Needed for screens that rely on snake_case fields and/or nested history structures.
+   */
+  async getApiById(id: string): Promise<ApiWorkout> {
+    try {
+      const response = await apiClient.get<{ data: ApiWorkout }>(
+        API_ENDPOINTS.WORKOUT_BY_ID(id)
+      );
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'WorkoutsService.getApiById');
+      throw error;
+    }
+  }
+
+  /**
+   * Update workout by ID (raw API shape)
+   * Backend may require started_at and plan_id for updates.
+   */
+  async updateApiById(
+    id: string,
+    data: { plan_id?: number | null; started_at?: string | null; finished_at?: string | null }
+  ): Promise<ApiWorkout> {
+    try {
+      let planId = data.plan_id ?? null;
+      let startedAt = data.started_at ?? null;
+
+      // Fill required fields if missing (avoid 422 due to omitted undefined keys)
+      if (!planId || !startedAt) {
+        const currentWorkout = await this.getApiById(id);
+        if (!planId) planId = this.extractPlanIdFromApiWorkout(currentWorkout);
+        if (!startedAt) startedAt = this.extractStartedAtFromApiWorkout(currentWorkout);
+      }
+
+      const normalizedPlanId = Number(planId);
+      if (!normalizedPlanId || Number.isNaN(normalizedPlanId)) {
+        throw new Error('План обязателен');
+      }
+      if (!startedAt) {
+        throw new Error('Дата начала обязательна');
+      }
+
+      const requestBody: { plan_id: number; started_at: string; finished_at?: string | null } = {
+        plan_id: normalizedPlanId,
+        started_at: startedAt,
+      };
+      if (data.finished_at !== undefined) {
+        requestBody.finished_at = data.finished_at;
+      }
+
+      const response = await apiClient.put<{ data: ApiWorkout }>(
+        API_ENDPOINTS.WORKOUT_BY_ID(id),
+        requestBody
+      );
+      logger.info('WorkoutsService: Workout updated successfully');
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'WorkoutsService.updateApiById');
+      throw error;
+    }
+  }
+
   /**
    * Override getAll to map API response
    */
