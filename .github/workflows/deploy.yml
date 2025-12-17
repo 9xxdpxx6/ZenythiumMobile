@@ -110,16 +110,29 @@ jobs:
 
           # Ensure target dir exists
           $SSH "$REMOTE" "mkdir -p '${DEPLOY_PATH%/}'"
+          
+          # Fast fail with a clear message if remote path is not writable
+          if ! $SSH "$REMOTE" "test -w '${DEPLOY_PATH%/}'"; then
+            echo "Remote DEPLOY_PATH is not writable by ${DEPLOY_USER}."
+            echo "Fix permissions on the server (chown/chmod/ACL) or change DEPLOY_PATH."
+            $SSH "$REMOTE" "ls -ld '${DEPLOY_PATH%/}' || true"
+            exit 1
+          fi
 
           # rsync requires rsync binary on BOTH sides. If remote doesn't have it, fallback to tar over ssh.
           if $SSH "$REMOTE" "command -v rsync >/dev/null 2>&1"; then
             rsync -az --delete \
+              --no-times --omit-dir-times \
+              --exclude='.well-known/acme-challenge/**' \
               -e "ssh -p ${DEPLOY_PORT}" \
               dist/ \
               "${REMOTE}:${DEPLOY_PATH%/}/"
           else
             echo "Remote rsync is missing; falling back to tar-over-ssh deployment."
-            $SSH "$REMOTE" "rm -rf -- '${DEPLOY_PATH%/}'/*"
+            # Preserve ACME challenge folder if it's stored under site root
+            $SSH "$REMOTE" "mkdir -p -- '${DEPLOY_PATH%/}/.well-known/acme-challenge'"
+            $SSH "$REMOTE" "find '${DEPLOY_PATH%/}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf -- {} +"
+            $SSH "$REMOTE" "find '${DEPLOY_PATH%/}/.well-known' -mindepth 1 -maxdepth 1 ! -name 'acme-challenge' -exec rm -rf -- {} +"
             tar -C dist -czf - . | $SSH "$REMOTE" "tar -xzf - -C '${DEPLOY_PATH%/}'"
           fi
 

@@ -69,7 +69,7 @@ export function useGoals() {
     return (exercises.value || [])
       .map((exercise) => ({
         value: Number(exercise.id),
-        label: exercise.name,
+      label: exercise.name,
       }))
       .filter((opt) => Number.isFinite(opt.value));
   });
