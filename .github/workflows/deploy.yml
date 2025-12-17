@@ -88,7 +88,6 @@ jobs:
             "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH%/}/"
 
       - name: Post-deploy command (optional)
-        if: ${{ secrets.DEPLOY_POST_DEPLOY_CMD != '' }}
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -97,6 +96,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ -z "${DEPLOY_POST_DEPLOY_CMD:-}" ]; then
+            echo "DEPLOY_POST_DEPLOY_CMD is empty; skipping post-deploy step."
+            exit 0
+          fi
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
           ssh -p "$DEPLOY_PORT" "${DEPLOY_USER}@${DEPLOY_HOST}" "${DEPLOY_POST_DEPLOY_CMD}"
 
