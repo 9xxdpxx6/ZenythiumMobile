@@ -143,8 +143,11 @@ export class PushNotificationService {
     });
 
     // Handle registration token
-    PushNotifications.addListener('registration', (token) => {
+    PushNotifications.addListener('registration', async (token) => {
       logger.info('PushNotificationService: Registration token received', { token: token.value });
+      // NOTE: @capacitor-community/fcm does not expose an `onTokenRefresh` listener in this project version.
+      // Re-fetch the FCM token when native registration happens (covers initial registration and potential re-registrations).
+      await this.getFCMToken();
     });
 
     // Handle registration errors
@@ -152,12 +155,8 @@ export class PushNotificationService {
       errorHandler.log(error, 'PushNotificationService.registrationError');
     });
 
-    // Handle FCM token refresh
-    FCM.onTokenRefresh(async (token) => {
-      logger.info('PushNotificationService: FCM token refreshed', { token: token.token });
-      this.fcmToken = token.token;
-      await this.sendTokenToServer(token.token);
-    });
+    // FCM token refresh is not available as an event in the current @capacitor-community/fcm typings.
+    // If you need periodic refresh, use `FCM.refreshToken()` on app resume or after login.
   }
 
   /**
