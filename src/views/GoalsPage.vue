@@ -59,7 +59,7 @@
       :goal-type-options="goalTypeOptions"
       :exercise-options="exerciseOptions"
       :show-exercise-field="showExerciseField"
-      :goal-types="goalTypes"
+      :goal-types="goalTypes || undefined"
       @close="handleCloseModal"
       @save="saveGoal"
     />

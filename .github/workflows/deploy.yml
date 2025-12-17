@@ -27,10 +27,15 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # Ensure devDependencies are installed (vite/vue-tsc live in devDependencies).
+        env:
+          NODE_ENV: development
+          NPM_CONFIG_PRODUCTION: "false"
+        run: npm ci --include=dev
 
       - name: Build
         env:
+          NODE_ENV: production
           # IMPORTANT: Vite reads VITE_* at build time (vite build).
           # API is hosted separately on api.zenythium.ru (Variant A).
           VITE_API_SERVER_URL: https://api.zenythium.ru

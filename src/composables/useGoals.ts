@@ -63,11 +63,15 @@ export function useGoals() {
     { immediate: false }
   );
 
-  const exerciseOptions = computed(() => {
-    return (exercises.value || []).map((exercise) => ({
-      value: exercise.id,
-      label: exercise.name,
-    }));
+  const exerciseOptions = computed<Array<{ value: number; label: string }>>(() => {
+    // Exercise.id is typed as string in domain types, but goal `exercise_id` is numeric in API.
+    // Normalize to number for selects and payload mapping.
+    return (exercises.value || [])
+      .map((exercise) => ({
+        value: Number(exercise.id),
+        label: exercise.name,
+      }))
+      .filter((opt) => Number.isFinite(opt.value));
   });
 
   // Fetch goal types from API
@@ -80,8 +84,8 @@ export function useGoals() {
     return getGoalTypeOptions(goalTypes.value || undefined);
   });
 
-  const showExerciseField = computed(() => {
-    return formData.value.type && requiresExercise(formData.value.type, goalTypes.value || undefined);
+  const showExerciseField = computed<boolean>(() => {
+    return !!formData.value.type && requiresExercise(formData.value.type, goalTypes.value || undefined);
   });
 
   const openAddModal = () => {

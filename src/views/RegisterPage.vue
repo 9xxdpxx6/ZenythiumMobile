@@ -49,6 +49,12 @@
               @blur="() => setFieldTouched('password_confirmation')"
             />
 
+            <!-- Yandex SmartCaptcha -->
+            <div ref="captchaContainerRef" class="captcha-container"></div>
+            <div v-if="captchaError" class="captcha-error">
+              {{ captchaError }}
+            </div>
+
             <ion-button
               expand="block"
               type="submit"
@@ -89,7 +95,7 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth, useForm, useToast } from '@/composables';
+import { useAuth, useForm, useToast, useYandexCaptcha } from '@/composables';
 import { RegisterRequest } from '@/types/api';
 import CustomInput from '@/components/ui/CustomInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -99,6 +105,8 @@ import { normalizeValidationError } from '@/utils/validation-normalizer';
 const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
 const { showError } = useToast();
+const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
+const captchaError = ref<string>('');
 
 const passwordRef = ref('');
 
@@ -111,7 +119,10 @@ const updatePasswordRef = (value: string): true => {
   return true;
 };
 
-const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched, setFieldError } = useForm<RegisterRequest>(
+// Form values without captcha token (captcha token is added on submit)
+type RegisterFormValues = Omit<RegisterRequest, 'smartcaptcha_token'>;
+
+const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched, setFieldError } = useForm<RegisterFormValues>(
   {
     name: '',
     email: '',
@@ -133,17 +144,32 @@ const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setF
   }
 );
 
-const onSubmit = async (values: RegisterRequest) => {
+const onSubmit = async (values: RegisterFormValues) => {
+  captchaError.value = '';
+
+  const captchaToken = getToken();
+  if (!captchaToken) {
+    captchaError.value = 'Пожалуйста, пройдите проверку капчи';
+    return;
+  }
+
   // Clear previous form errors
   Object.keys(errors).forEach(key => {
-    setFieldError(key as keyof RegisterRequest, null);
+    setFieldError(key as keyof RegisterFormValues, null);
   });
 
-  const success = await register(values);
+  const registerData: RegisterRequest = {
+    ...values,
+    smartcaptcha_token: captchaToken,
+  };
+
+  const success = await register(registerData);
   if (success) {
+    resetCaptcha();
     // Use replace instead of push to avoid back button issues
     router.replace('/tabs/home');
   } else {
+    resetCaptcha();
     // Set validation errors from API response if available
     if (validationErrors.value) {
       Object.keys(validationErrors.value).forEach(field => {
@@ -151,7 +177,7 @@ const onSubmit = async (values: RegisterRequest) => {
         if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
           const rawError = fieldErrors[0];
           const normalizedError = normalizeValidationError(rawError, field);
-          setFieldError(field as keyof RegisterRequest, normalizedError);
+          setFieldError(field as keyof RegisterFormValues, normalizedError);
         }
       });
     }
