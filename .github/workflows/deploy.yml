@@ -1,0 +1,103 @@
+name: Deploy zenythium.ru (frontend)
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-zenythium-ru
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Optional: create Environment "production" in GitHub and store secrets/vars there.
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        env:
+          # IMPORTANT: Vite reads VITE_* at build time (vite build).
+          # API is hosted separately on api.zenythium.ru (Variant A).
+          VITE_API_SERVER_URL: https://api.zenythium.ru
+          # Optional overrides (defaults in code are /api and /v1)
+          VITE_API_PREFIX: /api
+          VITE_API_VERSION: /v1
+          # Optional, if used in prod:
+          VITE_YANDEX_CAPTCHA_SITE_KEY: ${{ secrets.VITE_YANDEX_CAPTCHA_SITE_KEY }}
+        run: npm run build
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          # Optional (recommended): pinned known_hosts entry to avoid MITM.
+          # Example value line (one or more lines):
+          # zenythium.ru ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI...
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST secret}"
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          mkdir -p ~/.ssh
+          if [ -n "${DEPLOY_KNOWN_HOSTS:-}" ]; then
+            printf "%s\n" "$DEPLOY_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+          fi
+
+      - name: Deploy dist/ via rsync
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          # Path on the SERVER (host filesystem) that your nginx serves for zenythium.ru.
+          # Example: /srv/zenythium/frontend/zenythium.ru
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${DEPLOY_HOST:?Missing DEPLOY_HOST secret}"
+          : "${DEPLOY_USER:?Missing DEPLOY_USER secret}"
+          : "${DEPLOY_PATH:?Missing DEPLOY_PATH secret}"
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+
+          rsync -az --delete \
+            -e "ssh -p ${DEPLOY_PORT}" \
+            dist/ \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH%/}/"
+
+      - name: Post-deploy command (optional)
+        if: ${{ secrets.DEPLOY_POST_DEPLOY_CMD != '' }}
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_POST_DEPLOY_CMD: ${{ secrets.DEPLOY_POST_DEPLOY_CMD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEPLOY_PORT="${DEPLOY_PORT:-22}"
+          ssh -p "$DEPLOY_PORT" "${DEPLOY_USER}@${DEPLOY_HOST}" "${DEPLOY_POST_DEPLOY_CMD}"
+
+
