@@ -94,10 +94,34 @@ jobs:
           : "${DEPLOY_PATH:?Missing DEPLOY_PATH secret}"
           DEPLOY_PORT="${DEPLOY_PORT:-22}"
 
-          rsync -az --delete \
-            -e "ssh -p ${DEPLOY_PORT}" \
-            dist/ \
-            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH%/}/"
+          if ! command -v rsync >/dev/null 2>&1; then
+            echo "Local rsync is missing (runner)."
+            exit 1
+          fi
+
+          REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}"
+          SSH="ssh -p ${DEPLOY_PORT}"
+
+          # Safety: never allow deploying into filesystem root
+          if [ "${DEPLOY_PATH%/}" = "/" ]; then
+            echo "DEPLOY_PATH must not be '/'."
+            exit 1
+          fi
+
+          # Ensure target dir exists
+          $SSH "$REMOTE" "mkdir -p '${DEPLOY_PATH%/}'"
+
+          # rsync requires rsync binary on BOTH sides. If remote doesn't have it, fallback to tar over ssh.
+          if $SSH "$REMOTE" "command -v rsync >/dev/null 2>&1"; then
+            rsync -az --delete \
+              -e "ssh -p ${DEPLOY_PORT}" \
+              dist/ \
+              "${REMOTE}:${DEPLOY_PATH%/}/"
+          else
+            echo "Remote rsync is missing; falling back to tar-over-ssh deployment."
+            $SSH "$REMOTE" "rm -rf -- '${DEPLOY_PATH%/}'/*"
+            tar -C dist -czf - . | $SSH "$REMOTE" "tar -xzf - -C '${DEPLOY_PATH%/}'"
+          fi
 
       - name: Post-deploy command (optional)
         env:
