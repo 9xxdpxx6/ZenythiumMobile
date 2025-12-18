@@ -123,17 +123,16 @@ jobs:
           if $SSH "$REMOTE" "command -v rsync >/dev/null 2>&1"; then
             rsync -az --delete \
               --no-times --omit-dir-times \
-              --exclude='.well-known/acme-challenge/**' \
+              --exclude='.well-known' \
               -e "ssh -p ${DEPLOY_PORT}" \
               dist/ \
               "${REMOTE}:${DEPLOY_PATH%/}/"
           else
             echo "Remote rsync is missing; falling back to tar-over-ssh deployment."
-            # Preserve ACME challenge folder if it's stored under site root
+            # Preserve .well-known folder (needed for certbot ACME challenges)
             $SSH "$REMOTE" "mkdir -p -- '${DEPLOY_PATH%/}/.well-known/acme-challenge'"
             $SSH "$REMOTE" "find '${DEPLOY_PATH%/}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf -- {} +"
-            $SSH "$REMOTE" "find '${DEPLOY_PATH%/}/.well-known' -mindepth 1 -maxdepth 1 ! -name 'acme-challenge' -exec rm -rf -- {} +"
-            tar -C dist -czf - . | $SSH "$REMOTE" "tar -xzf - -C '${DEPLOY_PATH%/}'"
+            tar -C dist -czf - --exclude='.well-known' . | $SSH "$REMOTE" "tar -xzf - -C '${DEPLOY_PATH%/}'"
           fi
 
       - name: Post-deploy command (optional)
