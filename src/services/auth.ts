@@ -55,13 +55,20 @@ export class AuthService {
     try {
       // CSRF cookie endpoint is on server root, not under /api/v1
       // Use axios directly with server URL (not apiBaseUrl which includes /api/v1)
-      await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
+      const response = await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
         withCredentials: true, // Important: must include credentials for cookies
         headers: {
           'Accept': 'application/json',
         },
       });
-      logger.info('CSRF cookie obtained successfully');
+      
+      // Verify that cookie was set
+      const cookies = document.cookie;
+      if (cookies.includes('XSRF-TOKEN')) {
+        logger.info('CSRF cookie obtained successfully');
+      } else {
+        logger.info('CSRF cookie request completed but cookie not found');
+      }
     } catch (error) {
       // Log but don't throw - CSRF cookie request failure shouldn't block login
       // Some servers might not require it or might handle it differently
