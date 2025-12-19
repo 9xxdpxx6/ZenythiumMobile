@@ -129,7 +129,8 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
         await new Promise(resolve => setTimeout(resolve, 200));
         const hasIframe = captchaContainerRef.value.querySelector('.smart-captcha iframe');
         const hasWidget = captchaContainerRef.value.querySelector('.smart-captcha [id*="smart-captcha"]');
-        const hasContent = captchaContainerRef.value.querySelector('.smart-captcha')?.children.length > 0;
+        const captchaElement = captchaContainerRef.value.querySelector('.smart-captcha');
+        const hasContent = captchaElement ? captchaElement.children.length > 0 : false;
         if (hasIframe || hasWidget || hasContent) {
           console.log('Yandex SmartCaptcha initialized automatically');
           break; // Капча инициализирована
@@ -138,9 +139,10 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
       }
 
       // Если автоматическая инициализация не сработала, пробуем программную
+      const checkCaptchaElement = captchaContainerRef.value.querySelector('.smart-captcha');
       const isInitialized = captchaContainerRef.value.querySelector('.smart-captcha iframe') || 
                            captchaContainerRef.value.querySelector('.smart-captcha [id*="smart-captcha"]') ||
-                           (captchaContainerRef.value.querySelector('.smart-captcha')?.children.length ?? 0) > 0;
+                           (checkCaptchaElement ? checkCaptchaElement.children.length > 0 : false);
       
       if (!isInitialized) {
         console.log('Automatic initialization failed, trying programmatic initialization');
