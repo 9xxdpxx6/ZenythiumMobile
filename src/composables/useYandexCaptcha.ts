@@ -9,6 +9,19 @@ export interface UseYandexCaptchaReturn {
   getToken: () => string | null;
 }
 
+// Типы для Yandex SmartCaptcha
+declare global {
+  interface Window {
+    smartCaptcha?: {
+      render: (container: HTMLElement, options: {
+        sitekey: string;
+        callback?: (token: string) => void;
+      }) => void;
+      reset?: (widgetId?: string) => void;
+    };
+  }
+}
+
 const SCRIPT_URL = 'https://smartcaptcha.cloud.yandex.ru/captcha.js';
 let scriptLoaded = false;
 let scriptLoading = false;
@@ -37,13 +50,16 @@ const loadScript = (): Promise<void> => {
     scriptLoading = true;
     const script = document.createElement('script');
     script.src = SCRIPT_URL;
-    script.defer = true;
     script.async = true;
+    // Не используем defer, чтобы иметь больше контроля над инициализацией
     
     script.onload = () => {
-      scriptLoaded = true;
-      scriptLoading = false;
-      resolve();
+      // Ждем немного, чтобы window.smartCaptcha стал доступен
+      setTimeout(() => {
+        scriptLoaded = true;
+        scriptLoading = false;
+        resolve();
+      }, 100);
     };
     
     script.onerror = () => {
@@ -66,11 +82,12 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
   const siteKey = appConfig.yandexCaptchaSiteKey;
 
   if (!siteKey) {
-    console.warn('Yandex Captcha site key is not configured. Please set VITE_YANDEX_CAPTCHA_SITE_KEY in environment variables.');
+    console.warn('Yandex Captcha client key (site key) is not configured. Please set VITE_YANDEX_CAPTCHA_SITE_KEY in environment variables. Note: Use CLIENT key, not server key!');
   }
 
   const initializeCaptcha = async (): Promise<void> => {
     if (!siteKey) {
+      console.warn('Yandex Captcha site key is not configured');
       return;
     }
 
@@ -79,23 +96,106 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
     }
 
     try {
-      await loadScript();
-      
       // Clear container first
       captchaContainerRef.value.innerHTML = '';
 
-      // Create captcha container div with required attributes
-      // Yandex SmartCaptcha will automatically initialize when script loads
+      // Создаем элемент с data-атрибутами для автоматической инициализации
       const captchaDiv = document.createElement('div');
       captchaDiv.className = 'smart-captcha';
       captchaDiv.setAttribute('data-sitekey', siteKey);
       captchaContainerRef.value.appendChild(captchaDiv);
 
-      // Listen for token in hidden input that SmartCaptcha creates
+      // Загружаем скрипт (если еще не загружен)
+      await loadScript();
+      
+      // Ждем, пока window.smartCaptcha станет доступен
+      let waitAttempts = 0;
+      const maxWaitAttempts = 20;
+      while (!window.smartCaptcha && waitAttempts < maxWaitAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitAttempts++;
+      }
+
+      if (!window.smartCaptcha) {
+        console.error('Yandex SmartCaptcha script loaded but window.smartCaptcha is not available after waiting');
+        return;
+      }
+
+      // Ждем немного, чтобы скрипт успел инициализировать капчу автоматически
+      // Проверяем несколько раз с интервалами
+      let attempts = 0;
+      const maxAttempts = 15;
+      while (attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        const hasIframe = captchaContainerRef.value.querySelector('.smart-captcha iframe');
+        const hasWidget = captchaContainerRef.value.querySelector('.smart-captcha [id*="smart-captcha"]');
+        const hasContent = captchaContainerRef.value.querySelector('.smart-captcha')?.children.length > 0;
+        if (hasIframe || hasWidget || hasContent) {
+          console.log('Yandex SmartCaptcha initialized automatically');
+          break; // Капча инициализирована
+        }
+        attempts++;
+      }
+
+      // Если автоматическая инициализация не сработала, пробуем программную
+      const isInitialized = captchaContainerRef.value.querySelector('.smart-captcha iframe') || 
+                           captchaContainerRef.value.querySelector('.smart-captcha [id*="smart-captcha"]') ||
+                           (captchaContainerRef.value.querySelector('.smart-captcha')?.children.length ?? 0) > 0;
+      
+      if (!isInitialized) {
+        console.log('Automatic initialization failed, trying programmatic initialization');
+        // Очищаем и пробуем программную инициализацию
+        captchaContainerRef.value.innerHTML = '';
+        const programmaticDiv = document.createElement('div');
+        programmaticDiv.id = `smart-captcha-${Date.now()}`;
+        captchaContainerRef.value.appendChild(programmaticDiv);
+
+        try {
+          if (window.smartCaptcha.render) {
+            window.smartCaptcha.render(programmaticDiv, {
+              sitekey: siteKey,
+              callback: (token: string) => {
+                console.log('Yandex SmartCaptcha token received via callback');
+                captchaToken.value = token;
+              },
+            });
+            console.log('Yandex SmartCaptcha initialized programmatically');
+          } else {
+            console.warn('window.smartCaptcha.render is not available');
+            // Возвращаемся к автоматической инициализации
+            captchaContainerRef.value.innerHTML = '';
+            const autoDiv = document.createElement('div');
+            autoDiv.className = 'smart-captcha';
+            autoDiv.setAttribute('data-sitekey', siteKey);
+            captchaContainerRef.value.appendChild(autoDiv);
+          }
+        } catch (renderError) {
+          console.warn('Programmatic render failed, trying automatic initialization:', renderError);
+          // Если программная инициализация не сработала, возвращаемся к автоматической
+          captchaContainerRef.value.innerHTML = '';
+          const autoDiv = document.createElement('div');
+          autoDiv.className = 'smart-captcha';
+          autoDiv.setAttribute('data-sitekey', siteKey);
+          captchaContainerRef.value.appendChild(autoDiv);
+        }
+      } else {
+        console.log('Yandex SmartCaptcha initialized successfully');
+      }
+
+      // Слушаем изменения в DOM для получения токена
       const observer = new MutationObserver(() => {
+        // Проверяем hidden input
         const hiddenInput = captchaContainerRef.value?.querySelector<HTMLInputElement>('input[name="smart-token"]');
         if (hiddenInput?.value) {
           captchaToken.value = hiddenInput.value;
+        }
+        // Также проверяем data-атрибут токена
+        const captchaElement = captchaContainerRef.value?.querySelector('.smart-captcha');
+        if (captchaElement) {
+          const tokenAttr = captchaElement.getAttribute('data-smart-token');
+          if (tokenAttr && !captchaToken.value) {
+            captchaToken.value = tokenAttr;
+          }
         }
       });
 
@@ -103,7 +203,7 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['value'],
+        attributeFilter: ['value', 'data-smart-token'],
       });
 
       // Cleanup observer on unmount
@@ -138,9 +238,20 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
 
   const reset = (): void => {
     captchaToken.value = null;
+    if (captchaContainerRef.value && window.smartCaptcha?.reset) {
+      // Пытаемся сбросить через API, если доступно
+      try {
+        const captchaDiv = captchaContainerRef.value.querySelector('[id^="smart-captcha-"]');
+        if (captchaDiv) {
+          window.smartCaptcha.reset();
+        }
+      } catch (error) {
+        console.warn('Failed to reset captcha via API, reinitializing:', error);
+      }
+    }
+    // Переинициализируем капчу
     if (captchaContainerRef.value) {
       captchaContainerRef.value.innerHTML = '';
-      // Reinitialize after a short delay
       setTimeout(() => {
         initializeCaptcha();
       }, 100);

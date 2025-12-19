@@ -61,6 +61,8 @@ export const appConfig = {
   autoSaveInterval: 30000, // 30 seconds
 
   // Yandex SmartCaptcha
+  // Client key (site key) - публичный ключ для отображения капчи на клиенте
+  // НЕ используйте server key (secret key) - он должен быть только на сервере!
   yandexCaptchaSiteKey: import.meta.env.VITE_YANDEX_CAPTCHA_SITE_KEY || '',
 } as const;
 
