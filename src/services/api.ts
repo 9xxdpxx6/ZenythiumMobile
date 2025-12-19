@@ -29,6 +29,7 @@ const apiClient: AxiosInstance = axios.create({
 interface RetryConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _retryCount?: number;
+  _csrfRetryCount?: number; // Track CSRF retry attempts to prevent infinite loops
 }
 
 /**
@@ -72,6 +73,29 @@ function getCsrfToken(): string | null {
   }
 }
 
+/**
+ * Debug function to check CSRF token and cookie status
+ */
+function debugCsrfStatus(): void {
+  if (Capacitor.isNativePlatform()) {
+    console.log('[CSRF Debug] Native platform - CSRF not required');
+    return;
+  }
+
+  const cookies = document.cookie;
+  const csrfToken = getCsrfToken();
+  
+  console.group('[CSRF Debug]');
+  console.log('All cookies:', cookies || '(no cookies)');
+  console.log('XSRF-TOKEN cookie exists:', cookies.includes('XSRF-TOKEN'));
+  console.log('CSRF token extracted:', csrfToken ? `${csrfToken.substring(0, 20)}...` : '(not found)');
+  console.log('Platform:', Capacitor.getPlatform());
+  console.log('API Server URL:', appConfig.apiServerUrl);
+  console.log('API Base URL:', appConfig.apiBaseUrl);
+  console.log('With Credentials:', !Capacitor.isNativePlatform());
+  console.groupEnd();
+}
+
 // Request interceptor to add authorization token and CSRF token (for web)
 apiClient.interceptors.request.use(
   (config) => {
@@ -93,9 +117,14 @@ apiClient.interceptors.request.use(
           config.headers['X-XSRF-TOKEN'] = decodedToken;
           // Some Laravel versions also accept X-CSRF-TOKEN
           config.headers['X-CSRF-TOKEN'] = decodedToken;
-          logger.info(`CSRF token added to ${method} request`);
+          if (import.meta.env.DEV) {
+            console.log(`[CSRF] Token added to ${method} ${config.url}`);
+          }
         } else {
-          logger.info(`CSRF token not found for ${method} request`);
+          console.warn(`[CSRF] Token NOT FOUND for ${method} ${config.url}`);
+          if (import.meta.env.DEV) {
+            debugCsrfStatus();
+          }
         }
       }
     }
@@ -150,30 +179,70 @@ apiClient.interceptors.response.use(
 
     // CSRF Token Mismatch (419) - request CSRF cookie again for web platform
     if (status === 419 && !Capacitor.isNativePlatform()) {
+      const csrfRetryCount = (config._csrfRetryCount || 0);
+      const maxCsrfRetries = 2; // Maximum 2 retries to prevent infinite loop
+      
+      console.error('[CSRF Error 419] Token mismatch detected');
+      debugCsrfStatus();
+      
+      if (csrfRetryCount >= maxCsrfRetries) {
+        console.error('[CSRF Error 419] Max retries reached. Stopping to prevent infinite loop.');
+        const apiError: ApiError = {
+          message: 'CSRF token mismatch. Please refresh the page and try again.',
+          errors: undefined,
+        };
+        return Promise.reject(apiError);
+      }
+      
       try {
+        console.log(`[CSRF Error 419] Attempting to refresh CSRF cookie (attempt ${csrfRetryCount + 1}/${maxCsrfRetries})`);
+        
         // Try to get CSRF cookie again
-        await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
+        const csrfResponse = await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
           withCredentials: true,
           headers: {
             'Accept': 'application/json',
           },
         });
         
+        console.log('[CSRF Error 419] CSRF cookie request response:', csrfResponse.status);
+        
+        // Wait a bit for cookie to be set
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Check if cookie was set
+        const csrfToken = getCsrfToken();
+        console.log('[CSRF Error 419] CSRF token after refresh:', csrfToken ? 'found' : 'NOT FOUND');
+        
         // Retry the original request if it's a retryable method
         const method = config.method?.toUpperCase();
         if (config && method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+          // Mark that we're retrying due to CSRF
+          config._csrfRetryCount = csrfRetryCount + 1;
+          
           // Update CSRF token in headers
-          const csrfToken = getCsrfToken();
           if (csrfToken && config.headers) {
             const decodedToken = decodeURIComponent(csrfToken);
             config.headers['X-XSRF-TOKEN'] = decodedToken;
             config.headers['X-CSRF-TOKEN'] = decodedToken;
+            console.log('[CSRF Error 419] Retrying request with CSRF token');
+          } else {
+            console.error('[CSRF Error 419] CSRF token still not available after refresh');
           }
+          
           // Retry the request
           return apiClient.request(config);
         }
-      } catch (csrfError) {
+      } catch (csrfError: any) {
+        console.error('[CSRF Error 419] Failed to refresh CSRF cookie:', csrfError);
         logger.info('Failed to refresh CSRF cookie:', csrfError);
+        
+        // Don't retry if CSRF cookie endpoint itself fails
+        const apiError: ApiError = {
+          message: 'Failed to obtain CSRF token. Please check CORS settings and try again.',
+          errors: undefined,
+        };
+        return Promise.reject(apiError);
       }
     }
 
@@ -253,6 +322,12 @@ async function retryRequest(config: RetryConfig): Promise<AxiosResponse> {
 }
 
 export default apiClient;
+
+// Export debug function for console access
+if (typeof window !== 'undefined') {
+  (window as any).debugCsrf = debugCsrfStatus;
+  console.log('[CSRF Debug] Use window.debugCsrf() in console to check CSRF status');
+}
 
 // Statistics API methods
 export const statisticsApi = {
