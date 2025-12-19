@@ -3,6 +3,7 @@ import { ApiError, TimeAnalyticsResponse, RecordsResponse, MetricsResponse } fro
 import { appConfig } from '../config/app.config';
 import { logger } from '../utils/logger';
 import { errorHandler } from '../utils/error-handler';
+import { Capacitor } from '@capacitor/core';
 
 /**
  * Enhanced API Client with interceptors, retry logic, and error transformation
@@ -16,6 +17,8 @@ const apiClient: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
+  // Enable credentials (cookies) for web platform (required for Laravel Sanctum stateful auth)
+  withCredentials: !Capacitor.isNativePlatform(),
   validateStatus: (status) => {
     return status >= 200 && status < 300;
   },

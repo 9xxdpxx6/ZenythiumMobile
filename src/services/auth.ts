@@ -18,6 +18,9 @@ import {
 } from '@/types/api';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
+import { Capacitor } from '@capacitor/core';
+import { appConfig } from '../config/app.config';
+import axios from 'axios';
 
 const TOKEN_KEY = 'authToken';
 
@@ -39,9 +42,39 @@ export class AuthService {
     return !!this.getToken();
   }
 
+  /**
+   * Ensure CSRF cookie is set for web platform (stateful authentication)
+   * This is required for Laravel Sanctum in web browsers
+   */
+  static async ensureCsrfCookie(): Promise<void> {
+    // Only request CSRF cookie for web platform (not native mobile)
+    if (Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    try {
+      // CSRF cookie endpoint is on server root, not under /api/v1
+      // Use axios directly with server URL (not apiBaseUrl which includes /api/v1)
+      await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
+        withCredentials: true, // Important: must include credentials for cookies
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      logger.info('CSRF cookie obtained successfully');
+    } catch (error) {
+      // Log but don't throw - CSRF cookie request failure shouldn't block login
+      // Some servers might not require it or might handle it differently
+      logger.info('CSRF cookie request failed (may not be required):', error);
+    }
+  }
+
   // Authentication methods
   static async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
+      // Request CSRF cookie first for web platform (stateful authentication)
+      await this.ensureCsrfCookie();
+
       const response = await apiClient.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
       const { token } = response.data;
       
@@ -57,6 +90,9 @@ export class AuthService {
 
   static async register(userData: RegisterRequest): Promise<RegisterResponse> {
     try {
+      // Request CSRF cookie first for web platform (stateful authentication)
+      await this.ensureCsrfCookie();
+
       const response = await apiClient.post<any>(API_ENDPOINTS.AUTH.REGISTER, userData);
       const { token, user } = response.data;
       
