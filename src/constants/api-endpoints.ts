@@ -8,6 +8,7 @@
 export const API_ENDPOINTS = {
   // Authentication
   AUTH: {
+    CSRF_COOKIE: '/sanctum/csrf-cookie', // Laravel Sanctum CSRF cookie endpoint (without /api/v1 prefix)
     LOGIN: '/login',
     REGISTER: '/register',
     LOGOUT: '/logout',
