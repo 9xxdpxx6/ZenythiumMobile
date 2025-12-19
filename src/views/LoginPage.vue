@@ -201,6 +201,18 @@ const handleForgotPassword = async (payload: ForgotPasswordRequest) => {
   min-height: 65px;
   display: flex;
   justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.captcha-container :deep(.smart-captcha) {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.captcha-container :deep(.smart-captcha iframe) {
+  border-radius: 12px;
 }
 
 .captcha-error {

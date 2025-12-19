@@ -186,5 +186,30 @@ const onSubmit = async (values: RegisterFormValues) => {
 </script>
 
 <style scoped>
-/* Стили теперь в глобальном файле modern-dark.css */
+.captcha-container {
+  margin: 16px 0;
+  min-height: 65px;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.captcha-container :deep(.smart-captcha) {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.captcha-container :deep(.smart-captcha iframe) {
+  border-radius: 12px;
+}
+
+.captcha-error {
+  color: var(--ion-color-danger);
+  font-size: 12px;
+  margin-top: -12px;
+  margin-bottom: 8px;
+  text-align: center;
+}
 </style>

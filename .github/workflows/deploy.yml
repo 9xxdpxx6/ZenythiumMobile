@@ -18,14 +18,12 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install deps
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build frontend
         env:
           VITE_YANDEX_CAPTCHA_SITE_KEY: ${{ secrets.VITE_YANDEX_CAPTCHA_SITE_KEY }}
-          # Добавьте другие VITE_ переменные здесь, если они нужны
-          # VITE_API_SERVER_URL: ${{ secrets.VITE_API_SERVER_URL }}
         run: npm run build
 
       - name: Setup SSH
@@ -35,8 +33,15 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -p ${{ secrets.DEPLOY_PORT }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to server
+      - name: Ensure deploy directory exists
         run: |
-          rsync -az --delete \
+          ssh -p ${{ secrets.DEPLOY_PORT }} \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+            "mkdir -p '${{ secrets.DEPLOY_PATH }}'"
+
+      - name: Deploy dist to server
+        run: |
+          rsync -az --delete --checksum \
+            -e "ssh -p ${{ secrets.DEPLOY_PORT }}" \
             dist/ \
             ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/
