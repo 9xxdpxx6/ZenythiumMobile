@@ -24,6 +24,7 @@ jobs:
       - name: Build frontend
         env:
           VITE_YANDEX_CAPTCHA_SITE_KEY: ${{ secrets.VITE_YANDEX_CAPTCHA_SITE_KEY }}
+          VITE_API_SERVER_URL: ${{ secrets.VITE_API_SERVER_URL }}
         run: npm run build
 
       - name: Setup SSH
