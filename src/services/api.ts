@@ -4,6 +4,7 @@ import { appConfig } from '../config/app.config';
 import { logger } from '../utils/logger';
 import { errorHandler } from '../utils/error-handler';
 import { Capacitor } from '@capacitor/core';
+import { API_ENDPOINTS } from '../constants/api-endpoints';
 
 /**
  * Enhanced API Client with interceptors, retry logic, and error transformation
@@ -30,13 +31,73 @@ interface RetryConfig extends AxiosRequestConfig {
   _retryCount?: number;
 }
 
-// Request interceptor to add authorization token and logging
+/**
+ * Get CSRF token from cookie (for web platform only)
+ */
+function getCsrfToken(): string | null {
+  if (Capacitor.isNativePlatform()) {
+    return null;
+  }
+
+  try {
+    // Laravel Sanctum uses XSRF-TOKEN cookie
+    const name = 'XSRF-TOKEN';
+    const cookies = document.cookie;
+    
+    if (!cookies) {
+      return null;
+    }
+
+    // Try to find the cookie
+    const value = `; ${cookies}`;
+    const parts = value.split(`; ${name}=`);
+    
+    if (parts.length === 2) {
+      const token = parts.pop()?.split(';').shift();
+      if (token) {
+        return token;
+      }
+    }
+    
+    // Also try without the semicolon prefix (in case cookie is at the start)
+    const directMatch = cookies.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    if (directMatch) {
+      return directMatch[1];
+    }
+    
+    return null;
+  } catch (error) {
+    logger.info('Error reading CSRF token from cookie:', error);
+    return null;
+  }
+}
+
+// Request interceptor to add authorization token and CSRF token (for web)
 apiClient.interceptors.request.use(
   (config) => {
     // Add authorization token
     const token = localStorage.getItem('authToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add CSRF token for web platform (required for Laravel Sanctum stateful auth)
+    // Only for state-changing methods (POST, PUT, DELETE, PATCH)
+    if (!Capacitor.isNativePlatform()) {
+      const method = config.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        const csrfToken = getCsrfToken();
+        if (csrfToken && config.headers) {
+          const decodedToken = decodeURIComponent(csrfToken);
+          // Laravel Sanctum expects X-XSRF-TOKEN header (from XSRF-TOKEN cookie)
+          config.headers['X-XSRF-TOKEN'] = decodedToken;
+          // Some Laravel versions also accept X-CSRF-TOKEN
+          config.headers['X-CSRF-TOKEN'] = decodedToken;
+          logger.info(`CSRF token added to ${method} request`);
+        } else {
+          logger.info(`CSRF token not found for ${method} request`);
+        }
+      }
     }
 
     // Log request
@@ -86,6 +147,35 @@ apiClient.interceptors.response.use(
 
     // Handle common error cases
     const status = error.response.status;
+
+    // CSRF Token Mismatch (419) - request CSRF cookie again for web platform
+    if (status === 419 && !Capacitor.isNativePlatform()) {
+      try {
+        // Try to get CSRF cookie again
+        await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
+          withCredentials: true,
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        // Retry the original request if it's a retryable method
+        const method = config.method?.toUpperCase();
+        if (config && method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+          // Update CSRF token in headers
+          const csrfToken = getCsrfToken();
+          if (csrfToken && config.headers) {
+            const decodedToken = decodeURIComponent(csrfToken);
+            config.headers['X-XSRF-TOKEN'] = decodedToken;
+            config.headers['X-CSRF-TOKEN'] = decodedToken;
+          }
+          // Retry the request
+          return apiClient.request(config);
+        }
+      } catch (csrfError) {
+        logger.info('Failed to refresh CSRF cookie:', csrfError);
+      }
+    }
 
     // Unauthorized - clear token and redirect to login
     if (status === 401) {
