@@ -10,9 +10,18 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
  * Enhanced API Client with interceptors, retry logic, and error transformation
  */
 
+// Validate and log baseURL
+const baseURL = appConfig.apiBaseUrl;
+if (import.meta.env.DEV || !Capacitor.isNativePlatform()) {
+  console.log('[API Client] Base URL:', baseURL);
+  console.log('[API Client] Is absolute URL:', baseURL.startsWith('http://') || baseURL.startsWith('https://'));
+  console.log('[API Client] Platform:', Capacitor.getPlatform());
+  console.log('[API Client] With Credentials:', !Capacitor.isNativePlatform());
+}
+
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
-  baseURL: appConfig.apiBaseUrl,
+  baseURL: baseURL,
   timeout: appConfig.apiTimeout,
   headers: {
     'Content-Type': 'application/json',
