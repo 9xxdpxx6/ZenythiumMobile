@@ -6,11 +6,35 @@
  */
 
 /**
+ * Normalize URL to ensure it has protocol
+ */
+const normalizeUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // Remove trailing slashes
+  url = url.trim().replace(/\/+$/, '');
+  
+  // Add protocol if missing
+  if (!url.match(/^https?:\/\//)) {
+    url = `https://${url}`;
+  }
+  
+  return url;
+};
+
+/**
  * Build base URL from environment variables
  * Format: http://host:port or https://host:port
  */
 const getServerUrl = (): string => {
-  return import.meta.env.VITE_API_SERVER_URL || 'https://api.zenythium.ru';
+  const envUrl = import.meta.env.VITE_API_SERVER_URL;
+  const defaultUrl = 'https://api.zenythium.ru';
+  
+  if (envUrl) {
+    return normalizeUrl(envUrl);
+  }
+  
+  return defaultUrl;
 };
 
 /**
@@ -24,12 +48,22 @@ const getApiBaseUrl = (): string => {
   return `${server}${apiPrefix}${versionPrefix}`;
 };
 
+const serverUrl = getServerUrl();
+const apiBaseUrl = getApiBaseUrl();
+
+// Log URLs in development for debugging
+if (import.meta.env.DEV) {
+  console.log('[Config] API Server URL:', serverUrl);
+  console.log('[Config] API Base URL:', apiBaseUrl);
+  console.log('[Config] VITE_API_SERVER_URL env:', import.meta.env.VITE_API_SERVER_URL || '(not set)');
+}
+
 export const appConfig = {
   // API Configuration
   // Server URL (without /api/v1)
-  apiServerUrl: getServerUrl(),
+  apiServerUrl: serverUrl,
   // Full API base URL (with /api/v1)
-  apiBaseUrl: getApiBaseUrl(),
+  apiBaseUrl: apiBaseUrl,
   // API timeout
   apiTimeout: 30000, // 30 seconds
 
