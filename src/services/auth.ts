@@ -49,13 +49,10 @@ export class AuthService {
   static async ensureCsrfCookie(): Promise<void> {
     // Only request CSRF cookie for web platform (not native mobile)
     if (Capacitor.isNativePlatform()) {
-      console.log('[CSRF] Native platform - skipping CSRF cookie');
       return;
     }
 
     try {
-      console.log('[CSRF] Requesting CSRF cookie from:', `${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`);
-      
       // CSRF cookie endpoint is on server root, not under /api/v1
       // Use axios directly with server URL (not apiBaseUrl which includes /api/v1)
       const response = await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
@@ -65,55 +62,24 @@ export class AuthService {
         },
         validateStatus: (status) => {
           // 204 No Content is the expected status for /sanctum/csrf-cookie
-          // It means success - cookie was set
           return status === 204 || (status >= 200 && status < 300);
         },
       });
       
-      console.log('[CSRF] CSRF cookie request response:', response.status, response.statusText);
-      console.log('[CSRF] Response headers:', {
-        'set-cookie': response.headers['set-cookie'] ? 'PRESENT' : 'MISSING',
-        'access-control-allow-credentials': response.headers['access-control-allow-credentials'],
-        'access-control-allow-origin': response.headers['access-control-allow-origin'],
-      });
-      
-      // 204 No Content is normal for /sanctum/csrf-cookie - it only sets cookie, no body
-      if (response.status === 204) {
-        console.log('[CSRF] ✅ 204 No Content - this is expected, cookie should be set');
-      }
-      
-      // Wait a bit for cookie to be set by browser (204 responses are handled immediately)
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Wait a bit for cookie to be set by browser
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Verify that cookie was set
       const cookies = document.cookie;
       const hasToken = cookies.includes('XSRF-TOKEN');
       
-      console.log('[CSRF] All cookies:', cookies || '(no cookies)');
-      console.log('[CSRF] XSRF-TOKEN cookie exists:', hasToken);
-      
       if (hasToken) {
-        // Extract token value for logging (first 20 chars)
-        const tokenMatch = cookies.match(/XSRF-TOKEN=([^;]+)/);
-        if (tokenMatch) {
-          console.log('[CSRF] Token value (first 20 chars):', tokenMatch[1].substring(0, 20) + '...');
-        }
         logger.info('CSRF cookie obtained successfully');
-      } else {
-        console.error('[CSRF] ERROR: Cookie request completed but XSRF-TOKEN cookie not found!');
-        console.error('[CSRF] This might be a CORS issue. Check server CORS settings.');
+      } else if (import.meta.env.DEV) {
         logger.info('CSRF cookie request completed but cookie not found');
       }
     } catch (error: any) {
-      console.error('[CSRF] ERROR: Failed to get CSRF cookie:', error);
-      console.error('[CSRF] Response:', error.response?.status, error.response?.statusText);
-      console.error('[CSRF] This might indicate:');
-      console.error('[CSRF] 1. CORS not configured correctly on server');
-      console.error('[CSRF] 2. Server endpoint /sanctum/csrf-cookie not available');
-      console.error('[CSRF] 3. Network connectivity issue');
-      
       // Log but don't throw - CSRF cookie request failure shouldn't block login
-      // Some servers might not require it or might handle it differently
       logger.info('CSRF cookie request failed (may not be required):', error);
     }
   }

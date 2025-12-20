@@ -10,14 +10,7 @@ import { API_ENDPOINTS } from '../constants/api-endpoints';
  * Enhanced API Client with interceptors, retry logic, and error transformation
  */
 
-// Validate and log baseURL
 const baseURL = appConfig.apiBaseUrl;
-if (import.meta.env.DEV || !Capacitor.isNativePlatform()) {
-  console.log('[API Client] Base URL:', baseURL);
-  console.log('[API Client] Is absolute URL:', baseURL.startsWith('http://') || baseURL.startsWith('https://'));
-  console.log('[API Client] Platform:', Capacitor.getPlatform());
-  console.log('[API Client] With Credentials:', !Capacitor.isNativePlatform());
-}
 
 // Set withCredentials globally for web platform (required for Laravel Sanctum stateful auth)
 if (!Capacitor.isNativePlatform()) {
@@ -88,9 +81,6 @@ function getCsrfToken(): string | null {
     const cookies = document.cookie;
     
     if (!cookies) {
-      if (import.meta.env.DEV) {
-        console.warn('[CSRF] No cookies found in document.cookie');
-      }
       return null;
     }
 
@@ -101,9 +91,6 @@ function getCsrfToken(): string | null {
     if (match && match[1]) {
       const token = match[1].trim();
       if (token) {
-        if (import.meta.env.DEV) {
-          console.log('[CSRF] Token found via regex:', token.substring(0, 30) + '...');
-        }
         return token;
       }
     }
@@ -115,17 +102,11 @@ function getCsrfToken(): string | null {
       if (key.trim() === name && valueParts.length > 0) {
         const token = valueParts.join('=').trim();
         if (token) {
-          if (import.meta.env.DEV) {
-            console.log('[CSRF] Token found via split:', token.substring(0, 30) + '...');
-          }
           return token;
         }
       }
     }
     
-    if (import.meta.env.DEV) {
-      console.warn('[CSRF] Token not found in cookies:', cookies);
-    }
     return null;
   } catch (error) {
     logger.info('Error reading CSRF token from cookie:', error);
@@ -134,11 +115,10 @@ function getCsrfToken(): string | null {
 }
 
 /**
- * Debug function to check CSRF token and cookie status
+ * Debug function to check CSRF token and cookie status (dev only)
  */
 function debugCsrfStatus(): void {
-  if (Capacitor.isNativePlatform()) {
-    console.log('[CSRF Debug] Native platform - CSRF not required');
+  if (Capacitor.isNativePlatform() || !import.meta.env.DEV) {
     return;
   }
 
@@ -146,13 +126,8 @@ function debugCsrfStatus(): void {
   const csrfToken = getCsrfToken();
   
   console.group('[CSRF Debug]');
-  console.log('All cookies:', cookies || '(no cookies)');
   console.log('XSRF-TOKEN cookie exists:', cookies.includes('XSRF-TOKEN'));
-  console.log('CSRF token extracted:', csrfToken ? `${csrfToken.substring(0, 20)}...` : '(not found)');
-  console.log('Platform:', Capacitor.getPlatform());
-  console.log('API Server URL:', appConfig.apiServerUrl);
-  console.log('API Base URL:', appConfig.apiBaseUrl);
-  console.log('With Credentials:', !Capacitor.isNativePlatform());
+  console.log('CSRF token extracted:', csrfToken ? 'Yes' : 'No');
   console.groupEnd();
 }
 
@@ -172,9 +147,7 @@ apiClient.interceptors.request.use(
       // CSRF token required for POST, PUT, DELETE, PATCH (state-changing methods)
       if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
         // If header already set (e.g., from retry), use it, otherwise get from cookie
-        if (config.headers && config.headers['X-XSRF-TOKEN']) {
-          console.log(`[CSRF] Header already set for ${method} ${config.url}, using existing`);
-        } else {
+        if (!config.headers || !config.headers['X-XSRF-TOKEN']) {
           // Get CSRF token from document.cookie['XSRF-TOKEN']
           const csrfToken = getCsrfToken();
           if (csrfToken && config.headers) {
@@ -187,69 +160,20 @@ apiClient.interceptors.request.use(
               config.headers['X-CSRF-TOKEN'] = decodedToken;
               // Also update defaults for global availability
               updateCsrfTokenInDefaults();
-              console.log(`[CSRF] ✅ X-XSRF-TOKEN added to ${method} ${config.url}`);
-              console.log(`[CSRF] Token from document.cookie['XSRF-TOKEN'], length: ${decodedToken.length}`);
-              console.log(`[CSRF] Token (first 50 chars): ${decodedToken.substring(0, 50)}...`);
             } catch (decodeError) {
               // If decode fails, try using raw token
-              console.error('[CSRF] Failed to decode token, using raw:', decodeError);
               config.headers['X-XSRF-TOKEN'] = csrfToken;
               config.headers['X-CSRF-TOKEN'] = csrfToken;
               updateCsrfTokenInDefaults();
             }
-          } else {
-            console.error(`[CSRF] ❌ XSRF-TOKEN cookie NOT FOUND for ${method} ${config.url}`);
-            console.error(`[CSRF] Current cookies:`, document.cookie);
+          } else if (import.meta.env.DEV) {
+            console.warn(`[CSRF] XSRF-TOKEN cookie not found for ${method} ${config.url}`);
             debugCsrfStatus();
           }
         }
       }
     }
 
-    // Log request with headers for debugging (always log CSRF-related info)
-    if (config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
-      const headersToLog: Record<string, string> = {};
-      const cookieToken = getCsrfToken();
-      
-      if (config.headers) {
-        if (config.headers['X-XSRF-TOKEN']) {
-          const headerToken = config.headers['X-XSRF-TOKEN'] as string;
-          headersToLog['X-XSRF-TOKEN'] = headerToken.substring(0, 50) + '... (length: ' + headerToken.length + ')';
-          
-          // Verify token matches cookie
-          if (cookieToken) {
-            try {
-              const decodedCookieToken = decodeURIComponent(cookieToken);
-              if (headerToken === decodedCookieToken) {
-                headersToLog['Token match'] = '✅ Header matches cookie';
-              } else {
-                headersToLog['Token match'] = '❌ MISMATCH! Header and cookie differ!';
-                console.error('[CSRF] ❌ CRITICAL: Token in header does not match token in cookie!');
-                console.error('[CSRF] Header token (first 50):', headerToken.substring(0, 50));
-                console.error('[CSRF] Cookie token (first 50):', decodedCookieToken.substring(0, 50));
-              }
-            } catch (e) {
-              headersToLog['Token match'] = '⚠️ Could not verify';
-            }
-          }
-        } else {
-          headersToLog['X-XSRF-TOKEN'] = '❌ MISSING!';
-        }
-        if (config.headers['X-CSRF-TOKEN']) {
-          headersToLog['X-CSRF-TOKEN'] = 'present';
-        }
-        if (config.headers['Authorization']) {
-          headersToLog['Authorization'] = 'Bearer ***';
-        }
-      }
-      
-      console.log(`[Request] ${config.method?.toUpperCase()} ${config.url}`, {
-        headers: headersToLog,
-        withCredentials: config.withCredentials,
-        cookieAvailable: cookieToken ? '✅ Yes' : '❌ No',
-        cookieValue: cookieToken ? cookieToken.substring(0, 50) + '...' : 'none',
-      });
-    }
 
     // Log request
     logger.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data);
@@ -299,31 +223,15 @@ apiClient.interceptors.response.use(
     // Handle common error cases
     const status = error.response.status;
 
-    // CSRF Token Mismatch (419) - this is a backend issue
-    // Frontend sends correct token (matches cookie), but server rejects it
+    // CSRF Token Mismatch (419)
     if (status === 419 && !Capacitor.isNativePlatform()) {
-      const cookieToken = getCsrfToken();
-      const headerToken = config.headers?.['X-XSRF-TOKEN'] as string | undefined;
+      if (import.meta.env.DEV) {
+        console.error('[CSRF Error 419] CSRF token mismatch');
+        debugCsrfStatus();
+      }
       
-      console.error('[CSRF Error 419] ❌ CSRF Token Mismatch - BACKEND ISSUE');
-      console.error('[CSRF Error 419] Frontend sent:');
-      console.error('[CSRF Error 419] - Cookie XSRF-TOKEN:', cookieToken ? cookieToken.substring(0, 50) + '...' : 'MISSING');
-      console.error('[CSRF Error 419] - Header X-XSRF-TOKEN:', headerToken ? headerToken.substring(0, 50) + '...' : 'MISSING');
-      console.error('[CSRF Error 419] - Tokens match:', cookieToken && headerToken ? 
-        (decodeURIComponent(cookieToken) === headerToken ? '✅ YES' : '❌ NO') : 'N/A');
-      console.error('[CSRF Error 419]');
-      console.error('[CSRF Error 419] ⚠️ This is a BACKEND configuration issue:');
-      console.error('[CSRF Error 419] 1. Check Laravel Sanctum middleware configuration');
-      console.error('[CSRF Error 419] 2. Check session configuration (domain, same_site, secure)');
-      console.error('[CSRF Error 419] 3. Check if CSRF token is being read correctly from cookie');
-      console.error('[CSRF Error 419] 4. Check if session is properly initialized');
-      
-      debugCsrfStatus();
-      
-      // Don't retry - if token is correct, retrying won't help
-      // The issue is on the backend side
       const apiError: ApiError = {
-        message: 'CSRF token validation failed on server. Please check backend configuration.',
+        message: 'CSRF token validation failed. Please refresh the page and try again.',
         errors: undefined,
       };
       return Promise.reject(apiError);
@@ -406,10 +314,9 @@ async function retryRequest(config: RetryConfig): Promise<AxiosResponse> {
 
 export default apiClient;
 
-// Export debug function for console access
-if (typeof window !== 'undefined') {
+// Export debug function for console access (dev only)
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   (window as any).debugCsrf = debugCsrfStatus;
-  console.log('[CSRF Debug] Use window.debugCsrf() in console to check CSRF status');
 }
 
 // Statistics API methods
