@@ -186,6 +186,10 @@ apiClient.interceptors.request.use(
             if (import.meta.env.DEV) {
               console.log(`[CSRF] ✅ X-XSRF-TOKEN added to ${method} ${config.url}`);
               console.log(`[CSRF] Token from document.cookie['XSRF-TOKEN'], length: ${decodedToken.length}`);
+              console.log(`[CSRF] Request headers will include:`, {
+                'X-XSRF-TOKEN': decodedToken.substring(0, 30) + '...',
+                'X-CSRF-TOKEN': decodedToken.substring(0, 30) + '...',
+              });
             }
           } catch (decodeError) {
             // If decode fails, try using raw token
@@ -202,6 +206,26 @@ apiClient.interceptors.request.use(
           }
         }
       }
+    }
+
+    // Log request with headers for debugging (dev only)
+    if (import.meta.env.DEV && config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
+      const headersToLog: Record<string, string> = {};
+      if (config.headers) {
+        if (config.headers['X-XSRF-TOKEN']) {
+          headersToLog['X-XSRF-TOKEN'] = (config.headers['X-XSRF-TOKEN'] as string).substring(0, 30) + '...';
+        }
+        if (config.headers['X-CSRF-TOKEN']) {
+          headersToLog['X-CSRF-TOKEN'] = 'present';
+        }
+        if (config.headers['Authorization']) {
+          headersToLog['Authorization'] = 'Bearer ***';
+        }
+      }
+      console.log(`[Request] ${config.method?.toUpperCase()} ${config.url}`, {
+        headers: headersToLog,
+        withCredentials: config.withCredentials,
+      });
     }
 
     // Log request
@@ -282,12 +306,15 @@ apiClient.interceptors.response.use(
         
         console.log('[CSRF Error 419] CSRF cookie request response:', csrfResponse.status);
         
-        // Wait a bit for cookie to be set
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Wait longer for cookie to be set by browser (204 responses are handled immediately)
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Check if cookie was set
-        const csrfToken = getCsrfToken();
-        console.log('[CSRF Error 419] CSRF token after refresh:', csrfToken ? 'found' : 'NOT FOUND');
+        // Check if cookie was set and get NEW token
+        const newCsrfToken = getCsrfToken();
+        console.log('[CSRF Error 419] CSRF token after refresh:', newCsrfToken ? 'found' : 'NOT FOUND');
+        if (newCsrfToken) {
+          console.log('[CSRF Error 419] New token (first 30 chars):', newCsrfToken.substring(0, 30) + '...');
+        }
         
         // Retry the original request if it's a retryable method
         const method = config.method?.toUpperCase();
@@ -295,17 +322,35 @@ apiClient.interceptors.response.use(
           // Mark that we're retrying due to CSRF
           config._csrfRetryCount = csrfRetryCount + 1;
           
-          // Update CSRF token in headers
-          if (csrfToken && config.headers) {
-            const decodedToken = decodeURIComponent(csrfToken);
-            config.headers['X-XSRF-TOKEN'] = decodedToken;
-            config.headers['X-CSRF-TOKEN'] = decodedToken;
-            console.log('[CSRF Error 419] Retrying request with CSRF token');
-          } else {
-            console.error('[CSRF Error 419] CSRF token still not available after refresh');
+          // IMPORTANT: Clear old headers and set NEW token from fresh cookie
+          if (config.headers) {
+            // Remove old CSRF headers
+            delete config.headers['X-XSRF-TOKEN'];
+            delete config.headers['X-CSRF-TOKEN'];
+            
+            // Set NEW token from freshly read cookie
+            if (newCsrfToken) {
+              try {
+                const decodedToken = decodeURIComponent(newCsrfToken);
+                config.headers['X-XSRF-TOKEN'] = decodedToken;
+                config.headers['X-CSRF-TOKEN'] = decodedToken;
+                console.log('[CSRF Error 419] ✅ Retrying with NEW CSRF token from cookie');
+                console.log('[CSRF Error 419] Token length:', decodedToken.length);
+                console.log('[CSRF Error 419] Request will include headers:', {
+                  'X-XSRF-TOKEN': decodedToken.substring(0, 30) + '...',
+                });
+              } catch (decodeError) {
+                console.error('[CSRF Error 419] Failed to decode new token:', decodeError);
+                config.headers['X-XSRF-TOKEN'] = newCsrfToken;
+                config.headers['X-CSRF-TOKEN'] = newCsrfToken;
+              }
+            } else {
+              console.error('[CSRF Error 419] ❌ CSRF token still not available after refresh');
+              console.error('[CSRF Error 419] Current cookies:', document.cookie);
+            }
           }
           
-          // Retry the request
+          // Retry the request - interceptor will also add token, but we've set it explicitly
           return apiClient.request(config);
         }
       } catch (csrfError: any) {
