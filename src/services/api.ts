@@ -19,6 +19,11 @@ if (import.meta.env.DEV || !Capacitor.isNativePlatform()) {
   console.log('[API Client] With Credentials:', !Capacitor.isNativePlatform());
 }
 
+// Set withCredentials globally for web platform (required for Laravel Sanctum stateful auth)
+if (!Capacitor.isNativePlatform()) {
+  axios.defaults.withCredentials = true;
+}
+
 // Create axios instance with base configuration
 const apiClient: AxiosInstance = axios.create({
   baseURL: baseURL,
@@ -39,6 +44,34 @@ interface RetryConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _retryCount?: number;
   _csrfRetryCount?: number; // Track CSRF retry attempts to prevent infinite loops
+}
+
+/**
+ * Update CSRF token in axios defaults (for compatibility)
+ * This ensures X-XSRF-TOKEN is available globally
+ */
+function updateCsrfTokenInDefaults(): void {
+  if (Capacitor.isNativePlatform()) {
+    return;
+  }
+
+  const csrfToken = getCsrfToken();
+  if (csrfToken) {
+    try {
+      const decodedToken = decodeURIComponent(csrfToken);
+      // Set in axios defaults for global availability
+      axios.defaults.headers.common['X-XSRF-TOKEN'] = decodedToken;
+      axios.defaults.headers.common['X-CSRF-TOKEN'] = decodedToken;
+    } catch (error) {
+      // If decode fails, use raw token
+      axios.defaults.headers.common['X-XSRF-TOKEN'] = csrfToken;
+      axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
+    }
+  } else {
+    // Remove if not available
+    delete axios.defaults.headers.common['X-XSRF-TOKEN'];
+    delete axios.defaults.headers.common['X-CSRF-TOKEN'];
+  }
 }
 
 /**
@@ -133,31 +166,36 @@ apiClient.interceptors.request.use(
     }
 
     // Add CSRF token for web platform (required for Laravel Sanctum stateful auth)
-    // Only for state-changing methods (POST, PUT, DELETE, PATCH)
+    // X-XSRF-TOKEN must be set from document.cookie['XSRF-TOKEN'] for all state-changing methods
     if (!Capacitor.isNativePlatform()) {
       const method = config.method?.toUpperCase();
+      // CSRF token required for POST, PUT, DELETE, PATCH (state-changing methods)
       if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+        // Get CSRF token from document.cookie['XSRF-TOKEN']
         const csrfToken = getCsrfToken();
         if (csrfToken && config.headers) {
           try {
-            // Decode URL-encoded token (Laravel encodes it)
+            // Decode URL-encoded token (Laravel Sanctum encodes it in cookie)
+            // X-XSRF-TOKEN header must be set from document.cookie['XSRF-TOKEN']
             const decodedToken = decodeURIComponent(csrfToken);
-            // Laravel Sanctum expects X-XSRF-TOKEN header (from XSRF-TOKEN cookie)
             config.headers['X-XSRF-TOKEN'] = decodedToken;
             // Some Laravel versions also accept X-CSRF-TOKEN
             config.headers['X-CSRF-TOKEN'] = decodedToken;
+            // Also update defaults for global availability
+            updateCsrfTokenInDefaults();
             if (import.meta.env.DEV) {
-              console.log(`[CSRF] ✅ Token added to ${method} ${config.url}`);
-              console.log(`[CSRF] Token length: ${decodedToken.length}, first 30 chars: ${decodedToken.substring(0, 30)}...`);
+              console.log(`[CSRF] ✅ X-XSRF-TOKEN added to ${method} ${config.url}`);
+              console.log(`[CSRF] Token from document.cookie['XSRF-TOKEN'], length: ${decodedToken.length}`);
             }
           } catch (decodeError) {
             // If decode fails, try using raw token
             console.error('[CSRF] Failed to decode token, using raw:', decodeError);
             config.headers['X-XSRF-TOKEN'] = csrfToken;
             config.headers['X-CSRF-TOKEN'] = csrfToken;
+            updateCsrfTokenInDefaults();
           }
         } else {
-          console.error(`[CSRF] ❌ Token NOT FOUND for ${method} ${config.url}`);
+          console.error(`[CSRF] ❌ XSRF-TOKEN cookie NOT FOUND for ${method} ${config.url}`);
           console.error(`[CSRF] Current cookies:`, document.cookie);
           if (import.meta.env.DEV) {
             debugCsrfStatus();

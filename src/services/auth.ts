@@ -63,12 +63,27 @@ export class AuthService {
         headers: {
           'Accept': 'application/json',
         },
+        validateStatus: (status) => {
+          // 204 No Content is the expected status for /sanctum/csrf-cookie
+          // It means success - cookie was set
+          return status === 204 || (status >= 200 && status < 300);
+        },
       });
       
       console.log('[CSRF] CSRF cookie request response:', response.status, response.statusText);
+      console.log('[CSRF] Response headers:', {
+        'set-cookie': response.headers['set-cookie'] ? 'PRESENT' : 'MISSING',
+        'access-control-allow-credentials': response.headers['access-control-allow-credentials'],
+        'access-control-allow-origin': response.headers['access-control-allow-origin'],
+      });
       
-      // Wait a bit for cookie to be set by browser
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // 204 No Content is normal for /sanctum/csrf-cookie - it only sets cookie, no body
+      if (response.status === 204) {
+        console.log('[CSRF] ✅ 204 No Content - this is expected, cookie should be set');
+      }
+      
+      // Wait a bit for cookie to be set by browser (204 responses are handled immediately)
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Verify that cookie was set
       const cookies = document.cookie;
