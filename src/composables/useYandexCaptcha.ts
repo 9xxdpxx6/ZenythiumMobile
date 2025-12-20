@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted, watch, type Ref } from 'vue';
+import { Capacitor } from '@capacitor/core';
 import { appConfig } from '@/config/app.config';
 
 export interface UseYandexCaptchaReturn {
@@ -73,19 +74,29 @@ const loadScript = (): Promise<void> => {
 
 /**
  * Composable for Yandex SmartCaptcha integration
+ * Only works on web platform - disabled on native mobile apps
  */
 export function useYandexCaptcha(): UseYandexCaptchaReturn {
   const captchaToken = ref<string | null>(null);
   const captchaContainerRef = ref<HTMLElement | null>(null);
   const isLoaded = ref(false);
 
+  // Check if we're on native platform - captcha is web-only
+  const isNativePlatform = Capacitor.isNativePlatform();
+
   const siteKey = appConfig.yandexCaptchaSiteKey;
 
-  if (!siteKey) {
+  if (!siteKey && !isNativePlatform) {
     console.warn('Yandex Captcha client key (site key) is not configured. Please set VITE_YANDEX_CAPTCHA_SITE_KEY in environment variables. Note: Use CLIENT key, not server key!');
   }
 
   const initializeCaptcha = async (): Promise<void> => {
+    // Don't initialize captcha on native platforms
+    if (isNativePlatform) {
+      console.log('[Captcha] Native platform detected - skipping Yandex SmartCaptcha initialization');
+      return;
+    }
+
     if (!siteKey) {
       console.warn('Yandex Captcha site key is not configured');
       return;

@@ -36,7 +36,7 @@ export interface User {
 export interface LoginRequest {
   email: string;
   password: string;
-  smartcaptcha_token: string;
+  smartcaptcha_token?: string; // Optional: required only on web platform
 }
 
 export interface LoginResponse {
@@ -49,7 +49,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   password_confirmation: string;
-  smartcaptcha_token: string;
+  smartcaptcha_token?: string; // Optional: required only on web platform
 }
 
 export interface RegisterResponse {
