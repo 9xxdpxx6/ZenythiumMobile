@@ -171,49 +171,50 @@ apiClient.interceptors.request.use(
       const method = config.method?.toUpperCase();
       // CSRF token required for POST, PUT, DELETE, PATCH (state-changing methods)
       if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-        // Get CSRF token from document.cookie['XSRF-TOKEN']
-        const csrfToken = getCsrfToken();
-        if (csrfToken && config.headers) {
-          try {
-            // Decode URL-encoded token (Laravel Sanctum encodes it in cookie)
-            // X-XSRF-TOKEN header must be set from document.cookie['XSRF-TOKEN']
-            const decodedToken = decodeURIComponent(csrfToken);
-            config.headers['X-XSRF-TOKEN'] = decodedToken;
-            // Some Laravel versions also accept X-CSRF-TOKEN
-            config.headers['X-CSRF-TOKEN'] = decodedToken;
-            // Also update defaults for global availability
-            updateCsrfTokenInDefaults();
-            if (import.meta.env.DEV) {
+        // If header already set (e.g., from retry), use it, otherwise get from cookie
+        if (config.headers && config.headers['X-XSRF-TOKEN']) {
+          console.log(`[CSRF] Header already set for ${method} ${config.url}, using existing`);
+        } else {
+          // Get CSRF token from document.cookie['XSRF-TOKEN']
+          const csrfToken = getCsrfToken();
+          if (csrfToken && config.headers) {
+            try {
+              // Decode URL-encoded token (Laravel Sanctum encodes it in cookie)
+              // X-XSRF-TOKEN header must be set from document.cookie['XSRF-TOKEN']
+              const decodedToken = decodeURIComponent(csrfToken);
+              config.headers['X-XSRF-TOKEN'] = decodedToken;
+              // Some Laravel versions also accept X-CSRF-TOKEN
+              config.headers['X-CSRF-TOKEN'] = decodedToken;
+              // Also update defaults for global availability
+              updateCsrfTokenInDefaults();
               console.log(`[CSRF] ✅ X-XSRF-TOKEN added to ${method} ${config.url}`);
               console.log(`[CSRF] Token from document.cookie['XSRF-TOKEN'], length: ${decodedToken.length}`);
-              console.log(`[CSRF] Request headers will include:`, {
-                'X-XSRF-TOKEN': decodedToken.substring(0, 30) + '...',
-                'X-CSRF-TOKEN': decodedToken.substring(0, 30) + '...',
-              });
+              console.log(`[CSRF] Token (first 50 chars): ${decodedToken.substring(0, 50)}...`);
+            } catch (decodeError) {
+              // If decode fails, try using raw token
+              console.error('[CSRF] Failed to decode token, using raw:', decodeError);
+              config.headers['X-XSRF-TOKEN'] = csrfToken;
+              config.headers['X-CSRF-TOKEN'] = csrfToken;
+              updateCsrfTokenInDefaults();
             }
-          } catch (decodeError) {
-            // If decode fails, try using raw token
-            console.error('[CSRF] Failed to decode token, using raw:', decodeError);
-            config.headers['X-XSRF-TOKEN'] = csrfToken;
-            config.headers['X-CSRF-TOKEN'] = csrfToken;
-            updateCsrfTokenInDefaults();
-          }
-        } else {
-          console.error(`[CSRF] ❌ XSRF-TOKEN cookie NOT FOUND for ${method} ${config.url}`);
-          console.error(`[CSRF] Current cookies:`, document.cookie);
-          if (import.meta.env.DEV) {
+          } else {
+            console.error(`[CSRF] ❌ XSRF-TOKEN cookie NOT FOUND for ${method} ${config.url}`);
+            console.error(`[CSRF] Current cookies:`, document.cookie);
             debugCsrfStatus();
           }
         }
       }
     }
 
-    // Log request with headers for debugging (dev only)
-    if (import.meta.env.DEV && config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
+    // Log request with headers for debugging (always log CSRF-related info)
+    if (config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
       const headersToLog: Record<string, string> = {};
       if (config.headers) {
         if (config.headers['X-XSRF-TOKEN']) {
-          headersToLog['X-XSRF-TOKEN'] = (config.headers['X-XSRF-TOKEN'] as string).substring(0, 30) + '...';
+          const token = config.headers['X-XSRF-TOKEN'] as string;
+          headersToLog['X-XSRF-TOKEN'] = token.substring(0, 50) + '... (length: ' + token.length + ')';
+        } else {
+          headersToLog['X-XSRF-TOKEN'] = 'MISSING!';
         }
         if (config.headers['X-CSRF-TOKEN']) {
           headersToLog['X-CSRF-TOKEN'] = 'present';
@@ -225,6 +226,7 @@ apiClient.interceptors.request.use(
       console.log(`[Request] ${config.method?.toUpperCase()} ${config.url}`, {
         headers: headersToLog,
         withCredentials: config.withCredentials,
+        cookies: document.cookie ? 'present' : 'missing',
       });
     }
 
