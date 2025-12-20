@@ -55,26 +55,44 @@ function getCsrfToken(): string | null {
     const cookies = document.cookie;
     
     if (!cookies) {
+      if (import.meta.env.DEV) {
+        console.warn('[CSRF] No cookies found in document.cookie');
+      }
       return null;
     }
 
-    // Try to find the cookie
-    const value = `; ${cookies}`;
-    const parts = value.split(`; ${name}=`);
+    // Method 1: Direct regex match (most reliable)
+    const regex = new RegExp(`(?:^|;\\s*)${name}=([^;]*)`);
+    const match = cookies.match(regex);
     
-    if (parts.length === 2) {
-      const token = parts.pop()?.split(';').shift();
+    if (match && match[1]) {
+      const token = match[1].trim();
       if (token) {
+        if (import.meta.env.DEV) {
+          console.log('[CSRF] Token found via regex:', token.substring(0, 30) + '...');
+        }
         return token;
       }
     }
     
-    // Also try without the semicolon prefix (in case cookie is at the start)
-    const directMatch = cookies.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    if (directMatch) {
-      return directMatch[1];
+    // Method 2: Split method (fallback)
+    const parts = cookies.split(';');
+    for (const part of parts) {
+      const [key, ...valueParts] = part.split('=');
+      if (key.trim() === name && valueParts.length > 0) {
+        const token = valueParts.join('=').trim();
+        if (token) {
+          if (import.meta.env.DEV) {
+            console.log('[CSRF] Token found via split:', token.substring(0, 30) + '...');
+          }
+          return token;
+        }
+      }
     }
     
+    if (import.meta.env.DEV) {
+      console.warn('[CSRF] Token not found in cookies:', cookies);
+    }
     return null;
   } catch (error) {
     logger.info('Error reading CSRF token from cookie:', error);
@@ -121,16 +139,26 @@ apiClient.interceptors.request.use(
       if (method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
         const csrfToken = getCsrfToken();
         if (csrfToken && config.headers) {
-          const decodedToken = decodeURIComponent(csrfToken);
-          // Laravel Sanctum expects X-XSRF-TOKEN header (from XSRF-TOKEN cookie)
-          config.headers['X-XSRF-TOKEN'] = decodedToken;
-          // Some Laravel versions also accept X-CSRF-TOKEN
-          config.headers['X-CSRF-TOKEN'] = decodedToken;
-          if (import.meta.env.DEV) {
-            console.log(`[CSRF] Token added to ${method} ${config.url}`);
+          try {
+            // Decode URL-encoded token (Laravel encodes it)
+            const decodedToken = decodeURIComponent(csrfToken);
+            // Laravel Sanctum expects X-XSRF-TOKEN header (from XSRF-TOKEN cookie)
+            config.headers['X-XSRF-TOKEN'] = decodedToken;
+            // Some Laravel versions also accept X-CSRF-TOKEN
+            config.headers['X-CSRF-TOKEN'] = decodedToken;
+            if (import.meta.env.DEV) {
+              console.log(`[CSRF] ✅ Token added to ${method} ${config.url}`);
+              console.log(`[CSRF] Token length: ${decodedToken.length}, first 30 chars: ${decodedToken.substring(0, 30)}...`);
+            }
+          } catch (decodeError) {
+            // If decode fails, try using raw token
+            console.error('[CSRF] Failed to decode token, using raw:', decodeError);
+            config.headers['X-XSRF-TOKEN'] = csrfToken;
+            config.headers['X-CSRF-TOKEN'] = csrfToken;
           }
         } else {
-          console.warn(`[CSRF] Token NOT FOUND for ${method} ${config.url}`);
+          console.error(`[CSRF] ❌ Token NOT FOUND for ${method} ${config.url}`);
+          console.error(`[CSRF] Current cookies:`, document.cookie);
           if (import.meta.env.DEV) {
             debugCsrfStatus();
           }
