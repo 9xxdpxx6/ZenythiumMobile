@@ -29,11 +29,13 @@
               @blur="() => setFieldTouched('password')"
             />
 
-            <!-- Yandex SmartCaptcha -->
-            <div ref="captchaContainerRef" class="captcha-container"></div>
-            <div v-if="captchaError" class="captcha-error">
-              {{ captchaError }}
-            </div>
+            <!-- Yandex SmartCaptcha - only on web platform -->
+            <template v-if="!isNativePlatform">
+              <div ref="captchaContainerRef" class="captcha-container"></div>
+              <div v-if="captchaError" class="captcha-error">
+                {{ captchaError }}
+              </div>
+            </template>
 
             <ion-button
               expand="block"
@@ -82,8 +84,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
 import {
   IonPage,
   IonContent,
@@ -102,6 +105,7 @@ import { validators } from '@/utils/validators';
 const router = useRouter();
 const { login, loading: authLoading, error, clearError } = useAuth();
 const { showError, showSuccess } = useToast();
+const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
 const captchaError = ref<string>('');
 
@@ -125,26 +129,33 @@ const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouch
 const onSubmit = async (values: LoginFormValues) => {
   captchaError.value = '';
   
-  // Получаем токен капчи
-  const captchaToken = getToken();
-  if (!captchaToken) {
-    captchaError.value = 'Пожалуйста, пройдите проверку капчи';
-    return;
+  // Проверяем капчу только на веб-платформе
+  let captchaToken: string | null = null;
+  if (!isNativePlatform.value) {
+    captchaToken = getToken();
+    if (!captchaToken) {
+      captchaError.value = 'Пожалуйста, пройдите проверку капчи';
+      return;
+    }
   }
 
-  // Добавляем токен капчи к данным для входа
+  // Добавляем токен капчи только на веб-платформе
   const loginData: LoginRequest = {
     ...values,
-    smartcaptcha_token: captchaToken,
+    ...(captchaToken ? { smartcaptcha_token: captchaToken } : {}),
   };
 
   const success = await login(loginData);
   if (success) {
-    resetCaptcha(); // Сбрасываем капчу после успешного входа
+    if (!isNativePlatform.value) {
+      resetCaptcha(); // Сбрасываем капчу после успешного входа (только на вебе)
+    }
     router.push('/tabs/home');
   } else {
-    // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова
-    resetCaptcha();
+    // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова (только на вебе)
+    if (!isNativePlatform.value) {
+      resetCaptcha();
+    }
   }
 };
 

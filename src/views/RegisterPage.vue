@@ -49,11 +49,13 @@
               @blur="() => setFieldTouched('password_confirmation')"
             />
 
-            <!-- Yandex SmartCaptcha -->
-            <div ref="captchaContainerRef" class="captcha-container"></div>
-            <div v-if="captchaError" class="captcha-error">
-              {{ captchaError }}
-            </div>
+            <!-- Yandex SmartCaptcha - only on web platform -->
+            <template v-if="!isNativePlatform">
+              <div ref="captchaContainerRef" class="captcha-container"></div>
+              <div v-if="captchaError" class="captcha-error">
+                {{ captchaError }}
+              </div>
+            </template>
 
             <ion-button
               expand="block"
@@ -86,8 +88,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { Capacitor } from '@capacitor/core';
 import {
   IonPage,
   IonContent,
@@ -105,6 +108,7 @@ import { normalizeValidationError } from '@/utils/validation-normalizer';
 const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
 const { showError } = useToast();
+const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
 const captchaError = ref<string>('');
 
@@ -147,10 +151,14 @@ const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setF
 const onSubmit = async (values: RegisterFormValues) => {
   captchaError.value = '';
 
-  const captchaToken = getToken();
-  if (!captchaToken) {
-    captchaError.value = 'Пожалуйста, пройдите проверку капчи';
-    return;
+  // Проверяем капчу только на веб-платформе
+  let captchaToken: string | null = null;
+  if (!isNativePlatform.value) {
+    captchaToken = getToken();
+    if (!captchaToken) {
+      captchaError.value = 'Пожалуйста, пройдите проверку капчи';
+      return;
+    }
   }
 
   // Clear previous form errors
@@ -158,18 +166,23 @@ const onSubmit = async (values: RegisterFormValues) => {
     setFieldError(key as keyof RegisterFormValues, null);
   });
 
+  // Добавляем токен капчи только на веб-платформе
   const registerData: RegisterRequest = {
     ...values,
-    smartcaptcha_token: captchaToken,
+    ...(captchaToken ? { smartcaptcha_token: captchaToken } : {}),
   };
 
   const success = await register(registerData);
   if (success) {
-    resetCaptcha();
+    if (!isNativePlatform.value) {
+      resetCaptcha(); // Сбрасываем капчу после успешной регистрации (только на вебе)
+    }
     // Use replace instead of push to avoid back button issues
     router.replace('/tabs/home');
   } else {
-    resetCaptcha();
+    if (!isNativePlatform.value) {
+      resetCaptcha(); // Сбрасываем капчу при ошибке (только на вебе)
+    }
     // Set validation errors from API response if available
     if (validationErrors.value) {
       Object.keys(validationErrors.value).forEach(field => {
