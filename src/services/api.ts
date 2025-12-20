@@ -299,94 +299,34 @@ apiClient.interceptors.response.use(
     // Handle common error cases
     const status = error.response.status;
 
-    // CSRF Token Mismatch (419) - request CSRF cookie again for web platform
+    // CSRF Token Mismatch (419) - this is a backend issue
+    // Frontend sends correct token (matches cookie), but server rejects it
     if (status === 419 && !Capacitor.isNativePlatform()) {
-      const csrfRetryCount = (config._csrfRetryCount || 0);
-      const maxCsrfRetries = 2; // Maximum 2 retries to prevent infinite loop
+      const cookieToken = getCsrfToken();
+      const headerToken = config.headers?.['X-XSRF-TOKEN'] as string | undefined;
       
-      console.error('[CSRF Error 419] Token mismatch detected');
+      console.error('[CSRF Error 419] ❌ CSRF Token Mismatch - BACKEND ISSUE');
+      console.error('[CSRF Error 419] Frontend sent:');
+      console.error('[CSRF Error 419] - Cookie XSRF-TOKEN:', cookieToken ? cookieToken.substring(0, 50) + '...' : 'MISSING');
+      console.error('[CSRF Error 419] - Header X-XSRF-TOKEN:', headerToken ? headerToken.substring(0, 50) + '...' : 'MISSING');
+      console.error('[CSRF Error 419] - Tokens match:', cookieToken && headerToken ? 
+        (decodeURIComponent(cookieToken) === headerToken ? '✅ YES' : '❌ NO') : 'N/A');
+      console.error('[CSRF Error 419]');
+      console.error('[CSRF Error 419] ⚠️ This is a BACKEND configuration issue:');
+      console.error('[CSRF Error 419] 1. Check Laravel Sanctum middleware configuration');
+      console.error('[CSRF Error 419] 2. Check session configuration (domain, same_site, secure)');
+      console.error('[CSRF Error 419] 3. Check if CSRF token is being read correctly from cookie');
+      console.error('[CSRF Error 419] 4. Check if session is properly initialized');
+      
       debugCsrfStatus();
       
-      if (csrfRetryCount >= maxCsrfRetries) {
-        console.error('[CSRF Error 419] Max retries reached. Stopping to prevent infinite loop.');
-        const apiError: ApiError = {
-          message: 'CSRF token mismatch. Please refresh the page and try again.',
-          errors: undefined,
-        };
-        return Promise.reject(apiError);
-      }
-      
-      try {
-        console.log(`[CSRF Error 419] Attempting to refresh CSRF cookie (attempt ${csrfRetryCount + 1}/${maxCsrfRetries})`);
-        
-        // Try to get CSRF cookie again
-        const csrfResponse = await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
-          withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-        
-        console.log('[CSRF Error 419] CSRF cookie request response:', csrfResponse.status);
-        
-        // Wait longer for cookie to be set by browser (204 responses are handled immediately)
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Check if cookie was set and get NEW token
-        const newCsrfToken = getCsrfToken();
-        console.log('[CSRF Error 419] CSRF token after refresh:', newCsrfToken ? 'found' : 'NOT FOUND');
-        if (newCsrfToken) {
-          console.log('[CSRF Error 419] New token (first 30 chars):', newCsrfToken.substring(0, 30) + '...');
-        }
-        
-        // Retry the original request if it's a retryable method
-        const method = config.method?.toUpperCase();
-        if (config && method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-          // Mark that we're retrying due to CSRF
-          config._csrfRetryCount = csrfRetryCount + 1;
-          
-          // IMPORTANT: Clear old headers and set NEW token from fresh cookie
-          if (config.headers) {
-            // Remove old CSRF headers
-            delete config.headers['X-XSRF-TOKEN'];
-            delete config.headers['X-CSRF-TOKEN'];
-            
-            // Set NEW token from freshly read cookie
-            if (newCsrfToken) {
-              try {
-                const decodedToken = decodeURIComponent(newCsrfToken);
-                config.headers['X-XSRF-TOKEN'] = decodedToken;
-                config.headers['X-CSRF-TOKEN'] = decodedToken;
-                console.log('[CSRF Error 419] ✅ Retrying with NEW CSRF token from cookie');
-                console.log('[CSRF Error 419] Token length:', decodedToken.length);
-                console.log('[CSRF Error 419] Request will include headers:', {
-                  'X-XSRF-TOKEN': decodedToken.substring(0, 30) + '...',
-                });
-              } catch (decodeError) {
-                console.error('[CSRF Error 419] Failed to decode new token:', decodeError);
-                config.headers['X-XSRF-TOKEN'] = newCsrfToken;
-                config.headers['X-CSRF-TOKEN'] = newCsrfToken;
-              }
-            } else {
-              console.error('[CSRF Error 419] ❌ CSRF token still not available after refresh');
-              console.error('[CSRF Error 419] Current cookies:', document.cookie);
-            }
-          }
-          
-          // Retry the request - interceptor will also add token, but we've set it explicitly
-          return apiClient.request(config);
-        }
-      } catch (csrfError: any) {
-        console.error('[CSRF Error 419] Failed to refresh CSRF cookie:', csrfError);
-        logger.info('Failed to refresh CSRF cookie:', csrfError);
-        
-        // Don't retry if CSRF cookie endpoint itself fails
-        const apiError: ApiError = {
-          message: 'Failed to obtain CSRF token. Please check CORS settings and try again.',
-          errors: undefined,
-        };
-        return Promise.reject(apiError);
-      }
+      // Don't retry - if token is correct, retrying won't help
+      // The issue is on the backend side
+      const apiError: ApiError = {
+        message: 'CSRF token validation failed on server. Please check backend configuration.',
+        errors: undefined,
+      };
+      return Promise.reject(apiError);
     }
 
     // Unauthorized - clear token and redirect to login
