@@ -209,12 +209,31 @@ apiClient.interceptors.request.use(
     // Log request with headers for debugging (always log CSRF-related info)
     if (config.method && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method.toUpperCase())) {
       const headersToLog: Record<string, string> = {};
+      const cookieToken = getCsrfToken();
+      
       if (config.headers) {
         if (config.headers['X-XSRF-TOKEN']) {
-          const token = config.headers['X-XSRF-TOKEN'] as string;
-          headersToLog['X-XSRF-TOKEN'] = token.substring(0, 50) + '... (length: ' + token.length + ')';
+          const headerToken = config.headers['X-XSRF-TOKEN'] as string;
+          headersToLog['X-XSRF-TOKEN'] = headerToken.substring(0, 50) + '... (length: ' + headerToken.length + ')';
+          
+          // Verify token matches cookie
+          if (cookieToken) {
+            try {
+              const decodedCookieToken = decodeURIComponent(cookieToken);
+              if (headerToken === decodedCookieToken) {
+                headersToLog['Token match'] = '✅ Header matches cookie';
+              } else {
+                headersToLog['Token match'] = '❌ MISMATCH! Header and cookie differ!';
+                console.error('[CSRF] ❌ CRITICAL: Token in header does not match token in cookie!');
+                console.error('[CSRF] Header token (first 50):', headerToken.substring(0, 50));
+                console.error('[CSRF] Cookie token (first 50):', decodedCookieToken.substring(0, 50));
+              }
+            } catch (e) {
+              headersToLog['Token match'] = '⚠️ Could not verify';
+            }
+          }
         } else {
-          headersToLog['X-XSRF-TOKEN'] = 'MISSING!';
+          headersToLog['X-XSRF-TOKEN'] = '❌ MISSING!';
         }
         if (config.headers['X-CSRF-TOKEN']) {
           headersToLog['X-CSRF-TOKEN'] = 'present';
@@ -223,10 +242,12 @@ apiClient.interceptors.request.use(
           headersToLog['Authorization'] = 'Bearer ***';
         }
       }
+      
       console.log(`[Request] ${config.method?.toUpperCase()} ${config.url}`, {
         headers: headersToLog,
         withCredentials: config.withCredentials,
-        cookies: document.cookie ? 'present' : 'missing',
+        cookieAvailable: cookieToken ? '✅ Yes' : '❌ No',
+        cookieValue: cookieToken ? cookieToken.substring(0, 50) + '...' : 'none',
       });
     }
 
