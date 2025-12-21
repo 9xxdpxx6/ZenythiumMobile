@@ -44,6 +44,19 @@ export interface LoginResponse {
   token_type: string;
 }
 
+export interface RefreshTokenResponse {
+  data: {
+    user: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    token: string;
+    token_type: 'Bearer';
+  };
+  message: string;
+}
+
 export interface RegisterRequest {
   name: string;
   email: string;

@@ -15,6 +15,7 @@ import {
   ResetPasswordResponse,
   UpdateUserNameRequest,
   UpdateUserNameResponse,
+  RefreshTokenResponse,
 } from '@/types/api';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
@@ -193,6 +194,52 @@ export class AuthService {
       return response.data;
     } catch (error) {
       errorHandler.log(error, 'AuthService.updateUserName');
+      throw error as ApiError;
+    }
+  }
+
+  /**
+   * Refresh access token using old token (even if expired)
+   * Uses axios directly to avoid interceptor recursion
+   */
+  static async refreshToken(): Promise<string | null> {
+    const oldToken = this.getToken();
+    
+    if (!oldToken) {
+      logger.info('No token to refresh');
+      return null;
+    }
+
+    try {
+      // Use axios directly (not apiClient) to avoid interceptor recursion
+      // Include old token in Authorization header even if expired
+      const response = await axios.post<RefreshTokenResponse>(
+        `${appConfig.apiBaseUrl}${API_ENDPOINTS.AUTH.REFRESH}`,
+        {},
+        {
+          headers: {
+            'Authorization': `Bearer ${oldToken}`, // Works even with expired token
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          // Don't use withCredentials for refresh request to avoid CSRF issues
+          withCredentials: false,
+        }
+      );
+
+      const newToken = response.data.data.token;
+      
+      if (newToken) {
+        this.setToken(newToken);
+        logger.info('Token refreshed successfully');
+        return newToken;
+      }
+
+      return null;
+    } catch (error) {
+      errorHandler.log(error, 'AuthService.refreshToken');
+      // Clear token on refresh failure
+      this.clearToken();
       throw error as ApiError;
     }
   }
