@@ -8,6 +8,7 @@ import {
   ApiError 
 } from '@/types/api';
 import { normalizeValidationError } from '@/utils/validation-normalizer';
+import { errorHandler } from '@/utils/error-handler';
 
 export function useAuth() {
   const user = ref<User | null>(null);
@@ -133,6 +134,20 @@ export function useAuth() {
       user.value = await AuthService.getUser();
     } catch (err) {
       console.error('Failed to fetch user:', err);
+      
+      // Если ошибка 401 (неавторизован), токен невалиден
+      // Проверяем оба варианта: AxiosError (до преобразования) и через errorHandler
+      const isAuthError = errorHandler.isAuthError(err) || 
+        ((err as any)?.response?.status === 401 || (err as any)?.response?.status === 403);
+      
+      if (isAuthError) {
+        // Токен невалиден, очищаем состояние пользователя
+        // Примечание: api.ts interceptor уже обрабатывает refresh или перенаправление на login,
+        // здесь мы только очищаем локальное состояние
+        user.value = null;
+        return;
+      }
+      
       user.value = null;
     }
   };

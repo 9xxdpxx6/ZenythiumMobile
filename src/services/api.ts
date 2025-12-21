@@ -5,6 +5,7 @@ import { logger } from '../utils/logger';
 import { errorHandler } from '../utils/error-handler';
 import { Capacitor } from '@capacitor/core';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
+import { AuthService } from './auth';
 
 /**
  * Enhanced API Client with interceptors, retry logic, and error transformation
@@ -37,7 +38,27 @@ interface RetryConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _retryCount?: number;
   _csrfRetryCount?: number; // Track CSRF retry attempts to prevent infinite loops
+  _isRefreshing?: boolean; // Track if this request is waiting for token refresh
 }
+
+// Token refresh state management
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (token: string | null) => void;
+  reject: (error: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null): void => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
 
 /**
  * Update CSRF token in axios defaults (for compatibility)
@@ -237,13 +258,62 @@ apiClient.interceptors.response.use(
       return Promise.reject(apiError);
     }
 
-    // Unauthorized - clear token and redirect to login
-    if (status === 401) {
-      localStorage.removeItem('authToken');
-      // Only redirect if not already on login page
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+    // Unauthorized - try to refresh token
+    if (status === 401 && !config._retry) {
+      // Skip refresh for refresh endpoint itself to avoid infinite loop
+      if (config.url?.includes('/refresh') || config.url?.endsWith(API_ENDPOINTS.AUTH.REFRESH)) {
+        // Refresh failed, clear token and redirect to login
+        AuthService.clearToken();
+        if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        const apiError: ApiError = {
+          message: 'Session expired. Please login again.',
+          errors: undefined,
+        };
+        return Promise.reject(apiError);
       }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({
+            resolve: (token: string | null) => {
+              if (token && config.headers) {
+                config.headers.Authorization = `Bearer ${token}`;
+              }
+              resolve(apiClient.request(config));
+            },
+            reject: (err: any) => {
+              reject(err);
+            },
+          });
+        });
+      }
+
+      config._retry = true;
+      isRefreshing = true;
+
+      return AuthService.refreshToken()
+        .then(newToken => {
+          if (newToken && config.headers) {
+            config.headers.Authorization = `Bearer ${newToken}`;
+          }
+          processQueue(null, newToken);
+          return apiClient.request(config);
+        })
+        .catch(refreshError => {
+          processQueue(refreshError, null);
+          AuthService.clearToken();
+          // Redirect to login only if not already there
+          if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshError);
+        })
+        .finally(() => {
+          isRefreshing = false;
+        });
     }
 
     // Check if we should retry (for 5xx errors)
