@@ -189,6 +189,41 @@ class CyclesService extends BaseService<Cycle, CreateCycleDto, UpdateCycleDto> {
       throw error;
     }
   }
+
+  /**
+   * Export cycle in specified format and type
+   */
+  async exportCycle(
+    id: string,
+    format: 'json' | 'pdf',
+    type: 'detailed' | 'structure'
+  ): Promise<Blob | object> {
+    try {
+      const params = {
+        format,
+        type,
+      };
+
+      if (format === 'pdf') {
+        const response = await apiClient.get(API_ENDPOINTS.CYCLE_EXPORT(id), {
+          params,
+          responseType: 'blob',
+        });
+        logger.info('CyclesService: Cycle exported successfully (PDF)');
+        return response.data as Blob;
+      } else {
+        const response = await apiClient.get<{ data: object; message: string }>(
+          API_ENDPOINTS.CYCLE_EXPORT(id),
+          { params }
+        );
+        logger.info('CyclesService: Cycle exported successfully (JSON)');
+        return response.data.data;
+      }
+    } catch (error) {
+      errorHandler.log(error, 'CyclesService.exportCycle');
+      throw error;
+    }
+  }
 }
 
 export const cyclesService = new CyclesService();

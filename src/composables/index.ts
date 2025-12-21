@@ -17,6 +17,7 @@ export { useWorkoutTimer } from './useWorkoutTimer';
 export { useLongPress } from './useLongPress';
 export { useGoals } from './useGoals';
 export { useYandexCaptcha } from './useYandexCaptcha';
+export { useExport } from './useExport';
 export { useTabSwipeNavigation } from './tab-swipe/useTabSwipeNavigation';
 export { useSwipeBack } from './swipe-back/useSwipeBack';
 

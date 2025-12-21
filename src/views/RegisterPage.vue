@@ -49,8 +49,8 @@
               @blur="() => setFieldTouched('password_confirmation')"
             />
 
-            <!-- Yandex SmartCaptcha - only on web platform -->
-            <template v-if="!isNativePlatform">
+            <!-- Yandex SmartCaptcha - only on web platform and in production -->
+            <template v-if="!isNativePlatform && !isDevMode">
               <div ref="captchaContainerRef" class="captcha-container"></div>
               <div v-if="captchaError" class="captcha-error">
                 {{ captchaError }}
@@ -109,6 +109,7 @@ const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
 const { showError } = useToast();
 const isNativePlatform = computed(() => Capacitor.isNativePlatform());
+const isDevMode = computed(() => import.meta.env.DEV);
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
 const captchaError = ref<string>('');
 
@@ -151,9 +152,9 @@ const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setF
 const onSubmit = async (values: RegisterFormValues) => {
   captchaError.value = '';
 
-  // Проверяем капчу только на веб-платформе
+  // Проверяем капчу только на веб-платформе и в продакшене
   let captchaToken: string | null = null;
-  if (!isNativePlatform.value) {
+  if (!isNativePlatform.value && !isDevMode.value) {
     captchaToken = getToken();
     if (!captchaToken) {
       captchaError.value = 'Пожалуйста, пройдите проверку капчи';
@@ -174,14 +175,14 @@ const onSubmit = async (values: RegisterFormValues) => {
 
   const success = await register(registerData);
   if (success) {
-    if (!isNativePlatform.value) {
-      resetCaptcha(); // Сбрасываем капчу после успешной регистрации (только на вебе)
+    if (!isNativePlatform.value && !isDevMode.value) {
+      resetCaptcha(); // Сбрасываем капчу после успешной регистрации (только на вебе в продакшене)
     }
     // Use replace instead of push to avoid back button issues
     router.replace('/tabs/home');
   } else {
-    if (!isNativePlatform.value) {
-      resetCaptcha(); // Сбрасываем капчу при ошибке (только на вебе)
+    if (!isNativePlatform.value && !isDevMode.value) {
+      resetCaptcha(); // Сбрасываем капчу при ошибке (только на вебе в продакшене)
     }
     // Set validation errors from API response if available
     if (validationErrors.value) {

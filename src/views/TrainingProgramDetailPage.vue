@@ -26,6 +26,7 @@
             :program="program"
             :is-installing="isInstalling"
             @install="handleInstallClick"
+            @export="openExportModal"
           />
 
           <ProgramStructureSection :structure="program.structure" />
@@ -40,6 +41,14 @@
         @confirm="confirmInstall"
         @cancel="cancelInstall"
       />
+
+      <!-- Модалка экспорта -->
+      <ExportModal
+        :is-open="isExportModalOpen"
+        :is-exporting="isExporting"
+        @export="handleExport"
+        @cancel="closeExportModal"
+      />
     </ion-content>
   </BasePage>
 </template>
@@ -52,12 +61,13 @@ import {
   IonContent,
   IonButton,
 } from '@ionic/vue';
-import { useToast } from '@/composables';
+import { useToast, useExport } from '@/composables';
 import { trainingProgramsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
 import InstallTrainingProgramModal from '@/components/modals/InstallTrainingProgramModal.vue';
+import ExportModal from '@/components/modals/ExportModal.vue';
 import ProgramHeaderSection from '@/components/program/ProgramHeaderSection.vue';
 import ProgramStructureSection from '@/components/program/ProgramStructureSection.vue';
 import type { TrainingProgramDetail } from '@/types/models/training-program.types';
@@ -76,8 +86,11 @@ const loading = ref(false);
 const error = ref<string | null>(null);
 const isInstalling = ref(false);
 const isInstallModalOpen = ref(false);
+const isExportModalOpen = ref(false);
+const isExporting = ref(false);
 
 const { showSuccess, showError } = useToast();
+const { handleExport: handleExportDownload } = useExport();
 
 // Swipe back is handled automatically by BasePage
 
@@ -126,6 +139,36 @@ const confirmInstall = async (): Promise<void> => {
 
 const cancelInstall = (): void => {
   isInstallModalOpen.value = false;
+};
+
+const openExportModal = (): void => {
+  isExportModalOpen.value = true;
+};
+
+const closeExportModal = (): void => {
+  isExportModalOpen.value = false;
+};
+
+const handleExport = async (format: 'json' | 'pdf', type: 'detailed' | 'structure'): Promise<void> => {
+  if (!program.value) return;
+
+  isExporting.value = true;
+  try {
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `program-${program.value.id}-${type}-${timestamp}.${format}`;
+
+    await handleExportDownload(
+      () => trainingProgramsService.exportProgram(program.value!.id.toString(), format, type),
+      filename,
+      format
+    );
+
+    closeExportModal();
+  } catch (error) {
+    // Error handling is done in useExport
+  } finally {
+    isExporting.value = false;
+  }
 };
 
 onMounted(() => {

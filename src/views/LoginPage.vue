@@ -29,8 +29,8 @@
               @blur="() => setFieldTouched('password')"
             />
 
-            <!-- Yandex SmartCaptcha - only on web platform -->
-            <template v-if="!isNativePlatform">
+            <!-- Yandex SmartCaptcha - only on web platform and in production -->
+            <template v-if="!isNativePlatform && !isDevMode">
               <div ref="captchaContainerRef" class="captcha-container"></div>
               <div v-if="captchaError" class="captcha-error">
                 {{ captchaError }}
@@ -106,6 +106,7 @@ const router = useRouter();
 const { login, loading: authLoading, error, clearError } = useAuth();
 const { showError, showSuccess } = useToast();
 const isNativePlatform = computed(() => Capacitor.isNativePlatform());
+const isDevMode = computed(() => import.meta.env.DEV);
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
 const captchaError = ref<string>('');
 
@@ -129,9 +130,9 @@ const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouch
 const onSubmit = async (values: LoginFormValues) => {
   captchaError.value = '';
   
-  // Проверяем капчу только на веб-платформе
+  // Проверяем капчу только на веб-платформе и в продакшене
   let captchaToken: string | null = null;
-  if (!isNativePlatform.value) {
+  if (!isNativePlatform.value && !isDevMode.value) {
     captchaToken = getToken();
     if (!captchaToken) {
       captchaError.value = 'Пожалуйста, пройдите проверку капчи';
@@ -147,13 +148,13 @@ const onSubmit = async (values: LoginFormValues) => {
 
   const success = await login(loginData);
   if (success) {
-    if (!isNativePlatform.value) {
-      resetCaptcha(); // Сбрасываем капчу после успешного входа (только на вебе)
+    if (!isNativePlatform.value && !isDevMode.value) {
+      resetCaptcha(); // Сбрасываем капчу после успешного входа (только на вебе в продакшене)
     }
     router.push('/tabs/home');
   } else {
-    // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова (только на вебе)
-    if (!isNativePlatform.value) {
+    // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова (только на вебе в продакшене)
+    if (!isNativePlatform.value && !isDevMode.value) {
       resetCaptcha();
     }
   }
