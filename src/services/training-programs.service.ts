@@ -86,6 +86,41 @@ class TrainingProgramsService extends BaseService<TrainingProgram, never, never>
       throw error;
     }
   }
+
+  /**
+   * Export training program in specified format and type
+   */
+  async exportProgram(
+    id: string,
+    format: 'json' | 'pdf',
+    type: 'detailed' | 'structure'
+  ): Promise<Blob | object> {
+    try {
+      const params = {
+        format,
+        type,
+      };
+
+      if (format === 'pdf') {
+        const response = await apiClient.get(API_ENDPOINTS.TRAINING_PROGRAM_EXPORT(id), {
+          params,
+          responseType: 'blob',
+        });
+        logger.info('TrainingProgramsService: Program exported successfully (PDF)');
+        return response.data as Blob;
+      } else {
+        const response = await apiClient.get<{ data: object; message: string }>(
+          API_ENDPOINTS.TRAINING_PROGRAM_EXPORT(id),
+          { params }
+        );
+        logger.info('TrainingProgramsService: Program exported successfully (JSON)');
+        return response.data.data;
+      }
+    } catch (error) {
+      errorHandler.log(error, 'TrainingProgramsService.exportProgram');
+      throw error;
+    }
+  }
 }
 
 export const trainingProgramsService = new TrainingProgramsService();

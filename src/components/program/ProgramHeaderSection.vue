@@ -33,19 +33,30 @@
       </div>
     </div>
 
-    <button
-      v-if="!program.is_installed && program.is_active"
-      @click="$emit('install')"
-      class="install-button"
-      :disabled="isInstalling"
-    >
-      <i v-if="isInstalling" class="fas fa-spinner fa-spin"></i>
-      <i v-else class="fas fa-download"></i>
-      <span>{{ isInstalling ? 'Установка...' : 'Установить программу' }}</span>
-    </button>
-    <div v-else-if="program.is_installed && program.is_active" class="installed-badge">
-      <i class="fas fa-check-circle"></i>
-      <span>Программа установлена</span>
+    <div class="program-actions">
+      <button
+        @click="$emit('export')"
+        class="export-button"
+        :disabled="isInstalling"
+      >
+        <i class="fas fa-file-export"></i>
+        <span>Экспорт</span>
+      </button>
+      
+      <button
+        v-if="!program.is_installed && program.is_active"
+        @click="$emit('install')"
+        class="install-button"
+        :disabled="isInstalling"
+      >
+        <i v-if="isInstalling" class="fas fa-spinner fa-spin"></i>
+        <i v-else class="fas fa-download"></i>
+        <span>{{ isInstalling ? 'Установка...' : 'Установить программу' }}</span>
+      </button>
+      <div v-else-if="program.is_installed && program.is_active" class="installed-badge">
+        <i class="fas fa-check-circle"></i>
+        <span>Программа установлена</span>
+      </div>
     </div>
   </div>
 </template>
@@ -61,6 +72,7 @@ interface Props {
 
 interface Emits {
   (e: 'install'): void;
+  (e: 'export'): void;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -140,6 +152,41 @@ defineEmits<Emits>();
   color: var(--ion-text-color);
 }
 
+.program-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.export-button {
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ion-text-color);
+  transition: all 0.2s;
+}
+
+.export-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.export-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .install-button {
   width: 100%;
   padding: 14px 20px;
@@ -155,7 +202,6 @@ defineEmits<Emits>();
   min-height: 48px;
   background: var(--ion-color-primary);
   color: white;
-  margin-top: 16px;
 }
 
 .install-button:disabled {

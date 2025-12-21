@@ -30,6 +30,7 @@ export const API_ENDPOINTS = {
   CYCLE_ACTIVE: '/cycles/active',
   CYCLE_START: (id: string) => `/cycles/${id}/start`,
   CYCLE_COMPLETE: (id: string) => `/cycles/${id}/complete`,
+  CYCLE_EXPORT: (id: string) => `/cycles/${id}/export`,
 
   // Plans
   PLANS: '/plans',
@@ -41,6 +42,7 @@ export const API_ENDPOINTS = {
   TRAINING_PROGRAM_BY_ID: (id: string) => `/training-programs/${id}`,
   TRAINING_PROGRAM_INSTALL: (id: string) => `/training-programs/${id}/install`,
   TRAINING_PROGRAM_UNINSTALL: (id: string) => `/training-programs/${id}/uninstall`,
+  TRAINING_PROGRAM_EXPORT: (id: string) => `/training-programs/${id}/export`,
 
   // Workouts
   WORKOUTS: '/workouts',

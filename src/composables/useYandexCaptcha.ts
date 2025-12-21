@@ -97,6 +97,12 @@ export function useYandexCaptcha(): UseYandexCaptchaReturn {
       return;
     }
 
+    // Disable captcha in development mode
+    if (import.meta.env.DEV) {
+      console.log('[Captcha] Development mode detected - skipping Yandex SmartCaptcha initialization');
+      return;
+    }
+
     if (!siteKey) {
       console.warn('Yandex Captcha site key is not configured');
       return;
