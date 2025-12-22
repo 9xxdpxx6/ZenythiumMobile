@@ -21,34 +21,31 @@ export function useExport() {
   ): Promise<void> => {
     try {
       const result = await exportFn();
+      let fileUri: string | null = null;
 
       if (format === 'pdf') {
         if (result instanceof Blob) {
-          await downloadFile(result, filename);
-          const successMessage = Capacitor.isNativePlatform()
-            ? 'Выберите приложение для сохранения или открытия файла'
-            : 'Файл успешно экспортирован';
-          showSuccess(successMessage);
+          fileUri = await downloadFile(result, filename);
         } else {
           throw new Error('Ожидался Blob для PDF экспорта');
         }
       } else {
         if (typeof result === 'object' && result !== null) {
-          await downloadJson(result, filename);
-          const successMessage = Capacitor.isNativePlatform()
-            ? 'Выберите приложение для сохранения или открытия файла'
-            : 'Файл успешно экспортирован';
-          showSuccess(successMessage);
+          fileUri = await downloadJson(result, filename);
         } else {
           throw new Error('Ожидался объект для JSON экспорта');
         }
       }
+
+      // Show simple success message
+      showSuccess('Файл успешно экспортирован');
     } catch (error) {
       errorHandler.log(error, 'useExport.handleExport');
       const errorMessage = errorHandler.format(error);
       showError(errorMessage || 'Ошибка при экспорте файла');
     }
   };
+
 
   return {
     downloadFile,
