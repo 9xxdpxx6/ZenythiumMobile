@@ -148,12 +148,14 @@
       </PageContainer>
     </ion-content>
 
-    <ion-toast
+    <CustomToast
       :is-open="!!error"
-      :message="error"
-      duration="3000"
+      :message="error || ''"
+      color="light"
+      :duration="3000"
+      position="top"
       @didDismiss="clearError"
-    ></ion-toast>
+    />
   </BasePage>
 </template>
 
@@ -164,9 +166,9 @@ import {
   IonContent,
   IonButton,
   IonSpinner,
-  IonToast,
 } from '@ionic/vue';
 import CustomInput from '@/components/ui/CustomInput.vue';
+import CustomToast from '@/components/ui/CustomToast.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
