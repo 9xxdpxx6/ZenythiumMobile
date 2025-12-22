@@ -18,7 +18,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 interface Props {
   isOpen: boolean;
   message?: string;
-  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger';
+  color?: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'light';
   duration?: number;
   position?: 'top' | 'bottom' | 'middle';
   icon?: string;
@@ -149,6 +149,11 @@ onMounted(() => {
   color: white;
 }
 
+.toast-light .toast-content {
+  background: #e0e0e0;
+  color: var(--ion-text-color);
+}
+
 /* Icon */
 .toast-icon {
   font-size: 18px;
@@ -224,6 +229,11 @@ onMounted(() => {
 @media (prefers-color-scheme: dark) {
   .toast-content {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  
+  .toast-light .toast-content {
+    background: #4a4a4a;
+    color: var(--ion-text-color);
   }
 }
 </style>

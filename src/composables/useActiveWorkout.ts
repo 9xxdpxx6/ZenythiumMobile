@@ -134,25 +134,51 @@ export function useActiveWorkout(workoutId: number) {
     if (!sets || sets.length === 0) return [];
     
     const sortedSets = [...sets].sort((a, b) => (a.id || 0) - (b.id || 0));
-    const grouped = sortedSets.reduce((acc, set) => {
-      const key = `${set.weight}x${set.reps}`;
-      if (!acc[key]) {
-        acc[key] = { weight: set.weight, reps: set.reps, count: 0 };
-      }
-      acc[key].count++;
-      return acc;
-    }, {} as Record<string, { weight: number; reps: number; count: number }>);
+    const result: Array<{ weight: number; reps: number; count: number; isSimple: boolean }> = [];
     
-    return Object.values(grouped).map((group: unknown) => {
-      const typedGroup = group as { weight: number; reps: number; count: number };
-      const isSimple = Number(typedGroup.weight) === 0;
-      return {
-        weight: typedGroup.weight,
-        reps: typedGroup.reps,
-        count: typedGroup.count,
-        isSimple,
-      };
+    if (sortedSets.length === 0) return result;
+    
+    let currentGroup = {
+      weight: sortedSets[0].weight,
+      reps: sortedSets[0].reps,
+      count: 1,
+    };
+    
+    for (let i = 1; i < sortedSets.length; i++) {
+      const set = sortedSets[i];
+      const isSame = set.weight === currentGroup.weight && set.reps === currentGroup.reps;
+      
+      if (isSame) {
+        currentGroup.count++;
+      } else {
+        // Сохраняем текущую группу
+        const isSimple = Number(currentGroup.weight) === 0;
+        result.push({
+          weight: currentGroup.weight,
+          reps: currentGroup.reps,
+          count: currentGroup.count,
+          isSimple,
+        });
+        
+        // Начинаем новую группу
+        currentGroup = {
+          weight: set.weight,
+          reps: set.reps,
+          count: 1,
+        };
+      }
+    }
+    
+    // Добавляем последнюю группу
+    const isSimple = Number(currentGroup.weight) === 0;
+    result.push({
+      weight: currentGroup.weight,
+      reps: currentGroup.reps,
+      count: currentGroup.count,
+      isSimple,
     });
+    
+    return result;
   };
 
   const formatWeight = (weight: number) => {
