@@ -417,9 +417,9 @@ ion-spinner {
   box-sizing: border-box;
 }
 
-/* Disable scrolling for auth pages and remove padding (handled by auth-form) */
+/* Remove padding for auth pages (handled by auth-form) */
 .auth-page ion-content {
-  --overflow: hidden !important;
+  --overflow: auto !important;
   --padding-start: 0 !important;
   --padding-end: 0 !important;
 }

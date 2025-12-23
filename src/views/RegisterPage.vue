@@ -2,7 +2,7 @@
   <ion-page>
     <PageHeader title="Регистрация" />
 
-    <ion-content :fullscreen="true" :scroll-y="false">
+    <ion-content :fullscreen="true">
       <div class="auth-page register-page">
         <div class="auth-form">
           <h1 class="auth-title">Создать аккаунт</h1>

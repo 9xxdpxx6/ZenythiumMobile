@@ -2,7 +2,7 @@
   <ion-page>
     <PageHeader title="Вход" />
 
-    <ion-content :fullscreen="true" :scroll-y="false">
+    <ion-content :fullscreen="true">
       <div class="auth-page">
         <div class="auth-form">
           <h1 class="auth-title">Добро пожаловать!</h1>
