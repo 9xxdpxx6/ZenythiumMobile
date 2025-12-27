@@ -1,6 +1,6 @@
 <template>
   <BasePage>
-    <PageHeader title="Общая программа">
+    <PageHeader>
       <template #start>
         <ion-button @click="handleBack">
           <i class="fas fa-arrow-left"></i>
@@ -25,11 +25,6 @@
         </div>
 
         <div v-else-if="sharedCycle" class="shared-cycle-details">
-          <!-- Badge indicating this is a shared cycle -->
-          <div class="shared-badge">
-            <i class="fas fa-share-alt"></i>
-            <span>Общая программа</span>
-          </div>
 
           <!-- Header Section -->
           <div class="cycle-header-section">
@@ -206,7 +201,7 @@ const fetchSharedCycle = async (): Promise<void> => {
     } else if (errorMsg.includes('404')) {
       error.value = 'not_found';
       errorTitle.value = 'Программа не найдена';
-      errorMessage.value = 'Общая программа не найдена или была удалена.';
+      errorMessage.value = 'Программа не найдена или была удалена.';
     } else if (errorMsg.includes('410')) {
       error.value = 'expired';
       errorTitle.value = 'Ссылка истекла';
@@ -279,23 +274,6 @@ onMounted(() => {
 <style scoped>
 .shared-cycle-details {
   padding-bottom: 40px;
-}
-
-.shared-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 20px;
-  margin-bottom: 24px;
-  font-size: 14px;
-  color: #3b82f6;
-}
-
-.shared-badge i {
-  font-size: 14px;
 }
 
 .cycle-header-section {
