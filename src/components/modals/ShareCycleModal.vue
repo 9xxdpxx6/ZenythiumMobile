@@ -138,6 +138,7 @@ const shareId = ref<string | null>(null);
 const isCopying = ref(false);
 const copied = ref(false);
 const linkInput = ref<HTMLInputElement | null>(null);
+const lastFetchedCycleId = ref<number | null>(null);
 
 // Check if Web Share API is available
 const canUseWebShare = computed(() => {
@@ -151,11 +152,25 @@ const fetchShareLink = async () => {
     return;
   }
 
+  // Если уже загружаем или уже загрузили для этого цикла - не делаем повторный запрос
+  if (loading.value) {
+    return;
+  }
+
+  // Если уже загрузили ссылку для этого цикла - не делаем повторный запрос
+  if (shareLink.value && lastFetchedCycleId.value === props.cycleId) {
+    return;
+  }
+
   loading.value = true;
   error.value = null;
-  shareLink.value = null;
-  shareId.value = null;
-  copied.value = false;
+  
+  // Очищаем предыдущие данные только если это другой цикл
+  if (lastFetchedCycleId.value !== props.cycleId) {
+    shareLink.value = null;
+    shareId.value = null;
+    copied.value = false;
+  }
 
   try {
     const response: ShareLinkResponse = await cyclesService.generateShareLink(
@@ -163,12 +178,15 @@ const fetchShareLink = async () => {
     );
     shareLink.value = response.share_link;
     shareId.value = response.share_id;
+    lastFetchedCycleId.value = props.cycleId;
   } catch (err) {
     errorHandler.log(err, 'ShareCycleModal.fetchShareLink');
     const errorMessage = errorHandler.format(err);
     
     // Handle specific error cases
-    if (errorMessage.includes('403') || errorMessage.includes('нет прав')) {
+    if (errorMessage.includes('429') || errorMessage.includes('Too Many')) {
+      error.value = 'Слишком много запросов. Пожалуйста, подождите немного и попробуйте снова.';
+    } else if (errorMessage.includes('403') || errorMessage.includes('нет прав')) {
       error.value = 'Цикл не найден или у вас нет прав на обмен этой программой';
     } else if (errorMessage.includes('404')) {
       error.value = 'Цикл не найден';
@@ -246,10 +264,13 @@ onMounted(() => {
   }
 });
 
-// Watch for modal opening
-watch(() => props.isOpen, (newValue) => {
-  if (newValue && props.cycleId > 0 && !shareLink.value) {
-    fetchShareLink();
+// Watch for modal opening and cycleId changes
+watch([() => props.isOpen, () => props.cycleId], ([isOpen, cycleId]) => {
+  if (isOpen && cycleId > 0) {
+    // Загружаем только если еще не загружали для этого цикла
+    if (lastFetchedCycleId.value !== cycleId || !shareLink.value) {
+      fetchShareLink();
+    }
   }
 });
 </script>

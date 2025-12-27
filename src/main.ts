@@ -3,6 +3,7 @@ import App from './App.vue'
 import router from './router';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -119,6 +120,37 @@ const parseResetPasswordUrl = (urlString: string): { token: string; email: strin
   return null;
 };
 
+// Обработка deeplinks для общих программ
+const parseSharedCycleUrl = (urlString: string): { shareId: string } | null => {
+  try {
+    // Поддержка custom scheme (zenythium://shared-cycles/{shareId})
+    // и обычных https ссылок (https://zenythium.ru/shared-cycles/{shareId})
+    let url: URL;
+    
+    // Если это custom scheme, нужно добавить протокол для парсинга
+    if (urlString.startsWith('zenythium://')) {
+      url = new URL(urlString.replace('zenythium://', 'https://'));
+    } else {
+      url = new URL(urlString);
+    }
+    
+    // Проверяем, что это ссылка на общую программу
+    // Паттерн: /shared-cycles/{shareId}
+    const sharedCycleMatch = url.pathname.match(/^\/shared-cycles\/([^\/]+)$/);
+    
+    if (sharedCycleMatch) {
+      const shareId = sharedCycleMatch[1];
+      if (shareId) {
+        return { shareId };
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to parse shared cycle URL:', error);
+  }
+  
+  return null;
+};
+
 const navigateToResetPassword = (token: string, email: string) => {
   // Закрываем все открытые модалки перед навигацией
   const modals = document.querySelectorAll('ion-modal');
@@ -138,22 +170,53 @@ const navigateToResetPassword = (token: string, email: string) => {
   });
 };
 
+const navigateToSharedCycle = (shareId: string) => {
+  // Закрываем все открытые модалки перед навигацией
+  const modals = document.querySelectorAll('ion-modal');
+  modals.forEach((modal: any) => {
+    if (modal.isOpen) {
+      modal.dismiss();
+    }
+  });
+
+  // Используем replace вместо push, чтобы заменить текущий роут
+  router.replace({
+    path: `/shared-cycles/${shareId}`
+  });
+};
+
 const initializeDeepLinks = () => {
   try {
     // Обработка deeplink при открытии приложения через ссылку
     CapacitorApp.addListener('appUrlOpen', (data: { url: string }) => {
-      const params = parseResetPasswordUrl(data.url);
-      if (params) {
-        navigateToResetPassword(params.token, params.email);
+      // Сначала проверяем ссылку на общую программу
+      const sharedCycleParams = parseSharedCycleUrl(data.url);
+      if (sharedCycleParams) {
+        navigateToSharedCycle(sharedCycleParams.shareId);
+        return;
+      }
+      
+      // Затем проверяем ссылку на сброс пароля
+      const resetPasswordParams = parseResetPasswordUrl(data.url);
+      if (resetPasswordParams) {
+        navigateToResetPassword(resetPasswordParams.token, resetPasswordParams.email);
       }
     });
 
     // Обработка deeplink при запуске приложения (если оно было открыто через ссылку)
     CapacitorApp.getLaunchUrl().then((data) => {
       if (data?.url) {
-        const params = parseResetPasswordUrl(data.url);
-        if (params) {
-          navigateToResetPassword(params.token, params.email);
+        // Сначала проверяем ссылку на общую программу
+        const sharedCycleParams = parseSharedCycleUrl(data.url);
+        if (sharedCycleParams) {
+          navigateToSharedCycle(sharedCycleParams.shareId);
+          return;
+        }
+        
+        // Затем проверяем ссылку на сброс пароля
+        const resetPasswordParams = parseResetPasswordUrl(data.url);
+        if (resetPasswordParams) {
+          navigateToResetPassword(resetPasswordParams.token, resetPasswordParams.email);
         }
       }
     }).catch(() => {
@@ -195,10 +258,36 @@ const initializePushNotifications = async () => {
   }
 };
 
+// Обработка URL при открытии в браузере (веб-версия)
+const handleWebUrl = () => {
+  if (typeof window === 'undefined') return;
+  
+  const currentUrl = window.location.href;
+  
+  // Проверяем ссылку на общую программу
+  const sharedCycleParams = parseSharedCycleUrl(currentUrl);
+  if (sharedCycleParams) {
+    navigateToSharedCycle(sharedCycleParams.shareId);
+    return;
+  }
+  
+  // Проверяем ссылку на сброс пароля
+  const resetPasswordParams = parseResetPasswordUrl(currentUrl);
+  if (resetPasswordParams) {
+    navigateToResetPassword(resetPasswordParams.token, resetPasswordParams.email);
+  }
+};
+
 // Инициализация приложения
 router.isReady().then(async () => {
   await initializeStatusBar();
   initializeDeepLinks();
   await initializePushNotifications();
+  
+  // Обработка URL при открытии в браузере (только для веб-версии)
+  if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
+    handleWebUrl();
+  }
+  
   app.mount('#app');
 });
