@@ -184,6 +184,15 @@ export const validators = {
     if (value === null || value === undefined) return true;
     return validators.range(VALIDATION_RULES.MIN_RPE, VALIDATION_RULES.MAX_RPE)(value);
   },
+
+  /**
+   * UUID validator
+   */
+  uuid: (value: string): ValidationResult => {
+    if (!value) return true;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(value) || 'Невалидный UUID';
+  },
 };
 
 /**
@@ -199,5 +208,14 @@ export function combineValidators(...validators: ValidatorFn[]): ValidatorFn {
     }
     return true;
   };
+}
+
+/**
+ * Check if string is valid UUID
+ */
+export function isValidUUID(value: string): boolean {
+  if (!value) return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
 }
 

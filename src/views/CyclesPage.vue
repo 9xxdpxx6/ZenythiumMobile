@@ -31,6 +31,7 @@
               :key="cycle.id"
               :cycle="cycle as Cycle"
               @click="handleCycleClick"
+              @share="shareCycle.handleShare"
             />
           </div>
         </div>
@@ -46,6 +47,13 @@
         />
       </PageContainer>
     </ion-content>
+
+    <!-- Share Cycle Modal -->
+    <ShareCycleModal
+      :is-open="shareCycle.shareModal.isOpen.value"
+      :cycle-id="shareCycle.cycleId.value"
+      @close="shareCycle.shareModal.close()"
+    />
   </ion-page>
 </template>
 
@@ -59,7 +67,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
-import { useDataFetching, useFilters, useToast } from '@/composables';
+import { useDataFetching, useFilters, useToast, useShareCycle } from '@/composables';
 import { cyclesService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -67,6 +75,7 @@ import LoadingState from '@/components/ui/LoadingState.vue';
 import EmptyState from '@/components/ui/EmptyState.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import CycleCard from '@/components/cards/CycleCard.vue';
+import ShareCycleModal from '@/components/modals/ShareCycleModal.vue';
 import type { Cycle } from '@/types/models/cycle.types';
 
 const router = useRouter();
@@ -122,6 +131,8 @@ const handleCycleClick = (cycle: Cycle | null) => {
   if (!cycle) return;
   router.push(`/cycle/${cycle.id}`);
 };
+
+const shareCycle = useShareCycle();
 
 const createCycle = () => router.push('/cycle/new');
 

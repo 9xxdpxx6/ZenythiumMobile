@@ -62,15 +62,13 @@
           </div>
 
           <div v-if="isEditMode" class="cycle-actions-section">
-            <button
-              type="button"
-              class="export-cycle-button"
-              @click="openExportModal"
+            <ActionsMenu
+              main-action-label="Поделиться"
+              main-action-icon="fas fa-share-alt"
+              :main-action-handler="openShareModal"
+              :actions="cycleActions"
               :disabled="submitting"
-            >
-              <i class="fas fa-file-export"></i>
-              Экспорт цикла
-            </button>
+            />
             <button
               type="button"
               class="delete-cycle-button"
@@ -128,6 +126,12 @@
       @export="handleExport"
       @cancel="closeExportModal"
     />
+
+    <ShareCycleModal
+      :is-open="shareCycle.shareModal.isOpen.value"
+      :cycle-id="shareCycle.cycleId.value"
+      @close="shareCycle.shareModal.close()"
+    />
   </BasePage>
 </template>
 
@@ -147,13 +151,17 @@ import PlanSelectionModal from '@/components/modals/PlanSelectionModal.vue';
 import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal.vue';
 import UnsavedChangesModal from '@/components/modals/UnsavedChangesModal.vue';
 import ExportModal from '@/components/modals/ExportModal.vue';
+import ShareCycleModal from '@/components/modals/ShareCycleModal.vue';
 import CycleBasicInfo from '@/components/cycle/CycleBasicInfo.vue';
 import CyclePlanSelection from '@/components/cycle/CyclePlanSelection.vue';
+import ActionsMenu from '@/components/ui/ActionsMenu.vue';
+import type { ActionItem } from '@/components/ui/ActionsMenu.vue';
 import { cyclesService } from '@/services/cycles.service';
 import { plansService } from '@/services/plans.service';
-import { useToast, useModal, useExport } from '@/composables';
+import { useToast, useModal, useExport, useShareCycle } from '@/composables';
 import { useCycleFormValidation, type CycleFormData, type ValidationErrors } from '@/composables/useCycleFormValidation';
 import type { Plan, CyclePlan, Cycle as APICycle } from '@/types/api';
+import type { Cycle } from '@/types/models/cycle.types';
 
 const router = useRouter();
 const route = useRoute();
@@ -206,11 +214,13 @@ const cyclePlans = ref<CyclePlan[]>([]);
 const availablePlans = ref<Plan[]>([]);
 const planModal = useModal();
 const loadingPlans = ref(false);
+const currentCycle = ref<Cycle | null>(null);
 
 const deletePlanModal = useModal<{ index: number; name: string }>();
 const deleteCycleModal = useModal();
 const unsavedChangesModal = useModal();
 const exportModal = useModal();
+const shareCycle = useShareCycle();
 const pendingNavigation = ref<any>(null);
 const isLeaving = ref(false);
 const isExporting = ref(false);
@@ -242,6 +252,7 @@ const fetchCycleData = async () => {
   loading.value = true;
   try {
     const cycle = await cyclesService.getById(cycleId.value) as any;
+    currentCycle.value = cycle as Cycle;
 
     formData.value = {
       name: cycle.name || '',
@@ -319,12 +330,15 @@ const handleSubmit = async () => {
       plan_ids: planIds
     };
 
+    let savedCycle: Cycle;
     if (isEditMode.value) {
-      await cyclesService.update(cycleId.value, payload);
+      savedCycle = await cyclesService.update(cycleId.value, payload);
       showSuccess('Цикл успешно обновлен');
+      currentCycle.value = savedCycle;
     } else {
-      await cyclesService.create(payload);
+      savedCycle = await cyclesService.create(payload);
       showSuccess('Цикл успешно создан');
+      currentCycle.value = savedCycle;
     }
 
     window.dispatchEvent(new CustomEvent('cycles-updated'));
@@ -562,6 +576,7 @@ const resetFormState = () => {
   };
   cyclePlans.value = [];
   errors.value = {};
+  currentCycle.value = null;
   originalFormData.value = {
     name: defaultName,
     weeks: '6',
@@ -576,6 +591,7 @@ const resetFormState = () => {
   deletePlanModal.close();
   deleteCycleModal.close();
   unsavedChangesModal.close();
+  shareCycle.shareModal.close();
   pendingNavigation.value = null;
 };
 
@@ -612,6 +628,26 @@ const openExportModal = () => {
 const closeExportModal = () => {
   exportModal.close();
 };
+
+const openShareModal = () => {
+  if (!isEditMode.value || !currentCycle.value) {
+    showError('Цикл должен быть сохранен перед обменом');
+    return;
+  }
+  
+  shareCycle.handleShare(currentCycle.value);
+};
+
+// Actions menu items (only export, share is main action)
+const cycleActions = computed<ActionItem[]>(() => [
+  {
+    id: 'export',
+    label: 'Экспорт цикла',
+    icon: 'fas fa-file-export',
+    class: 'export',
+    handler: openExportModal,
+  },
+]);
 
 const handleExport = async (format: 'json' | 'pdf', type: 'detailed' | 'structure') => {
   if (!isEditMode.value || !cycleId.value) return;
@@ -706,38 +742,6 @@ watch([() => formData.value.start_date, () => formData.value.weeks], ([newStartD
   gap: 12px;
 }
 
-.export-cycle-button {
-  background: transparent;
-  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.4);
-  color: rgba(var(--ion-color-primary-rgb), 0.9);
-  border-radius: 8px;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  min-height: 40px;
-}
-
-.export-cycle-button:hover {
-  background: transparent;
-  border-color: rgba(var(--ion-color-primary-rgb), 0.4);
-  color: rgba(var(--ion-color-primary-rgb), 0.9);
-}
-
-.export-cycle-button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.export-cycle-button i {
-  font-size: 14px;
-}
 
 .delete-cycle-button {
   background: transparent;
