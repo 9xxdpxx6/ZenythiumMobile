@@ -150,6 +150,13 @@ const routes: Array<RouteRecordRaw> = [
     name: 'Goals',
     component: () => import('@/views/GoalsPage.vue'),
     meta: { requiresAuth: true }
+  },
+  // Shared cycle route
+  {
+    path: '/shared-cycles/:shareId',
+    name: 'SharedCycle',
+    component: () => import('@/views/SharedCyclePage.vue'),
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -168,9 +175,32 @@ router.beforeEach((to, from, next) => {
     sessionStorage.setItem('previousRoute', from.path);
   }
 
+  // Handle shared cycle deep links
+  if (to.name === 'SharedCycle' && to.params.shareId) {
+    const shareId = to.params.shareId as string;
+    
+    if (!isAuthenticated) {
+      // Save shareId for redirect after login
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('pendingShareId', shareId);
+      }
+      next('/login');
+      return;
+    }
+  }
+
   if (requiresAuth && !isAuthenticated) {
     next('/login');
   } else if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
+    // Check if there's a pending shareId to redirect to
+    if (typeof sessionStorage !== 'undefined') {
+      const pendingShareId = sessionStorage.getItem('pendingShareId');
+      if (pendingShareId) {
+        sessionStorage.removeItem('pendingShareId');
+        next(`/shared-cycles/${pendingShareId}`);
+        return;
+      }
+    }
     next('/tabs/home');
   } else {
     next();

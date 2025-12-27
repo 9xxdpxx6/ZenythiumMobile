@@ -11,6 +11,9 @@ import type {
   CreateCycleDto,
   UpdateCycleDto,
   CycleStatus,
+  ShareLinkResponse,
+  SharedCycle,
+  ImportCycleResponse,
 } from '../types/models/cycle.types';
 import { CycleStatus as StatusEnum } from '../types/models/cycle.types';
 import { errorHandler } from '../utils/error-handler';
@@ -221,6 +224,53 @@ class CyclesService extends BaseService<Cycle, CreateCycleDto, UpdateCycleDto> {
       }
     } catch (error) {
       errorHandler.log(error, 'CyclesService.exportCycle');
+      throw error;
+    }
+  }
+
+  /**
+   * Generate share link for cycle
+   */
+  async generateShareLink(id: string): Promise<ShareLinkResponse> {
+    try {
+      const response = await apiClient.get<ShareLinkResponse>(
+        API_ENDPOINTS.CYCLE_SHARE_LINK(id)
+      );
+      logger.info('CyclesService: Share link generated successfully');
+      return response.data;
+    } catch (error) {
+      errorHandler.log(error, 'CyclesService.generateShareLink');
+      throw error;
+    }
+  }
+
+  /**
+   * Get shared cycle by share ID
+   */
+  async getSharedCycle(shareId: string): Promise<SharedCycle> {
+    try {
+      const response = await apiClient.get<{ data: SharedCycle; message: string }>(
+        API_ENDPOINTS.SHARED_CYCLE_BY_ID(shareId)
+      );
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'CyclesService.getSharedCycle');
+      throw error;
+    }
+  }
+
+  /**
+   * Import shared cycle
+   */
+  async importSharedCycle(shareId: string): Promise<ImportCycleResponse> {
+    try {
+      const response = await apiClient.post<{ data: ImportCycleResponse; message: string }>(
+        API_ENDPOINTS.SHARED_CYCLE_IMPORT(shareId)
+      );
+      logger.info('CyclesService: Cycle imported successfully');
+      return response.data.data;
+    } catch (error) {
+      errorHandler.log(error, 'CyclesService.importSharedCycle');
       throw error;
     }
   }

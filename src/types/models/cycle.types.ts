@@ -39,3 +39,86 @@ export interface UpdateCycleDto {
   endDate?: string;
 }
 
+/**
+ * Share link response
+ */
+export interface ShareLinkResponse {
+  share_link: string;
+  share_id: string;
+  message: string;
+}
+
+/**
+ * Author of shared cycle
+ */
+export interface SharedCycleAuthor {
+  id: number;
+  name: string;
+}
+
+/**
+ * Muscle group in shared cycle structure
+ */
+export interface SharedCycleMuscleGroup {
+  id: number;
+  name: string;
+}
+
+/**
+ * Exercise in shared cycle structure
+ */
+export interface SharedCycleExercise {
+  name: string;
+  muscle_group?: SharedCycleMuscleGroup | null;
+  description?: string | null;
+}
+
+/**
+ * Plan in shared cycle structure
+ */
+export interface SharedCyclePlan {
+  name: string;
+  exercises: SharedCycleExercise[];
+}
+
+/**
+ * Cycle in shared cycle structure
+ */
+export interface SharedCycleStructureCycle {
+  name: string;
+  plans: SharedCyclePlan[];
+}
+
+/**
+ * Structure of shared cycle
+ */
+export interface SharedCycleStructure {
+  cycles: SharedCycleStructureCycle[];
+}
+
+/**
+ * Shared cycle resource
+ */
+export interface SharedCycle {
+  id: number;
+  name: string;
+  weeks: number;
+  author?: SharedCycleAuthor | null;
+  plans_count: number;
+  exercises_count: number;
+  view_count: number;
+  import_count: number;
+  structure?: SharedCycleStructure | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Import cycle response
+ */
+export interface ImportCycleResponse {
+  cycle_id: number;
+  plans_count: number;
+  exercises_count: number;
+}
+

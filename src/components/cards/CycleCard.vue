@@ -5,10 +5,19 @@
   >
     <div class="cycle-header">
       <h3>{{ cycle.name }}</h3>
-      <div
-        :class="['cycle-status', cycle.status === CycleStatus.ACTIVE ? 'status-active' : 'status-completed']"
-      >
-        {{ cycle.status === CycleStatus.ACTIVE ? 'Активен' : 'Завершен' }}
+      <div class="header-actions">
+        <button
+          class="share-button"
+          @click.stop="$emit('share', cycle)"
+          title="Поделиться циклом"
+        >
+          <i class="fas fa-share-alt"></i>
+        </button>
+        <div
+          :class="['cycle-status', cycle.status === CycleStatus.ACTIVE ? 'status-active' : 'status-completed']"
+        >
+          {{ cycle.status === CycleStatus.ACTIVE ? 'Активен' : 'Завершен' }}
+        </div>
       </div>
     </div>
     
@@ -51,6 +60,7 @@ interface Props {
 defineProps<Props>();
 defineEmits<{
   click: [cycle: Cycle];
+  share: [cycle: Cycle];
 }>();
 
 const formatDate = (dateString: string | undefined) => {
@@ -82,6 +92,36 @@ const formatDate = (dateString: string | undefined) => {
   align-items: flex-start;
   margin-bottom: 16px;
   gap: 12px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.share-button {
+  padding: 6px 10px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #3b82f6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.share-button:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.share-button i {
+  font-size: 14px;
 }
 
 .cycle-header h3 {
