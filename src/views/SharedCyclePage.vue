@@ -1,6 +1,6 @@
 <template>
   <BasePage>
-    <PageHeader>
+    <PageHeader title="">
       <template #start>
         <ion-button @click="handleBack">
           <i class="fas fa-arrow-left"></i>
