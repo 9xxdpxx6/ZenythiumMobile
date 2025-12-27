@@ -3,13 +3,13 @@
  * Manages share cycle modal state and logic
  */
 
-import { computed } from 'vue';
-import { useModal } from './useModal';
+import { computed, type ComputedRef } from 'vue';
+import { useModal, type UseModalReturn } from './useModal';
 import type { Cycle } from '@/types/models/cycle.types';
 
 export interface UseShareCycleReturn {
-  shareModal: ReturnType<typeof useModal<Cycle>>;
-  cycleId: ReturnType<typeof computed<number>>;
+  shareModal: UseModalReturn<Cycle>;
+  cycleId: ComputedRef<number>;
   handleShare: (cycle: Cycle | null) => void;
 }
 
