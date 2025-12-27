@@ -5,7 +5,7 @@
       "namespace": "android_app",
       "package_name": "com.zenythium.fitness.app",
       "sha256_cert_fingerprints": [
-        "CB61F7A7E339A024730BF79CDA72199D026036AC62EFCDE84F028D5430AE0F27"
+        "CB:61:F7:A7:E3:39:A0:24:73:0B:F7:9C:DA:72:19:9D:02:60:36:AC:62:EF:CD:E8:4F:02:8D:54:30:AE:0F:27"
       ]
     }
   },
@@ -15,7 +15,7 @@
       "namespace": "android_app",
       "package_name": "com.zenythium.fitness.app.debug",
       "sha256_cert_fingerprints": [
-        "53720FF5ACEE9FC1882436E74A4C1E1A7A1312D9B2486586407B46A3BDF5C8B8"
+        "53:72:0F:F5:AC:EE:9F:C1:88:24:36:E7:4A:4C:1E:1A:7A:13:12:D9:B2:48:65:86:40:7B:46:A3:BD:F5:C8:B8"
       ]
     }
   }

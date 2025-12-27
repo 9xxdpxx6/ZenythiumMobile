@@ -44,6 +44,18 @@
                     android:pathPrefix="/reset-password" />
             </intent-filter>
 
+            <!-- App Links: обработка пути /shared-cycles для zenythium.ru -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="https"
+                    android:host="zenythium.ru"
+                    android:pathPrefix="/shared-cycles" />
+            </intent-filter>
+
             <!-- Custom URL Scheme (fallback для прямого открытия приложения) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
@@ -53,6 +65,17 @@
                 <data
                     android:scheme="zenythium"
                     android:host="reset-password" />
+            </intent-filter>
+
+            <!-- Custom URL Scheme для shared-cycles -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                
+                <data
+                    android:scheme="zenythium"
+                    android:host="shared-cycles" />
             </intent-filter>
         </activity>
 
