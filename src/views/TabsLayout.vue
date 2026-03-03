@@ -42,15 +42,22 @@
       </ion-tab-bar>
       </ion-tabs>
       
-      <!-- Next page (preview during swipe and completion) -->
-      <component
+      <!-- Lightweight skeleton preview during swipe (no real component mount → no API calls) -->
+      <div
         v-if="nextTab && (isSwiping || isCompleting)"
-        :key="nextTab"
-        :is="nextPageComponent"
-        class="swipe-page next-page"
+        class="swipe-page next-page swipe-skeleton-page"
         :style="{ transform: `translateX(${nextPageTranslateX}px)` }"
         :class="{ 'completing': isCompleting }"
-      />
+      >
+        <div class="skeleton-header-bar"></div>
+        <div class="skeleton-body">
+          <div class="skeleton-line title"></div>
+          <div class="skeleton-line subtitle"></div>
+          <div class="skeleton-card"></div>
+          <div class="skeleton-card short"></div>
+          <div class="skeleton-card"></div>
+        </div>
+      </div>
     </div>
   </ion-page>
 </template>
@@ -58,7 +65,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import type { Component } from 'vue';
 import {
   IonPage,
   IonTabs,
@@ -67,21 +73,6 @@ import {
   IonTabButton,
 } from '@ionic/vue';
 import { useTabSwipeNavigation } from '@/composables';
-
-// Import page components
-import CyclesPage from '@/views/CyclesPage.vue';
-import PlansPage from '@/views/PlansPage.vue';
-import HomePage from '@/views/HomePage.vue';
-import WorkoutsPage from '@/views/WorkoutsPage.vue';
-import ProfilePage from '@/views/ProfilePage.vue';
-
-const PAGE_COMPONENTS: Record<string, Component> = {
-  cycles: CyclesPage,
-  plans: PlansPage,
-  home: HomePage,
-  workouts: WorkoutsPage,
-  profile: ProfilePage,
-};
 
 // Tab order: cycles (0) → plans (1) → home (2) → workouts (3) → profile (4)
 const TAB_ORDER = ['cycles', 'plans', 'home', 'workouts', 'profile'] as const;
@@ -131,11 +122,6 @@ const { translateX, nextPageTranslateX, isSwiping, isCompleting, nextTab, active
     onSwipe: handleSwipe,
   });
 
-// Get next page component
-const nextPageComponent = computed(() => {
-  if (!nextTab.value) return null;
-  return PAGE_COMPONENTS[nextTab.value] || null;
-});
 </script>
 
 <style scoped>
@@ -198,5 +184,53 @@ ion-tab-button {
 .tab-bar-with-indicator ion-tab-button.tab-selected {
   background: transparent !important;
   border: none !important;
+}
+
+/* ── Swipe skeleton preview (lightweight, no component mount) ── */
+.swipe-skeleton-page {
+  background: var(--ion-background-color, #1a1a2e);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.skeleton-header-bar {
+  height: 56px;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.skeleton-body {
+  flex: 1;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-line {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.skeleton-line.title {
+  width: 55%;
+  height: 22px;
+}
+
+.skeleton-line.subtitle {
+  width: 70%;
+  height: 14px;
+}
+
+.skeleton-card {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  height: 90px;
+}
+
+.skeleton-card.short {
+  height: 60px;
+  width: 80%;
 }
 </style>

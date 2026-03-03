@@ -74,8 +74,8 @@ export function useMetrics() {
     
     const result = await metricsService.getPaginated(params);
     
-    if (result.pagination) {
-      totalPages.value = result.pagination.totalPages;
+    if (result.meta) {
+      totalPages.value = result.meta.last_page;
     }
     
     return result.data || [];

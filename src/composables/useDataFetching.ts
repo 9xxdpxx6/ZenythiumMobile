@@ -54,6 +54,8 @@ export function useDataFetching<T>(
   } = options;
 
   const data = ref<T | null>(null) as Ref<T | null>;
+  // When immediate=true and no cache, start with loading=true to prevent
+  // a brief "empty state" flash before onMounted fires execute().
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -87,6 +89,12 @@ export function useDataFetching<T>(
 
   // Проверяем кеш сразу при создании composable
   const hasCachedData = checkCache();
+
+  // If immediate fetch is scheduled and no cache — set loading right away
+  // so the template renders <LoadingState> instead of <EmptyState> before onMounted.
+  if (immediate && !hasCachedData) {
+    loading.value = true;
+  }
 
   /**
    * Execute the fetch function

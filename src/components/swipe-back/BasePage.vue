@@ -8,19 +8,23 @@
     @touchmove="handleTouchMove"
     @touchend="handleTouchEnd"
   >
-    <!-- Previous page (rendered behind current page during swipe) -->
-    <!-- Use Teleport to render outside ion-page to avoid nested ion-page issues -->
+    <!-- Lightweight skeleton behind current page during swipe-back (no real component mount) -->
     <Teleport to="body">
       <div
-        v-if="shouldRenderPreviousPage && previousPageComponent"
+        v-if="shouldRenderPreviousPage"
         class="swipe-back-previous-page"
         :style="{ opacity: previousPageOpacity, transform: `translateX(${previousPageTranslateX}px)` }"
         :class="{ 'completing': isCompleting }"
       >
-        <component
-          :is="previousPageComponent"
-          :key="`previous-${route.path}`"
-        />
+        <div class="swipe-back-skeleton">
+          <div class="swipe-back-skeleton-header"></div>
+          <div class="swipe-back-skeleton-body">
+            <div class="swipe-back-skeleton-line title"></div>
+            <div class="swipe-back-skeleton-line subtitle"></div>
+            <div class="swipe-back-skeleton-card"></div>
+            <div class="swipe-back-skeleton-card short"></div>
+          </div>
+        </div>
       </div>
     </Teleport>
     
@@ -76,7 +80,54 @@ const {
 } = useSwipeBack(toValue(swipeBackOptions));
 </script>
 
-<style scoped>
-/* Styles are in global swipe-back.css */
+<style>
+/* ── Swipe-back skeleton (global because it's inside Teleport to body) ── */
+.swipe-back-skeleton {
+  width: 100%;
+  height: 100%;
+  background: var(--ion-background-color, #1a1a2e);
+  display: flex;
+  flex-direction: column;
+}
+
+.swipe-back-skeleton-header {
+  height: 56px;
+  background: rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.swipe-back-skeleton-body {
+  flex: 1;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.swipe-back-skeleton-line {
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.swipe-back-skeleton-line.title {
+  width: 55%;
+  height: 22px;
+}
+
+.swipe-back-skeleton-line.subtitle {
+  width: 70%;
+  height: 14px;
+}
+
+.swipe-back-skeleton-card {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  height: 90px;
+}
+
+.swipe-back-skeleton-card.short {
+  height: 60px;
+  width: 80%;
+}
 </style>
 
