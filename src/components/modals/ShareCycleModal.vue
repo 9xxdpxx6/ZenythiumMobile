@@ -77,10 +77,10 @@
 
           <div class="share-actions">
             <button
-              v-if="canUseWebShare"
+              v-if="canUseShare"
               type="button"
               class="modern-button primary-button share-button"
-              @click="handleWebShare"
+              @click="handleShare"
             >
               <i class="fas fa-share"></i>
               Поделиться
@@ -111,6 +111,8 @@ import {
   IonButton,
   IonSpinner,
 } from '@ionic/vue';
+import { Share } from '@capacitor/share';
+import { Capacitor } from '@capacitor/core';
 import { cyclesService } from '@/services';
 import { copyToClipboard } from '@/utils/clipboard';
 import { useToast } from '@/composables/useToast';
@@ -140,8 +142,13 @@ const copied = ref(false);
 const linkInput = ref<HTMLInputElement | null>(null);
 const lastFetchedCycleId = ref<number | null>(null);
 
-// Check if Web Share API is available
-const canUseWebShare = computed(() => {
+// Check if sharing is available (Web Share API for web, Capacitor Share for native)
+const canUseShare = computed(() => {
+  // В нативных приложениях всегда используем Capacitor Share
+  if (Capacitor.isNativePlatform()) {
+    return true;
+  }
+  // В веб-версии проверяем Web Share API
   return typeof navigator !== 'undefined' && 'share' in navigator;
 });
 
@@ -233,19 +240,31 @@ const selectLink = () => {
   }
 };
 
-const handleWebShare = async () => {
-  if (!shareLink.value || !canUseWebShare.value) return;
+const handleShare = async () => {
+  if (!shareLink.value || !canUseShare.value) return;
 
   try {
-    await navigator.share({
-      title: 'Тренировочный цикл',
-      text: 'Посмотрите мой тренировочный цикл',
-      url: shareLink.value,
-    });
+    // Используем Capacitor Share для нативных приложений
+    if (Capacitor.isNativePlatform()) {
+      await Share.share({
+        title: 'Тренировочный цикл',
+        text: 'Посмотрите мой тренировочный цикл',
+        url: shareLink.value,
+        dialogTitle: 'Поделиться программой',
+      });
+    } else {
+      // Используем Web Share API для веб-версии
+      await navigator.share({
+        title: 'Тренировочный цикл',
+        text: 'Посмотрите мой тренировочный цикл',
+        url: shareLink.value,
+      });
+    }
   } catch (err: any) {
     // User cancelled or error occurred
-    if (err.name !== 'AbortError') {
-      errorHandler.log(err, 'ShareCycleModal.handleWebShare');
+    // AbortError для Web Share API, просто игнорируем
+    if (err.name !== 'AbortError' && err.message !== 'User cancelled') {
+      errorHandler.log(err, 'ShareCycleModal.handleShare');
     }
   }
 };

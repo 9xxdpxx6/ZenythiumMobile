@@ -81,7 +81,7 @@ const metricFormData = ref<MetricFormData>({
 // Fetch workouts
 const { data: workoutsData, loading: workoutsLoading, execute: fetchWorkouts } = useDataFetching(
   async () => {
-    const result = await workoutsService.getPaginated({ limit: 100, page: 1 });
+    const result = await workoutsService.getPaginated({ per_page: 100, page: 1 });
     return result.data || [];
   },
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_workouts' }

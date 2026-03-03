@@ -15,6 +15,7 @@ import type {
 } from '../types/models/workout.types';
 import { WorkoutStatus } from '../types/models/workout.types';
 import type { Workout as ApiWorkout } from '../types/api';
+import type { PaginatedResponse, ApiPaginationMeta } from '../types/common/pagination.types';
 import { errorHandler } from '../utils/error-handler';
 import { logger } from '../utils/logger';
 
@@ -113,14 +114,16 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
 
   /**
    * Override getPaginated to map API response
+   * API returns: { data: Workout[], meta: { current_page, last_page, per_page, total, from, to }, message }
    */
-  async getPaginated(filters?: any): Promise<any> {
+  async getPaginated(filters?: Record<string, any>): Promise<PaginatedResponse<Workout>> {
     try {
       const params = this.buildQueryParams(filters);
-      const response = await apiClient.get<{ data: ApiWorkout[]; meta: any }>(this.baseUrl, { params });
+      const response = await apiClient.get<{ data: ApiWorkout[]; meta: ApiPaginationMeta; message?: string }>(this.baseUrl, { params });
       return {
         data: response.data.data.map(workout => this.mapWorkoutFromApi(workout)),
         meta: response.data.meta,
+        message: response.data.message,
       };
     } catch (error) {
       errorHandler.log(error, `${this.constructor.name}.getPaginated`);

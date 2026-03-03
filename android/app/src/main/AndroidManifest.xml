@@ -21,7 +21,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- App Links: верификация всего домена (нужно для проверки assetlinks.json) -->
+            <!-- App Links: верификация всего домена zenythium.ru -->
+            <!-- Все ссылки https://zenythium.ru/... будут открываться в приложении -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -30,30 +31,6 @@
                 <data
                     android:scheme="https"
                     android:host="zenythium.ru" />
-            </intent-filter>
-
-            <!-- App Links: обработка конкретного пути /reset-password -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                
-                <data
-                    android:scheme="https"
-                    android:host="zenythium.ru"
-                    android:pathPrefix="/reset-password" />
-            </intent-filter>
-
-            <!-- App Links: обработка пути /shared-cycles для zenythium.ru -->
-            <intent-filter android:autoVerify="true">
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                
-                <data
-                    android:scheme="https"
-                    android:host="zenythium.ru"
-                    android:pathPrefix="/shared-cycles" />
             </intent-filter>
 
             <!-- Custom URL Scheme (fallback для прямого открытия приложения) -->
