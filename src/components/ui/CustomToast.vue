@@ -101,7 +101,7 @@ onMounted(() => {
 }
 
 .toast-top {
-  top: 20px;
+  top: 40px;
 }
 
 .toast-middle {

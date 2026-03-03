@@ -56,7 +56,7 @@ defineEmits<{
 
 const { data: workoutsData, loading } = useDataFetching(
   async () => {
-    const result = await workoutsService.getPaginated({ limit: props.limit, page: 1 });
+    const result = await workoutsService.getPaginated({ per_page: props.limit, page: 1 });
     return result.data || [];
   },
   { immediate: true }

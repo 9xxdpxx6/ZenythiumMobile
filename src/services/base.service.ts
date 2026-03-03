@@ -5,7 +5,7 @@
 
 import apiClient from './api';
 import type { FilterParams } from '../types/common/filters.types';
-import type { PaginatedResponse } from '../types/common/pagination.types';
+import type { PaginatedResponse, ApiPaginationMeta } from '../types/common/pagination.types';
 import { logger } from '../utils/logger';
 import { errorHandler } from '../utils/error-handler';
 
@@ -32,12 +32,17 @@ export abstract class BaseService<T, CreateDto, UpdateDto> {
 
   /**
    * Get paginated resources
+   * API returns: { data: T[], meta: ApiPaginationMeta, message? }
    */
   async getPaginated(filters?: FilterParams): Promise<PaginatedResponse<T>> {
     try {
       const params = this.buildQueryParams(filters);
-      const response = await apiClient.get<PaginatedResponse<T>>(this.baseUrl, { params });
-      return response.data;
+      const response = await apiClient.get<{ data: T[]; meta: ApiPaginationMeta; message?: string }>(this.baseUrl, { params });
+      return {
+        data: response.data.data,
+        meta: response.data.meta,
+        message: response.data.message,
+      };
     } catch (error) {
       errorHandler.log(error, `${this.constructor.name}.getPaginated`);
       throw error;

@@ -61,10 +61,10 @@
 
         <LoadingState v-if="loading" message="Загрузка тренировок..." />
 
-        <div v-else-if="filteredWorkouts.length > 0">
+        <div v-else-if="allWorkouts.length > 0">
           <div class="workouts-list card-list">
             <WorkoutCard
-              v-for="workout in filteredWorkouts"
+              v-for="workout in allWorkouts"
               :key="workout.id"
               :workout="workout"
               @click="handleWorkoutClick"
@@ -84,6 +84,16 @@
           :action-handler="() => $router.push('/select-plan')"
         />
       </PageContainer>
+
+      <ion-infinite-scroll
+        @ionInfinite="handleInfiniteScroll"
+        :disabled="!hasMorePages"
+      >
+        <ion-infinite-scroll-content
+          loading-text="Загрузка тренировок..."
+          loading-spinner="crescent"
+        />
+      </ion-infinite-scroll>
     </ion-content>
 
     <CustomToast
@@ -118,17 +128,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { clearDataCache } from '@/composables/useDataFetching';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
   IonContent,
   IonRefresher,
   IonRefresherContent,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
 } from '@ionic/vue';
-import { useDataFetching, useToast, useModal } from '@/composables';
+import { useToast, useModal } from '@/composables';
 import { workoutsService } from '@/services';
+import type { Workout } from '@/types/models/workout.types';
+import type { ApiPaginationMeta } from '@/types/common/pagination.types';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomToast from '@/components/ui/CustomToast.vue';
 import WorkoutActionModal from '@/components/modals/WorkoutActionModal.vue';
@@ -140,35 +153,74 @@ import PageContainer from '@/components/ui/PageContainer.vue';
 import WorkoutCard from '@/components/cards/WorkoutCard.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
 import '@vuepic/vue-datepicker/dist/main.css';
+import { errorHandler } from '@/utils/error-handler';
 
 const router = useRouter();
 const dateFrom = ref<Date | null>(null);
 const dateTo = ref<Date | null>(null);
 
-// Use composables
-// Используем кеш, но очищаем его при изменении фильтров по датам
+// Pagination state
+const PER_PAGE = 20;
+const currentPage = ref(1);
+const allWorkouts = ref<Workout[]>([]);
+const paginationMeta = ref<ApiPaginationMeta | null>(null);
+const loading = ref(false);
+const error = ref<string | null>(null);
 
-const { data: workouts, loading, error, execute, refresh } = useDataFetching(
-  () => {
-    const filters: any = {};
-    if (dateFrom.value) {
-      const dateFromWithTime = new Date(dateFrom.value);
-      dateFromWithTime.setHours(0, 0, 0, 0);
-      filters.started_at_from = dateFromWithTime.toISOString();
-    }
-    if (dateTo.value) {
-      const dateToWithTime = new Date(dateTo.value);
-      dateToWithTime.setHours(23, 59, 59, 999);
-      filters.started_at_to = dateToWithTime.toISOString();
-    }
-    return workoutsService.getAll(filters);
-  },
-  { 
-    immediate: true, 
-    skipIfDataExists: true, // Включаем кеш
-    cacheKey: 'workouts_list'
+const hasMorePages = computed(() => {
+  if (!paginationMeta.value) return false;
+  return paginationMeta.value.current_page < paginationMeta.value.last_page;
+});
+
+/**
+ * Build filters for the current date range
+ */
+const buildFilters = (page: number): Record<string, any> => {
+  const filters: Record<string, any> = {
+    page,
+    per_page: PER_PAGE,
+    sort_by: 'started_at',
+    sort_order: 'desc',
+  };
+  if (dateFrom.value) {
+    const dateFromWithTime = new Date(dateFrom.value);
+    dateFromWithTime.setHours(0, 0, 0, 0);
+    filters.started_at_from = dateFromWithTime.toISOString();
   }
-);
+  if (dateTo.value) {
+    const dateToWithTime = new Date(dateTo.value);
+    dateToWithTime.setHours(23, 59, 59, 999);
+    filters.started_at_to = dateToWithTime.toISOString();
+  }
+  return filters;
+};
+
+/**
+ * Fetch workouts page (replaces list on page=1, appends otherwise)
+ */
+const fetchWorkouts = async (page: number = 1): Promise<void> => {
+  loading.value = page === 1;
+  error.value = null;
+
+  try {
+    const filters = buildFilters(page);
+    const result = await workoutsService.getPaginated(filters);
+
+    if (page === 1) {
+      allWorkouts.value = result.data;
+    } else {
+      allWorkouts.value = [...allWorkouts.value, ...result.data];
+    }
+
+    paginationMeta.value = result.meta;
+    currentPage.value = result.meta.current_page;
+  } catch (err) {
+    error.value = errorHandler.format(err);
+    errorHandler.log(err, 'WorkoutsPage.fetchWorkouts');
+  } finally {
+    loading.value = false;
+  }
+};
 
 const { showError, showSuccess } = useToast();
 
@@ -182,13 +234,22 @@ const actionModal = useModal<any>();
 const deleteModal = useModal<any>();
 const isDeleting = ref(false);
 
-const filteredWorkouts = computed(() => workouts.value || []);
-
 const handleRefresh = async (event: CustomEvent) => {
-  // Очищаем кеш при ручном обновлении
-  clearDataCache('workouts_list');
-  await execute();
+  currentPage.value = 1;
+  await fetchWorkouts(1);
   event.detail.complete();
+};
+
+/**
+ * Infinite scroll handler — load next page
+ */
+const handleInfiniteScroll = async (event: CustomEvent) => {
+  if (!hasMorePages.value) {
+    (event.target as any)?.complete();
+    return;
+  }
+  await fetchWorkouts(currentPage.value + 1);
+  (event.target as any)?.complete();
 };
 
 const handleWorkoutClick = (workout: any) => {
@@ -239,9 +300,8 @@ const handleDeleteConfirm = async () => {
   isDeleting.value = true;
   try {
     await workoutsService.delete(deleteModal.data.value.id.toString());
-    // Очищаем кеш при успешном удалении
-    clearDataCache('workouts_list');
-    await execute();
+    // Перезагружаем первую страницу после удаления
+    await fetchWorkouts(1);
     await showSuccess('Тренировка удалена');
     deleteModal.close();
   } catch (err) {
@@ -260,19 +320,17 @@ const clearError = () => {
 };
 
 const handleDateFilterChange = () => {
-  // Очищаем кеш при изменении фильтров, чтобы загрузить новые данные
-  clearDataCache('workouts_list');
-  execute();
+  // Сбрасываем на первую страницу при изменении фильтров
+  fetchWorkouts(1);
 };
 
 // Refresh workouts when a workout is started/finished elsewhere
 const handleExternalRefresh = () => {
-  // Очищаем кеш при обновлении тренировок извне
-  clearDataCache('workouts_list');
-  execute();
+  fetchWorkouts(1);
 };
 
 onMounted(() => {
+  fetchWorkouts(1);
   window.addEventListener('workout-started', handleExternalRefresh as EventListener);
   window.addEventListener('workout-finished', handleExternalRefresh as EventListener);
 });
