@@ -224,32 +224,41 @@ const handleRefresh = async (event: CustomEvent) => {
   event.detail.complete();
 };
 
-// Event listeners
-const handleWorkoutStarted = () => refreshAllData();
-const handleWorkoutFinished = () => refreshAllData();
-const handleWorkoutUpdated = () => refreshAllData();
-const handleMetricAdded = () => refreshAllData();
-const handleMetricUpdated = () => refreshAllData();
+// ── Throttled event handler ──
+// Multiple events (workout-finished, visibilitychange, metric-added…) can fire
+// almost simultaneously. We coalesce them into a single refreshAllData() call.
+let refreshTimer: NodeJS.Timeout | null = null;
+const REFRESH_THROTTLE_MS = 500;
+
+const throttledRefresh = () => {
+  if (refreshTimer) return; // already scheduled
+  refreshTimer = setTimeout(async () => {
+    refreshTimer = null;
+    await refreshAllData();
+  }, REFRESH_THROTTLE_MS);
+};
+
 const handleVisibilityChange = () => {
-  if (!document.hidden) refreshAllData();
+  if (!document.hidden) throttledRefresh();
 };
 
 onMounted(() => {
   document.addEventListener('visibilitychange', handleVisibilityChange);
-  window.addEventListener('workout-started', handleWorkoutStarted);
-  window.addEventListener('workout-finished', handleWorkoutFinished);
-  window.addEventListener('workout-updated', handleWorkoutUpdated);
-  window.addEventListener('metric-added', handleMetricAdded);
-  window.addEventListener('metric-updated', handleMetricUpdated);
+  window.addEventListener('workout-started', throttledRefresh);
+  window.addEventListener('workout-finished', throttledRefresh);
+  window.addEventListener('workout-updated', throttledRefresh);
+  window.addEventListener('metric-added', throttledRefresh);
+  window.addEventListener('metric-updated', throttledRefresh);
 });
 
 onBeforeUnmount(() => {
+  if (refreshTimer) { clearTimeout(refreshTimer); refreshTimer = null; }
   document.removeEventListener('visibilitychange', handleVisibilityChange);
-  window.removeEventListener('workout-started', handleWorkoutStarted);
-  window.removeEventListener('workout-finished', handleWorkoutFinished);
-  window.removeEventListener('workout-updated', handleWorkoutUpdated);
-  window.removeEventListener('metric-added', handleMetricAdded);
-  window.removeEventListener('metric-updated', handleMetricUpdated);
+  window.removeEventListener('workout-started', throttledRefresh);
+  window.removeEventListener('workout-finished', throttledRefresh);
+  window.removeEventListener('workout-updated', throttledRefresh);
+  window.removeEventListener('metric-added', throttledRefresh);
+  window.removeEventListener('metric-updated', throttledRefresh);
 });
 </script>
 

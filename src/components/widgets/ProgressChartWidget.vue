@@ -114,31 +114,10 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { IonButton } from '@ionic/vue';
 import { Line } from 'vue-chartjs';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
+import '@/utils/chartSetup';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { metricsService } from '@/services/metrics.service';
 import { statisticsService } from '@/services/statistics.service';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 defineEmits<{
   'view-metrics': [];

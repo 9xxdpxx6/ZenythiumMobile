@@ -279,14 +279,18 @@ const cancelDuplicate = (): void => {
   };
 };
 
+// Debounced handler to avoid multiple rapid refreshes from external events
+let plansUpdateTimer: NodeJS.Timeout | null = null;
 const handlePlansUpdated = (): void => {
-  // Очищаем кеш при обновлении планов извне
-  clearDataCache('plans_list');
-  fetchData();
+  if (plansUpdateTimer) clearTimeout(plansUpdateTimer);
+  plansUpdateTimer = setTimeout(() => {
+    clearDataCache('plans_list');
+    fetchData();
+  }, 300);
 };
 
 onMounted(() => {
-  fetchData();
+  // Initial fetch is handled by useDataFetching with immediate: true — no need to call fetchData() again
   window.addEventListener('plans-updated', handlePlansUpdated);
 });
 
@@ -295,6 +299,9 @@ onUnmounted(() => {
   
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
+  }
+  if (plansUpdateTimer) {
+    clearTimeout(plansUpdateTimer);
   }
 });
 </script>

@@ -33,26 +33,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Line } from 'vue-chartjs';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import '@/utils/chartSetup';
 
 interface TrendPoint { [key: string]: any }
 interface Props {

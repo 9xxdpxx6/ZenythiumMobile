@@ -8,14 +8,17 @@ import { useRouter, useRoute } from 'vue-router';
 import type { SwipeBackState } from './types';
 
 /**
- * Load previous page component from router history
+ * Lightweight previous-page check.
+ * We no longer load the actual component (which triggered API calls during swipe).
+ * Instead we just validate that a navigable previous route exists and set
+ * shouldRenderPreviousPage so the skeleton can be shown.
  */
 export function createLoadPreviousPage(
   state: SwipeBackState,
   router: ReturnType<typeof useRouter>,
   route: ReturnType<typeof useRoute>
 ) {
-  return async (): Promise<void> => {
+  return (): void => {
     try {
       // Get previous route from sessionStorage (set by router.beforeEach)
       let previousPath: string | null = null;
@@ -29,9 +32,9 @@ export function createLoadPreviousPage(
       
       // Fallback: try to get from window.history.state
       if (!previousPath && typeof window !== 'undefined' && window.history && window.history.length > 1) {
-        const state = window.history.state;
-        if (state && state.back) {
-          previousPath = state.back;
+        const historyState = window.history.state;
+        if (historyState && historyState.back) {
+          previousPath = historyState.back;
         }
       }
       
@@ -41,7 +44,7 @@ export function createLoadPreviousPage(
         return;
       }
       
-      // Resolve route to get component
+      // Validate route exists (without loading the component)
       try {
         const resolvedRoute = router.resolve(previousPath);
         
@@ -49,54 +52,24 @@ export function createLoadPreviousPage(
           const routeRecord = resolvedRoute.matched[resolvedRoute.matched.length - 1];
           
           // Skip pages with route parameters (e.g., /training-program/:id)
-          // These pages require proper route params to work correctly and will fail
-          // when rendered as previousPageComponent with wrong/undefined params
           if (routeRecord.path && routeRecord.path.includes(':')) {
-            // This route has parameters, skip rendering as previous page
             state.shouldRenderPreviousPage.value = false;
             state.previousPageComponent.value = null;
             return;
           }
           
-          if (routeRecord && routeRecord.components) {
-            // Get component (handle both default and named views)
-            const component = routeRecord.components.default || routeRecord.components[Object.keys(routeRecord.components)[0]];
-            
-            // Handle lazy-loaded components
-            const componentValue = component as any;
-            if (componentValue && typeof componentValue === 'function') {
-              try {
-                const result = componentValue();
-                // Check if it returns a Promise (lazy loader)
-                if (result && typeof result.then === 'function') {
-                  const loadedComponent = await result;
-                  state.previousPageComponent.value = markRaw(loadedComponent.default || loadedComponent);
-                } else {
-                  // It's a regular component function
-                  state.previousPageComponent.value = markRaw(result);
-                }
-              } catch (e) {
-                state.previousPageComponent.value = null;
-              }
-            } else if (componentValue) {
-              // It's already a component
-              state.previousPageComponent.value = markRaw(componentValue as Component);
-            }
-            
-            if (state.previousPageComponent.value) {
-              state.previousPagePath.value = previousPath;
-              state.shouldRenderPreviousPage.value = true;
-              // Start with opacity 0, will fade in during swipe
-              state.previousPageOpacity.value = 0;
-              return;
-            }
-          }
+          // Route exists — mark as valid for skeleton rendering.
+          // We use a truthy placeholder instead of actually importing the component.
+          state.previousPageComponent.value = markRaw({} as Component);
+          state.previousPagePath.value = previousPath;
+          state.shouldRenderPreviousPage.value = true;
+          state.previousPageOpacity.value = 0;
+          return;
         }
       } catch (e) {
         // Route resolution failed
       }
       
-      // Fallback: don't render previous page
       state.shouldRenderPreviousPage.value = false;
       state.previousPageComponent.value = null;
     } catch (e) {

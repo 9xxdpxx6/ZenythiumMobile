@@ -90,8 +90,8 @@ const { filters, updateFilter } = useFilters({
 const { data: cycles, loading, error, execute, refresh } = useDataFetching(
   () => cyclesService.getAll(filters),
   { 
-    immediate: false,
-    skipIfDataExists: true, // Включаем кеш
+    immediate: true,
+    skipIfDataExists: true,
     cacheKey: 'cycles_list'
   }
 );
@@ -136,20 +136,27 @@ const shareCycle = useShareCycle();
 
 const createCycle = () => router.push('/cycle/new');
 
+// Debounced handler to avoid multiple rapid refreshes from external events
+let cyclesUpdateTimer: NodeJS.Timeout | null = null;
 const handleCyclesUpdated = () => {
-  // Очищаем кеш при обновлении циклов извне
-  clearDataCache('cycles_list');
-  fetchCycles();
+  if (cyclesUpdateTimer) clearTimeout(cyclesUpdateTimer);
+  cyclesUpdateTimer = setTimeout(() => {
+    clearDataCache('cycles_list');
+    fetchCycles();
+  }, 300);
 };
 
 onMounted(() => {
-  fetchCycles();
+  // Initial fetch handled by useDataFetching with immediate: true
   window.addEventListener('cycles-updated', handleCyclesUpdated);
 });
 
 onUnmounted(() => {
   if (searchTimeout.value) {
     clearTimeout(searchTimeout.value);
+  }
+  if (cyclesUpdateTimer) {
+    clearTimeout(cyclesUpdateTimer);
   }
   window.removeEventListener('cycles-updated', handleCyclesUpdated);
 });

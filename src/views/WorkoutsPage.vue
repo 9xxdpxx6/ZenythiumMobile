@@ -324,9 +324,13 @@ const handleDateFilterChange = () => {
   fetchWorkouts(1);
 };
 
-// Refresh workouts when a workout is started/finished elsewhere
+// Debounced handler — multiple events can fire near-simultaneously
+let externalRefreshTimer: NodeJS.Timeout | null = null;
 const handleExternalRefresh = () => {
-  fetchWorkouts(1);
+  if (externalRefreshTimer) clearTimeout(externalRefreshTimer);
+  externalRefreshTimer = setTimeout(() => {
+    fetchWorkouts(1);
+  }, 300);
 };
 
 onMounted(() => {
@@ -336,6 +340,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
+  if (externalRefreshTimer) clearTimeout(externalRefreshTimer);
   window.removeEventListener('workout-started', handleExternalRefresh as EventListener);
   window.removeEventListener('workout-finished', handleExternalRefresh as EventListener);
 });

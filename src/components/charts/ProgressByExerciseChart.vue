@@ -30,28 +30,7 @@ import { computed, ref } from 'vue';
 import CustomSelect from '@/components/ui/CustomSelect.vue';
 import { Line } from 'vue-chartjs';
 import { getColorFromString } from '@/utils/formatters';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import '@/utils/chartSetup';
 
 interface ExerciseProgress {
   name: string;

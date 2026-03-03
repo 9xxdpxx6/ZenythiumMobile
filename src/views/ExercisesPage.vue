@@ -188,8 +188,8 @@ const fetchData = async () => {
     if (f.sort_by) params.sort_by = f.sort_by;
     if (f.sort_order) params.sort_order = f.sort_order;
     const response = await exercisesService.getPaginated(params);
-    if (response.pagination) {
-      setTotalItems(response.pagination.totalItems);
+    if (response.meta) {
+      setTotalItems(response.meta.total);
     }
     exercises.value = response.data;
   } catch (err) {
