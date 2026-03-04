@@ -86,8 +86,10 @@
       </PageContainer>
 
       <ion-infinite-scroll
+        :key="infiniteScrollKey"
+        ref="infiniteScrollRef"
         @ionInfinite="handleInfiniteScroll"
-        :disabled="!hasMorePages"
+        :disabled="isInfiniteScrollDisabled"
       >
         <ion-infinite-scroll-content
           loading-text="Загрузка тренировок..."
@@ -128,7 +130,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonPage,
@@ -165,12 +167,40 @@ const currentPage = ref(1);
 const allWorkouts = ref<Workout[]>([]);
 const paginationMeta = ref<ApiPaginationMeta | null>(null);
 const loading = ref(false);
+const loadingMore = ref(false);
+const isRefreshing = ref(false);
 const error = ref<string | null>(null);
+const infiniteScrollRef = ref<any>(null);
+const infiniteScrollKey = ref(0);
+let listVersion = 0;
 
 const hasMorePages = computed(() => {
   if (!paginationMeta.value) return false;
   return paginationMeta.value.current_page < paginationMeta.value.last_page;
 });
+
+const isInfiniteScrollDisabled = computed(() => {
+  return loading.value || loadingMore.value || isRefreshing.value || !hasMorePages.value;
+});
+
+const getInfiniteScrollElement = (): any => {
+  const refValue = infiniteScrollRef.value;
+  return refValue?.$el ?? refValue ?? null;
+};
+
+const syncInfiniteScrollState = async (): Promise<void> => {
+  await nextTick();
+  const el = getInfiniteScrollElement();
+  if (!el) return;
+  el.disabled = isInfiniteScrollDisabled.value;
+};
+
+const completeInfiniteScroll = async (event?: CustomEvent): Promise<void> => {
+  const targetEl = (event?.target as any) ?? null;
+  const el = getInfiniteScrollElement() ?? targetEl;
+  if (!el?.complete) return;
+  await el.complete();
+};
 
 /**
  * Build filters for the current date range
@@ -199,12 +229,22 @@ const buildFilters = (page: number): Record<string, any> => {
  * Fetch workouts page (replaces list on page=1, appends otherwise)
  */
 const fetchWorkouts = async (page: number = 1): Promise<void> => {
+  const requestVersion = page === 1 ? ++listVersion : listVersion;
+
+  if (page > 1 && loadingMore.value) {
+    return;
+  }
+
   loading.value = page === 1;
+  loadingMore.value = page > 1;
   error.value = null;
 
   try {
     const filters = buildFilters(page);
     const result = await workoutsService.getPaginated(filters);
+    if (requestVersion !== listVersion) {
+      return;
+    }
 
     if (page === 1) {
       allWorkouts.value = result.data;
@@ -219,6 +259,10 @@ const fetchWorkouts = async (page: number = 1): Promise<void> => {
     errorHandler.log(err, 'WorkoutsPage.fetchWorkouts');
   } finally {
     loading.value = false;
+    loadingMore.value = false;
+    if (page === 1) {
+      void syncInfiniteScrollState();
+    }
   }
 };
 
@@ -236,20 +280,30 @@ const isDeleting = ref(false);
 
 const handleRefresh = async (event: CustomEvent) => {
   currentPage.value = 1;
-  await fetchWorkouts(1);
-  event.detail.complete();
+  isRefreshing.value = true;
+  infiniteScrollKey.value += 1;
+  try {
+    await fetchWorkouts(1);
+  } finally {
+    isRefreshing.value = false;
+    await syncInfiniteScrollState();
+    event.detail.complete();
+  }
 };
 
 /**
  * Infinite scroll handler — load next page
  */
 const handleInfiniteScroll = async (event: CustomEvent) => {
-  if (!hasMorePages.value) {
-    (event.target as any)?.complete();
+  if (loading.value || loadingMore.value || isRefreshing.value || !hasMorePages.value) {
+    await completeInfiniteScroll(event);
     return;
   }
-  await fetchWorkouts(currentPage.value + 1);
-  (event.target as any)?.complete();
+  try {
+    await fetchWorkouts(currentPage.value + 1);
+  } finally {
+    await completeInfiniteScroll(event);
+  }
 };
 
 const handleWorkoutClick = (workout: any) => {
@@ -320,7 +374,8 @@ const clearError = () => {
 };
 
 const handleDateFilterChange = () => {
-  // Сбрасываем на первую страницу при изменении фильтров
+  currentPage.value = 1;
+  infiniteScrollKey.value += 1;
   fetchWorkouts(1);
 };
 
@@ -329,9 +384,19 @@ let externalRefreshTimer: NodeJS.Timeout | null = null;
 const handleExternalRefresh = () => {
   if (externalRefreshTimer) clearTimeout(externalRefreshTimer);
   externalRefreshTimer = setTimeout(() => {
+    currentPage.value = 1;
+    infiniteScrollKey.value += 1;
     fetchWorkouts(1);
   }, 300);
 };
+
+watch(
+  isInfiniteScrollDisabled,
+  () => {
+    void syncInfiniteScrollState();
+  },
+  { immediate: true }
+);
 
 onMounted(() => {
   fetchWorkouts(1);
@@ -382,3 +447,4 @@ onUnmounted(() => {
   padding-bottom: 100px;
 }
 </style>
+
