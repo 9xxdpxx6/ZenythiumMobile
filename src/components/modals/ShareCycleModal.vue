@@ -480,7 +480,7 @@ watch([() => props.isOpen, () => props.cycleId], ([isOpen, cycleId]) => {
   margin-top: 24px;
 }
 
-.share-button {
+.share-actions .modern-button {
   flex: 1;
 }
 
