@@ -1,23 +1,26 @@
 [
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.zenythium.fitness.app",
-      "sha256_cert_fingerprints": [
-        "CB61F7A7E339A024730BF79CDA72199D026036AC62EFCDE84F028D5430AE0F27"
-      ]
+    {
+        "relation":  [
+                         "delegate_permission/common.handle_all_urls"
+                     ],
+        "target":  {
+                       "namespace":  "android_app",
+                       "package_name":  "com.zenythium.fitness.app",
+                       "sha256_cert_fingerprints":  [
+                                                        "B2AB264A0D73FB7E2B46CE5556885B9E4DF32E7C89279F9DBC70E46197841E29"
+                                                    ]
+                   }
+    },
+    {
+        "relation":  [
+                         "delegate_permission/common.handle_all_urls"
+                     ],
+        "target":  {
+                       "namespace":  "android_app",
+                       "package_name":  "com.zenythium.fitness.app.debug",
+                       "sha256_cert_fingerprints":  [
+                                                        "53720FF5ACEE9FC1882436E74A4C1E1A7A1312D9B2486586407B46A3BDF5C8B8"
+                                                    ]
+                   }
     }
-  },
-  {
-    "relation": ["delegate_permission/common.handle_all_urls"],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.zenythium.fitness.app.debug",
-      "sha256_cert_fingerprints": [
-        "53720FF5ACEE9FC1882436E74A4C1E1A7A1312D9B2486586407B46A3BDF5C8B8"
-      ]
-    }
-  }
 ]
-
