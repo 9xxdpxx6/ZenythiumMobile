@@ -102,6 +102,9 @@ const onPlanChange = (value: any) => {
 };
 
 const startWorkout = async () => {
+  // Blur focused button to avoid aria-hidden warning on page transition
+  (document.activeElement as HTMLElement)?.blur?.();
+
   starting.value = true;
   
   try {

@@ -224,56 +224,15 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
   }
 
   /**
-   * Complete a workout
+   * Finish (complete) a workout
+   * Uses dedicated POST /workouts/{id}/finish — server sets finished_at and calculates duration.
    */
-  async complete(id: string, data: CompleteWorkoutDto): Promise<Workout> {
+  async complete(id: string, _data?: CompleteWorkoutDto): Promise<Workout> {
     try {
-      // Get current workout via direct API call to ensure we get raw API response
-      const workoutResponse = await apiClient.get<{ data: any }>(
-        API_ENDPOINTS.WORKOUT_BY_ID(id)
+      const response = await apiClient.post<{ data: ApiWorkout; message?: string; duration_minutes?: number }>(
+        API_ENDPOINTS.WORKOUT_FINISH(id)
       );
-      const currentWorkout = workoutResponse.data.data;
-      
-      // Extract plan_id from various possible locations (API uses snake_case)
-      const planId = currentWorkout?.plan_id 
-        || currentWorkout?.planId 
-        || (currentWorkout?.plan && typeof currentWorkout.plan === 'object' ? currentWorkout.plan.id : null);
-      
-      // Extract started_at (required by API for update)
-      const startedAt = currentWorkout?.started_at 
-        || currentWorkout?.startedAt
-        || currentWorkout?.start_date;
-      
-      if (!planId) {
-        throw new Error(`Не удалось определить plan_id для тренировки ${id}`);
-      }
-      
-      if (!startedAt) {
-        throw new Error(`Не удалось определить started_at для тренировки ${id}`);
-      }
-      
-      // Prepare request body with all required fields
-      const requestBody: {
-        plan_id: number;
-        started_at: string;
-        finished_at: string;
-        notes?: string;
-      } = {
-        plan_id: Number(planId),
-        started_at: startedAt,
-        finished_at: new Date().toISOString()
-      };
-      
-      if (data.notes) {
-        requestBody.notes = data.notes;
-      }
-      
-      // Transform to API format: use PUT /workouts/{id} with finished_at and required fields
-      const response = await apiClient.put<{ data: ApiWorkout }>(
-        API_ENDPOINTS.WORKOUT_BY_ID(id),
-        requestBody
-      );
-      logger.info('WorkoutsService: Workout completed successfully');
+      logger.info('WorkoutsService: Workout finished successfully');
       return this.mapWorkoutFromApi(response.data.data);
     } catch (error) {
       errorHandler.log(error, 'WorkoutsService.complete');

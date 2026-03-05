@@ -12,8 +12,8 @@ export const API_ENDPOINTS = {
     LOGIN: '/login',
     REGISTER: '/register',
     LOGOUT: '/logout',
-    REFRESH: '/refresh',
-    ME: '/me',
+    LOGOUT_ALL: '/logout-all',
+    REFRESH: '/refresh-token',
     FORGOT_PASSWORD: '/forgot-password',
     RESET_PASSWORD: '/reset-password',
     CHANGE_PASSWORD: '/change-password',
@@ -52,14 +52,16 @@ export const API_ENDPOINTS = {
   WORKOUT_BY_ID: (id: string) => `/workouts/${id}`,
   WORKOUT_ACTIVE: '/workouts/active',
   WORKOUTS_START: '/workouts/start',
-  WORKOUT_COMPLETE: (id: string) => `/workouts/${id}/complete`,
+  WORKOUT_FINISH: (id: string) => `/workouts/${id}/finish`,
   WORKOUT_EXERCISE_SET: (workoutId: string, exerciseId: string, setId: string) =>
     `/workouts/${workoutId}/exercises/${exerciseId}/sets/${setId}`,
 
   // Exercises
   EXERCISES: '/exercises',
   EXERCISE_BY_ID: (id: string) => `/exercises/${id}`,
-  EXERCISE_SEARCH: '/exercises/search',
+  EXERCISE_INSTALL_BASE_PACK: '/exercises/install-base-pack',
+  EXERCISE_BASE_PACK_STATUS: '/exercises/base-pack-status',
+  EXERCISE_UNINSTALL_BASE_PACK: '/exercises/uninstall-base-pack',
 
   // Muscle Groups
   MUSCLE_GROUPS: '/muscle-groups',
