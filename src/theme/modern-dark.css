@@ -197,17 +197,26 @@
   --ion-tab-bar-background: #1f1f1f;
 }
 
-/* Modal background overrides for iOS */
-:root.ios ion-modal {
-  --ion-background-color: var(--ion-background-color-step-100);
-  --ion-toolbar-background: var(--ion-background-color-step-150);
-  --ion-toolbar-border-color: var(--ion-background-color-step-250);
+/* Modal background overrides — just slightly lighter than the main bg
+   to convey visual layering without looking "washed out" */
+:root.ios ion-modal,
+:root.md ion-modal {
+  --ion-background-color: var(--ion-background-color-step-50);
+  --ion-toolbar-background: var(--ion-background-color-step-50);
+  --ion-toolbar-border-color: var(--ion-background-color-step-150);
 }
 
 /* Global styles for modern flat design */
 ion-app {
   --background: var(--ion-background-color);
   font-family: var(--ion-font-family) !important;
+}
+
+/* Opaque page background — prevents previous tab/page from bleeding through
+   during pull-to-refresh or any content scroll offset */
+ion-page,
+.ion-page {
+  background: var(--ion-background-color);
 }
 
 html, body {
@@ -515,9 +524,10 @@ ion-spinner {
 .auth-page {
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  min-height: 100vh;
-  padding: 140px 0 24px 0;
+  justify-content: center;
+  /* 100% of ion-content scroll container — correctly excludes system bars */
+  min-height: 100%;
+  padding: 24px 16px;
   max-width: 400px;
   margin: 0 auto;
   width: 100%;
@@ -531,11 +541,11 @@ ion-spinner {
   --padding-end: 0 !important;
 }
 
-/* Register page specific positioning */
+/* Register page — top-aligned because the form is tall */
 .register-page {
   justify-content: flex-start !important;
-  padding: 24px !important;
-  padding-top: 100px !important;
+  padding: 24px 16px !important;
+  padding-top: 40px !important;
 }
 
 .auth-form {

@@ -59,7 +59,7 @@
             <ion-spinner v-if="isImporting" name="crescent"></ion-spinner>
             <span v-else>
               <i class="fas fa-download"></i>
-              Импортировать
+              Импорт
             </span>
           </button>
         </div>

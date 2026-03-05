@@ -65,9 +65,14 @@
           <!-- Structure Section -->
           <SharedCycleStructureSection :structure="sharedCycle.structure" />
 
-          <!-- Import Button -->
+          <!-- Import Button / Own cycle notice -->
           <div class="import-section">
+            <div v-if="isOwnCycle" class="own-cycle-notice">
+              <i class="fas fa-info-circle"></i>
+              <span>Это ваша программа</span>
+            </div>
             <button
+              v-else
               class="modern-button primary-button import-button"
               @click="handleImportClick"
               :disabled="isImporting"
@@ -106,6 +111,7 @@ import {
   IonSpinner,
 } from '@ionic/vue';
 import { useToast } from '@/composables/useToast';
+import { useAuth } from '@/composables/useAuth';
 import { cyclesService } from '@/services';
 import { errorHandler } from '@/utils/error-handler';
 import { isValidUUID } from '@/utils/validators';
@@ -121,6 +127,8 @@ const route = useRoute();
 const router = useRouter();
 const shareId = route.params.shareId as string;
 
+const { user, fetchUser } = useAuth();
+
 const sharedCycle = ref<SharedCycle | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
@@ -130,6 +138,12 @@ const isImporting = ref(false);
 const isImportModalOpen = ref(false);
 
 const { showSuccess, showError } = useToast();
+
+/** True when the current user is the author of this shared cycle */
+const isOwnCycle = computed(() => {
+  if (!user.value || !sharedCycle.value?.author) return false;
+  return Number(user.value.id) === Number(sharedCycle.value.author.id);
+});
 
 // Computed for pluralization
 const weeksText = computed(() => {
@@ -267,6 +281,7 @@ const handleBack = (): void => {
 };
 
 onMounted(() => {
+  fetchUser();
   fetchSharedCycle();
 });
 </script>
@@ -434,6 +449,25 @@ onMounted(() => {
 
 .modern-button i {
   font-size: 16px;
+}
+
+.own-cycle-notice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--ion-color-medium);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.own-cycle-notice i {
+  font-size: 18px;
+  color: var(--ion-color-primary);
 }
 </style>
 
