@@ -31,6 +31,9 @@
                 <data
                     android:scheme="https"
                     android:host="zenythium.ru" />
+                <data
+                    android:scheme="https"
+                    android:host="www.zenythium.ru" />
             </intent-filter>
 
             <!-- Custom URL Scheme (fallback для прямого открытия приложения) -->
