@@ -178,6 +178,8 @@ const onSubmit = async (values: RegisterFormValues) => {
     if (!isNativePlatform.value && !isDevMode.value) {
       resetCaptcha(); // Сбрасываем капчу после успешной регистрации (только на вебе в продакшене)
     }
+    // Flag for HomePage to show base exercise pack offer
+    localStorage.setItem('show_base_pack_offer', 'true');
     // Use replace instead of push to avoid back button issues
     router.replace('/tabs/home');
   } else {

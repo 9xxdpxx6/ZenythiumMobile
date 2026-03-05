@@ -1,9 +1,11 @@
 <template>
   <ion-header :translucent="true">
     <ion-toolbar>
-      <!-- Кнопка назад (ion-back-button) -->
+      <!-- Кнопка назад (кастомная, Font Awesome) -->
       <ion-buttons v-if="showBackButton && !$slots.start" slot="start">
-        <ion-back-button :default-href="defaultBackHref"></ion-back-button>
+        <ion-button @click="goBack">
+          <i class="fas fa-arrow-left"></i>
+        </ion-button>
       </ion-buttons>
 
       <!-- Кастомные кнопки слева через слот -->
@@ -27,12 +29,12 @@
 </template>
 
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
 import {
   IonHeader,
   IonToolbar,
   IonTitle,
   IonButtons,
-  IonBackButton,
   IonButton,
 } from '@ionic/vue';
 
@@ -49,10 +51,23 @@ interface Props {
   endButton?: EndButton;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   showBackButton: false,
   defaultBackHref: '/',
 });
+
+const router = useRouter();
+
+const goBack = () => {
+  // Blur active element to avoid aria-hidden focus trap
+  (document.activeElement as HTMLElement)?.blur?.();
+
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.replace(props.defaultBackHref);
+  }
+};
 </script>
 
 <style scoped>
@@ -83,11 +98,6 @@ withDefaults(defineProps<Props>(), {
   height: 100%;
   display: flex;
   align-items: center;
-}
-
-:deep(ion-back-button) {
-  --min-height: 36px;
-  --min-width: 36px;
 }
 
 /* Стили для кнопки добавления, если нужны */

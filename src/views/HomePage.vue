@@ -37,6 +37,13 @@
       @close="handleCloseMetricModal"
       @save="handleSaveMetric"
     />
+
+    <BasePackOfferModal
+      :is-open="basePackModal.isOpen.value"
+      :is-installing="isInstallingBasePack"
+      @install="handleInstallBasePack"
+      @skip="handleSkipBasePack"
+    />
   </ion-page>
 </template>
 
@@ -51,9 +58,11 @@ import {
 } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { useModal } from '@/composables/useModal';
+import { useToast } from '@/composables/useToast';
 import { metricsService } from '@/services/metrics.service';
 import { statisticsService } from '@/services/statistics.service';
 import { workoutsService } from '@/services/workouts.service';
+import { exercisesService } from '@/services/exercises.service';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import LoadingState from '@/components/ui/LoadingState.vue';
@@ -62,16 +71,22 @@ import QuickStatsWidget from '@/components/widgets/QuickStatsWidget.vue';
 import ProgressChartWidget from '@/components/widgets/ProgressChartWidget.vue';
 import AdditionalStatsWidget from '@/components/widgets/AdditionalStatsWidget.vue';
 import MetricFormModal from '@/components/modals/MetricFormModal.vue';
+import BasePackOfferModal from '@/components/modals/BasePackOfferModal.vue';
 import type { Workout } from '@/types/models/workout.types';
 import type { Statistics as ApiStatistics } from '@/types/api';
 import type { MetricFormData } from '@/composables/useMetrics';
 
 const router = useRouter();
+const { showSuccess, showError } = useToast();
 
 const isInitialLoading = ref(true);
 const isSavingMetric = ref(false);
 const metricError = ref('');
 const metricModal = useModal();
+
+// Base pack offer (shown after registration)
+const basePackModal = useModal();
+const isInstallingBasePack = ref(false);
 const metricFormData = ref<MetricFormData>({
   date: new Date(),
   weight: '',
@@ -214,6 +229,44 @@ const handleSaveMetric = async () => {
   }
 };
 
+// ── Base pack offer handlers ──
+const checkBasePackOffer = async () => {
+  const shouldShow = localStorage.getItem('show_base_pack_offer');
+  if (!shouldShow) return;
+
+  try {
+    const status = await exercisesService.getBasePackStatus();
+    if (!status.data.installed) {
+      basePackModal.open();
+    } else {
+      localStorage.removeItem('show_base_pack_offer');
+    }
+  } catch {
+    // Non-critical — silently skip if the check fails
+    localStorage.removeItem('show_base_pack_offer');
+  }
+};
+
+const handleInstallBasePack = async () => {
+  isInstallingBasePack.value = true;
+  try {
+    const result = await exercisesService.installBasePack();
+    const created = result.data.created;
+    await showSuccess(`Установлено ${created} упражнений`);
+    localStorage.removeItem('show_base_pack_offer');
+    basePackModal.close();
+  } catch {
+    await showError('Не удалось установить базовый набор');
+  } finally {
+    isInstallingBasePack.value = false;
+  }
+};
+
+const handleSkipBasePack = () => {
+  localStorage.removeItem('show_base_pack_offer');
+  basePackModal.close();
+};
+
 const refreshAllData = async () => {
   await fetchWorkouts();
   window.dispatchEvent(new CustomEvent('homepage-refresh'));
@@ -249,6 +302,9 @@ onMounted(() => {
   window.addEventListener('workout-updated', throttledRefresh);
   window.addEventListener('metric-added', throttledRefresh);
   window.addEventListener('metric-updated', throttledRefresh);
+
+  // Show base pack offer for newly registered users
+  checkBasePackOffer();
 });
 
 onBeforeUnmount(() => {

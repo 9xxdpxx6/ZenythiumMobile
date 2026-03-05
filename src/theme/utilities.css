@@ -73,6 +73,14 @@
   color: var(--ion-color-medium) !important;
   gap: 16px !important;
   min-height: 120px !important;
+
+  /* Delay visibility so fast fetches (<200ms) never flash the spinner */
+  animation: loadingFadeIn 0.15s ease-out 0.2s both !important;
+}
+
+@keyframes loadingFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .loading-state ion-spinner {

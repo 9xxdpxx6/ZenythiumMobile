@@ -484,3 +484,19 @@ export interface MuscleGroupsResponse {
   message: string;
   meta?: PaginationMeta;
 }
+
+// Exercise Base Pack types
+export interface BasePackInstallResponse {
+  message: string;
+  data: { created: number; skipped: number; total: number };
+}
+
+export interface BasePackStatusResponse {
+  message: string;
+  data: { installed: boolean; installed_count: number; pack_size: number };
+}
+
+export interface BasePackUninstallResponse {
+  message: string;
+  data: { deleted: number; deactivated: number; total_found: number };
+}

@@ -19,6 +19,37 @@
             <p>{{ exercises?.length || 0 }} упражнений</p>
           </div>
 
+          <!-- Base Pack Banner (install) -->
+          <div v-if="basePackStatus === 'not_installed'" class="base-pack-banner">
+            <div class="base-pack-banner-content">
+              <div class="base-pack-banner-icon">
+                <i class="fas fa-box-open"></i>
+              </div>
+              <div class="base-pack-banner-text">
+                <strong>Базовый набор упражнений</strong>
+                <span>~37 упражнений для всех групп мышц</span>
+              </div>
+            </div>
+            <button class="base-pack-install-btn" @click="handleInstallBasePack" :disabled="basePackLoading">
+              <ion-spinner v-if="basePackLoading" name="crescent"></ion-spinner>
+              <template v-else>
+                <i class="fas fa-download"></i>
+                Установить
+              </template>
+            </button>
+          </div>
+
+          <!-- Base Pack Uninstall (subtle) -->
+          <div v-else-if="basePackStatus === 'installed'" class="base-pack-uninstall-row">
+            <span class="base-pack-installed-label">
+              <i class="fas fa-check-circle"></i> Базовый набор установлен
+            </span>
+            <button class="base-pack-uninstall-btn" @click="handleUninstallBasePack" :disabled="basePackLoading">
+              <ion-spinner v-if="basePackLoading" name="crescent"></ion-spinner>
+              <span v-else>Удалить пакет</span>
+            </button>
+          </div>
+
           <!-- Search and Filters -->
           <div class="search-filters-section">
             <SearchInput
@@ -132,6 +163,8 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonButton,
+  IonSpinner,
+  alertController,
 } from '@ionic/vue';
 import { useDataFetching, useToast, usePagination, useModal } from '@/composables';
 import { exercisesService, muscleGroupsService } from '@/services';
@@ -197,6 +230,66 @@ const fetchData = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+// ── Base pack state ──
+const basePackStatus = ref<'unknown' | 'installed' | 'not_installed'>('unknown');
+const basePackLoading = ref(false);
+
+const checkBasePackStatus = async () => {
+  // Only bother checking if user has few exercises
+  if (exercises.value.length >= 20) {
+    basePackStatus.value = 'unknown';
+    return;
+  }
+  try {
+    const result = await exercisesService.getBasePackStatus();
+    basePackStatus.value = result.data.installed ? 'installed' : 'not_installed';
+  } catch {
+    basePackStatus.value = 'unknown';
+  }
+};
+
+const handleInstallBasePack = async () => {
+  basePackLoading.value = true;
+  try {
+    const result = await exercisesService.installBasePack();
+    await showSuccess(`Установлено ${result.data.created} упражнений`);
+    basePackStatus.value = 'installed';
+    await fetchData();
+  } catch {
+    await showError('Не удалось установить базовый набор');
+  } finally {
+    basePackLoading.value = false;
+  }
+};
+
+const handleUninstallBasePack = async () => {
+  const alert = await alertController.create({
+    header: 'Удалить базовый набор?',
+    message: 'Упражнения, используемые в тренировках, будут деактивированы, остальные — удалены.',
+    buttons: [
+      { text: 'Отмена', role: 'cancel' },
+      {
+        text: 'Удалить',
+        role: 'destructive',
+        handler: async () => {
+          basePackLoading.value = true;
+          try {
+            const result = await exercisesService.uninstallBasePack();
+            await showSuccess(`Удалено: ${result.data.deleted}, деактивировано: ${result.data.deactivated}`);
+            basePackStatus.value = 'not_installed';
+            await fetchData();
+          } catch {
+            await showError('Не удалось удалить базовый набор');
+          } finally {
+            basePackLoading.value = false;
+          }
+        },
+      },
+    ],
+  });
+  await alert.present();
 };
 
 // Modal states
@@ -378,6 +471,9 @@ const handleRefresh = async (event: CustomEvent) => {
 onMounted(async () => {
   await fetchData();
   await fetchMuscleGroups();
+
+  // Check base pack status when exercises list is short
+  await checkBasePackStatus();
   
   // Проверяем query параметр для автоматического открытия модалки создания
   if (route.query.create === 'true') {
@@ -425,6 +521,135 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* ── Base Pack Banner (install) ── */
+.base-pack-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  margin-bottom: 16px;
+}
+
+.base-pack-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.base-pack-banner-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--ion-color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.base-pack-banner-icon i {
+  color: white;
+  font-size: 18px;
+}
+
+.base-pack-banner-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.base-pack-banner-text strong {
+  font-size: 14px;
+  color: var(--ion-text-color);
+  line-height: 1.3;
+}
+
+.base-pack-banner-text span {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  line-height: 1.3;
+}
+
+.base-pack-install-btn {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 10px;
+  background: var(--ion-color-primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.base-pack-install-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.base-pack-install-btn ion-spinner {
+  width: 18px;
+  height: 18px;
+}
+
+/* ── Base Pack Uninstall (subtle row) ── */
+.base-pack-uninstall-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 16px;
+}
+
+.base-pack-installed-label {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.base-pack-installed-label i {
+  color: var(--ion-color-success);
+  font-size: 14px;
+}
+
+.base-pack-uninstall-btn {
+  background: transparent;
+  border: none;
+  color: var(--ion-color-danger);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.base-pack-uninstall-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.base-pack-uninstall-btn ion-spinner {
+  width: 16px;
+  height: 16px;
 }
 
 

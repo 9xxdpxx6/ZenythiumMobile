@@ -167,6 +167,10 @@ const router = createRouter({
 
 // Navigation guard
 router.beforeEach((to, from, next) => {
+  // Blur focused element to prevent "aria-hidden on a focused element" warning
+  // that occurs when Ionic hides the outgoing page during transitions
+  (document.activeElement as HTMLElement)?.blur?.();
+
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthenticated = AuthService.isAuthenticated();
 

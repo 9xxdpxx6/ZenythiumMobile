@@ -162,7 +162,7 @@ ion-tab-button {
   border: 1px solid rgba(99, 102, 241, 0.3);
   border-radius: 12px;
   pointer-events: none;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 0;
 }
 
@@ -171,7 +171,7 @@ ion-tab-button {
 }
 
 .tab-indicator.completing {
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Ensure tab buttons are above indicator */
