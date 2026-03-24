@@ -1,7 +1,7 @@
 {
   "name": "ionic-vue-fitness-app",
   "private": true,
-  "version": "0.4.5",
+  "version": "0.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "version:patch": "node scripts/version.js patch",
     "version:minor": "node scripts/version.js minor",
     "version:major": "node scripts/version.js major",
+    "generate:pwa-splash": "cross-env PAG_SIMULATE_CPU_COUNT=1 pwa-asset-generator resources/splash.png public/splash --splash-only --index index.html --path-override /splash --type png --background \"#121212\" --padding \"0%\" --opaque true",
     "sync:android": "npm run build && npx cap sync android",
     "build:android": "npm run build && npx cap sync android",
     "build:android:release": "npm run build && npx cap sync android && cd android && gradlew.bat assembleRelease"
@@ -48,13 +49,16 @@
     "@vitejs/plugin-vue": "^4.0.0",
     "@vue/eslint-config-typescript": "^12.0.0",
     "@vue/test-utils": "^2.3.0",
+    "cross-env": "^7.0.3",
     "cypress": "^13.5.0",
     "eslint": "^8.35.0",
     "eslint-plugin-vue": "^9.9.0",
     "jsdom": "^22.1.0",
+    "pwa-asset-generator": "^8.1.4",
     "terser": "^5.4.0",
     "typescript": "~5.6.2",
     "vite": "~5.2.0",
+    "vite-plugin-pwa": "^1.2.0",
     "vitest": "^0.34.6",
     "vue-tsc": "^2.1.10"
   },

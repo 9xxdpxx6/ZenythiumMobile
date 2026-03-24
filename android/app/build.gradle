@@ -5,13 +5,37 @@ apply plugin: 'com.android.application'
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def hasReleaseKeystore = keystorePropertiesFile.exists()
+def requiredReleaseKeystoreKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
 
 if (hasReleaseKeystore) {
     keystorePropertiesFile.withInputStream { stream ->
         keystoreProperties.load(stream)
     }
-} else {
-    println("WARNING: android/keystore.properties not found. Release build will use debug keystore.")
+}
+
+def missingReleaseKeystoreKeys = requiredReleaseKeystoreKeys.findAll { key ->
+    !keystoreProperties.containsKey(key) || !keystoreProperties[key]?.toString()?.trim()
+}
+
+def releaseKeystoreFile = null
+if (hasReleaseKeystore && missingReleaseKeystoreKeys.isEmpty()) {
+    releaseKeystoreFile = rootProject.file(keystoreProperties['storeFile'])
+}
+
+def isReleaseBuildRequested = gradle.startParameter.taskNames.any { taskName ->
+    taskName.toLowerCase().contains('release')
+}
+
+if (isReleaseBuildRequested) {
+    if (!hasReleaseKeystore) {
+        throw new GradleException("android/keystore.properties not found. Release builds require a dedicated keystore configuration.")
+    }
+    if (!missingReleaseKeystoreKeys.isEmpty()) {
+        throw new GradleException("android/keystore.properties is missing required keys: ${missingReleaseKeystoreKeys.join(', ')}")
+    }
+    if (!releaseKeystoreFile.exists()) {
+        throw new GradleException("Release keystore file not found: ${releaseKeystoreFile}")
+    }
 }
 
 android {
@@ -21,8 +45,8 @@ android {
         applicationId "com.zenythium.fitness.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
-        versionName "0.4.5"
+        versionCode 9
+        versionName "0.4.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -37,16 +61,11 @@ android {
         release {
             // Для тестирования используем debug подпись
             // В продакшене нужно создать отдельный release ключ
-            if (hasReleaseKeystore) {
-                storeFile rootProject.file(keystoreProperties['storeFile'])
+            if (releaseKeystoreFile != null && releaseKeystoreFile.exists()) {
+                storeFile releaseKeystoreFile
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
-            } else {
-                storeFile file('debug.keystore')
-                storePassword 'android'
-                keyAlias 'androiddebugkey'
-                keyPassword 'android'
             }
         }
     }
@@ -60,7 +79,9 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.release
+            if (releaseKeystoreFile != null && releaseKeystoreFile.exists()) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     
