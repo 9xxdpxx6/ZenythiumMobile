@@ -36,3 +36,7 @@ npm-debug.log*
 .env
 .env.local
 .env.*.local
+
+# Android signing — private keys stay local only
+*.keystore
+*.jks
