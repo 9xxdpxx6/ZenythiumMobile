@@ -75,6 +75,7 @@ import BasePackOfferModal from '@/components/modals/BasePackOfferModal.vue';
 import type { Workout } from '@/types/models/workout.types';
 import type { Statistics as ApiStatistics } from '@/types/api';
 import type { MetricFormData } from '@/composables/useMetrics';
+import { formatLocalDate } from '@/utils/local-date';
 
 const router = useRouter();
 const { showSuccess, showError } = useToast();
@@ -181,7 +182,7 @@ const handleSaveMetric = async () => {
   isSavingMetric.value = true;
   
   try {
-    const selectedDate = new Date(metricFormData.value.date as any);
+    const selectedDate = metricFormData.value.date as Date;
     const today = new Date();
     today.setHours(23, 59, 59, 999);
     
@@ -197,7 +198,7 @@ const handleSaveMetric = async () => {
     }
     
     const metricData = {
-      date: selectedDate.toISOString().split('T')[0],
+      date: formatLocalDate(selectedDate),
       weight: weight.toFixed(2),
       note: metricFormData.value.note || null
     };

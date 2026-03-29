@@ -6,6 +6,7 @@ import { errorHandler } from '../utils/error-handler';
 import { Capacitor } from '@capacitor/core';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
 import { AuthService } from './auth';
+import { getLoginRedirectHref } from '@/utils/app-url';
 
 /**
  * Enhanced API Client with interceptors, retry logic, and error transformation
@@ -265,7 +266,7 @@ apiClient.interceptors.response.use(
         // Refresh failed, clear token and redirect to login
         AuthService.clearToken();
         if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
+          window.location.href = getLoginRedirectHref();
         }
         const apiError: ApiError = {
           message: 'Session expired. Please login again.',
@@ -307,7 +308,7 @@ apiClient.interceptors.response.use(
           AuthService.clearToken();
           // Redirect to login only if not already there
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
+            window.location.href = getLoginRedirectHref();
           }
           return Promise.reject(refreshError);
         })

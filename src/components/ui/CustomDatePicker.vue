@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 
 interface Props {
   modelValue?: string;
@@ -192,8 +193,7 @@ const selectDate = (day: CalendarDay) => {
 
 const confirmDate = () => {
   if (selectedDate.value) {
-    const isoString = selectedDate.value.toISOString().split('T')[0];
-    emit('update:modelValue', isoString);
+    emit('update:modelValue', formatLocalDate(selectedDate.value));
   }
   showCalendar.value = false;
   isFocused.value = false;
@@ -237,9 +237,14 @@ const handleClickOutside = (event: Event) => {
 // Инициализация выбранной даты
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
-    selectedDate.value = new Date(newValue);
-    currentMonth.value = selectedDate.value.getMonth();
-    currentYear.value = selectedDate.value.getFullYear();
+    const parsed = parseCalendarDateFromApi(newValue);
+    selectedDate.value = parsed;
+    if (parsed) {
+      currentMonth.value = parsed.getMonth();
+      currentYear.value = parsed.getFullYear();
+    }
+  } else {
+    selectedDate.value = null;
   }
 }, { immediate: true });
 

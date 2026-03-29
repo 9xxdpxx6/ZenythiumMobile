@@ -6,7 +6,8 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https',
-    cleartext: true
+    // Android: cleartext только в debug (см. src/debug/res/xml/network_security_config.xml).
+    cleartext: false
   },
   plugins: {
     CapacitorHttp: {

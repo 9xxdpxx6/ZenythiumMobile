@@ -1,8 +1,21 @@
 <template>
-  <div class="active-workout-widget content-section" v-if="activeWorkout">
+  <div
+    v-if="activeWorkout || loading || fetchError"
+    class="active-workout-widget content-section"
+  >
     <h2>Активная тренировка</h2>
-    
-    <div class="workout-card modern-card" @click="handleResume">
+
+    <LoadingState v-if="loading" message="Загрузка..." />
+
+    <p v-else-if="fetchError" class="widget-fetch-error" role="alert">
+      {{ fetchError }}
+    </p>
+
+    <div
+      v-else-if="activeWorkout"
+      class="workout-card modern-card"
+      @click="handleResume"
+    >
       <div class="workout-header">
         <div>
           <h3>{{ activeWorkout.name || 'Тренировка' }}</h3>
@@ -10,7 +23,7 @@
         </div>
         <div class="status-badge active">Активна</div>
       </div>
-      
+
       <div class="workout-stats" v-if="activeWorkout.exercises">
         <div class="stat-item">
           <i class="fas fa-dumbbell"></i>
@@ -21,13 +34,11 @@
           <span>{{ completedExercisesCount }} / {{ activeWorkout.exercises.length }}</span>
         </div>
       </div>
-      
+
       <ion-button expand="block" @click.stop="handleResume" class="resume-btn">
         <i class="fas fa-play"></i> Продолжить тренировку
       </ion-button>
     </div>
-    
-    <LoadingState v-if="loading" message="Загрузка..." />
   </div>
 </template>
 
@@ -42,7 +53,7 @@ import type { Workout } from '@/types/models/workout.types';
 
 const router = useRouter();
 
-const { data: workout, loading, refresh } = useDataFetching(
+const { data: workout, loading, error: fetchError, refresh } = useDataFetching(
   () => workoutsService.getActive(),
   { immediate: true }
 );
@@ -159,5 +170,11 @@ defineExpose({
 
 .resume-btn i {
   margin-right: 8px;
+}
+
+.widget-fetch-error {
+  margin: 0 10px 16px;
+  font-size: 14px;
+  color: var(--ion-color-danger);
 }
 </style>

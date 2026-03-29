@@ -2,11 +2,16 @@
  * Formatters Utility
  */
 
+import { parseLocalDate } from './local-date';
+
 /**
  * Format date to string
  */
 export function formatDate(date: Date | string, format: string = 'YYYY-MM-DD'): string {
-  const d = typeof date === 'string' ? new Date(date) : date;
+  const d =
+    typeof date === 'string'
+      ? (parseLocalDate(date.trim()) ?? new Date(date))
+      : date;
 
   if (isNaN(d.getTime())) {
     return 'Invalid Date';

@@ -71,6 +71,7 @@ import ExportModal from '@/components/modals/ExportModal.vue';
 import ProgramHeaderSection from '@/components/program/ProgramHeaderSection.vue';
 import ProgramStructureSection from '@/components/program/ProgramStructureSection.vue';
 import type { TrainingProgramDetail } from '@/types/models/training-program.types';
+import { formatLocalDate } from '@/utils/local-date';
 
 const route = useRoute();
 const router = useRouter();
@@ -154,7 +155,7 @@ const handleExport = async (format: 'json' | 'pdf', type: 'detailed' | 'structur
 
   isExporting.value = true;
   try {
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = formatLocalDate(new Date());
     const filename = `program-${program.value.id}-${type}-${timestamp}.${format}`;
 
     await handleExportDownload(

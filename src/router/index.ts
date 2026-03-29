@@ -160,6 +160,7 @@ const routes: Array<RouteRecordRaw> = [
   }
 ]
 
+// import.meta.env.BASE_URL === '/' при vite base: '/' (деплой в корень домена, тот же базовый путь в Capacitor WebView).
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes

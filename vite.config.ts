@@ -23,8 +23,8 @@ export default defineConfig({
         background_color: '#121212',
         display: 'standalone',
         orientation: 'portrait',
-        scope: './',
-        start_url: './',
+        scope: '/',
+        start_url: '/',
         categories: ['fitness', 'health', 'sports'],
         icons: [
           {
@@ -135,5 +135,6 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5173,
   },
-  base: './',
+  // Единая модель с деплоем в корень домена и Capacitor (https://localhost/…): абсолютные пути от /.
+  base: '/',
 })

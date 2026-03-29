@@ -8,6 +8,7 @@ import { exercisesService } from '@/services/exercises.service';
 import { useDataFetching, useToast, useModal } from '@/composables';
 import type { Goal, GoalStatus, CreateGoalDto, UpdateGoalDto, GoalTypeInfo } from '@/types/models/goal.types';
 import { requiresExercise, getGoalTypeOptions } from '@/constants/goal-types';
+import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 
 export interface GoalFilters {
   status: GoalStatus | null;
@@ -115,8 +116,10 @@ export function useGoals() {
       title: goal.title,
       description: goal.description || '',
       target_value: goal.target_value.toString(),
-      start_date: new Date(goal.start_date),
-      end_date: goal.end_date ? new Date(goal.end_date) : null,
+      start_date: parseCalendarDateFromApi(String(goal.start_date)) ?? new Date(goal.start_date),
+      end_date: goal.end_date
+        ? parseCalendarDateFromApi(String(goal.end_date)) ?? new Date(goal.end_date)
+        : null,
       exercise_id: goal.exercise?.id || '',
     };
     if (!exercises.value) {
@@ -144,8 +147,8 @@ export function useGoals() {
       title: localForm.title.trim(),
       description: localForm.description.trim() || null,
       target_value: parseFloat(localForm.target_value),
-      start_date: localForm.start_date ? localForm.start_date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-      end_date: localForm.end_date ? localForm.end_date.toISOString().split('T')[0] : null,
+      start_date: localForm.start_date ? formatLocalDate(localForm.start_date) : formatLocalDate(new Date()),
+      end_date: localForm.end_date ? formatLocalDate(localForm.end_date) : null,
     };
 
     if (requiresExercise(localForm.type, goalTypes.value || undefined) && localForm.exercise_id) {

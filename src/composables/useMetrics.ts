@@ -4,6 +4,7 @@
 
 import { ref, watch } from 'vue';
 import { metricsService } from '@/services/metrics.service';
+import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 import { useDataFetching, useToast, useModal } from '@/composables';
 import type { Metric } from '@/types/models/metric.types';
 
@@ -84,7 +85,8 @@ export function useMetrics() {
   const { data: metrics, loading, execute: fetchData } = useDataFetching(fetchMetricsWithFilters);
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseCalendarDateFromApi(dateString) ?? new Date(dateString);
+    if (Number.isNaN(date.getTime())) return '—';
     return date.toLocaleDateString('ru-RU', {
       day: 'numeric',
       month: 'long',
@@ -108,7 +110,7 @@ export function useMetrics() {
     modalError.value = '';
     formModal.open(metric);
     formData.value = {
-      date: new Date(metric.date),
+      date: parseCalendarDateFromApi(String(metric.date)) ?? new Date(metric.date),
       weight: metric.weight,
       note: metric.note || ''
     };
@@ -148,7 +150,7 @@ export function useMetrics() {
     
     try {
       const data = {
-        date: (formData.value.date as any)?.toISOString().split('T')[0],
+        date: formData.value.date ? formatLocalDate(formData.value.date) : '',
         weight: weight.toFixed(2),
         note: formData.value.note || null
       } as any;

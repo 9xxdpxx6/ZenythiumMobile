@@ -162,6 +162,7 @@ import { useToast, useModal, useExport, useShareCycle } from '@/composables';
 import { useCycleFormValidation, type CycleFormData, type ValidationErrors } from '@/composables/useCycleFormValidation';
 import type { Plan, CyclePlan, Cycle as APICycle } from '@/types/api';
 import type { Cycle } from '@/types/models/cycle.types';
+import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 
 const router = useRouter();
 const route = useRoute();
@@ -257,15 +258,15 @@ const fetchCycleData = async () => {
     formData.value = {
       name: cycle.name || '',
       weeks: cycle.weeks ? cycle.weeks.toString() : '',
-      start_date: cycle.start_date ? new Date(cycle.start_date) : null,
-      end_date: cycle.end_date ? new Date(cycle.end_date) : null,
+      start_date: cycle.start_date ? parseCalendarDateFromApi(String(cycle.start_date)) : null,
+      end_date: cycle.end_date ? parseCalendarDateFromApi(String(cycle.end_date)) : null,
     };
 
     originalFormData.value = {
       name: cycle.name || '',
       weeks: cycle.weeks ? cycle.weeks.toString() : '',
-      start_date: cycle.start_date ? new Date(cycle.start_date) : null,
-      end_date: cycle.end_date ? new Date(cycle.end_date) : null,
+      start_date: cycle.start_date ? parseCalendarDateFromApi(String(cycle.start_date)) : null,
+      end_date: cycle.end_date ? parseCalendarDateFromApi(String(cycle.end_date)) : null,
     };
 
     if (cycle.plans && Array.isArray(cycle.plans)) {
@@ -325,8 +326,8 @@ const handleSubmit = async () => {
     const payload: any = {
       name: formData.value.name.trim(),
       weeks: parseInt(formData.value.weeks),
-      start_date: formData.value.start_date ? formData.value.start_date.toISOString().split('T')[0] : null,
-      end_date: formData.value.end_date ? formData.value.end_date.toISOString().split('T')[0] : null,
+      start_date: formData.value.start_date ? formatLocalDate(formData.value.start_date) : null,
+      end_date: formData.value.end_date ? formatLocalDate(formData.value.end_date) : null,
       plan_ids: planIds
     };
 
@@ -654,7 +655,7 @@ const handleExport = async (format: 'json' | 'pdf', type: 'detailed' | 'structur
 
   isExporting.value = true;
   try {
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = formatLocalDate(new Date());
     const filename = `cycle-${cycleId.value}-${type}-${timestamp}.${format}`;
 
     await handleExportDownload(

@@ -119,10 +119,14 @@ const startWorkout = async () => {
   } catch (err: any) {
     const message = errorHandler.format(err);
     await showError(message || 'Не удалось начать тренировку');
-    // Try to resume active workout if exists
-    const active = await workoutsService.getActive();
-    if (active?.id) {
-      router.push(`/workout/${active.id}`);
+    // Попытка перейти к уже активной тренировке (только если API ответил успешно / 404 «нет»)
+    try {
+      const active = await workoutsService.getActive();
+      if (active?.id) {
+        router.push(`/workout/${active.id}`);
+      }
+    } catch (resumeErr) {
+      errorHandler.log(resumeErr, 'SelectPlanPage.startWorkout.resumeActive');
     }
   } finally {
     starting.value = false;

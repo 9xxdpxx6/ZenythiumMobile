@@ -10,6 +10,15 @@ import {
 import { normalizeValidationError } from '@/utils/validation-normalizer';
 import { errorHandler } from '@/utils/error-handler';
 
+/** После появления токена (login/register): native — FCM/device token; web — no-op внутри сервиса. */
+async function reinitializePushNotificationsAfterAuth(context: 'login' | 'register'): Promise<void> {
+  try {
+    await PushNotificationService.getInstance().reinitialize();
+  } catch (pushError) {
+    console.warn(`Failed to initialize push notifications after ${context}:`, pushError);
+  }
+}
+
 export function useAuth() {
   const user = ref<User | null>(null);
   const loading = ref(false);
@@ -26,16 +35,9 @@ export function useAuth() {
     try {
       await AuthService.login(credentials);
       await fetchUser();
-      
-      // Инициализируем push-уведомления после успешного логина
-      try {
-        const pushService = PushNotificationService.getInstance();
-        await pushService.reinitialize();
-      } catch (pushError) {
-        // Не блокируем логин, если push-уведомления не инициализировались
-        console.warn('Failed to initialize push notifications after login:', pushError);
-      }
-      
+
+      await reinitializePushNotificationsAfterAuth('login');
+
       return true;
     } catch (err) {
       const apiError = err as ApiError;
@@ -77,7 +79,9 @@ export function useAuth() {
         // Otherwise fetch it
         await fetchUser();
       }
-      
+
+      await reinitializePushNotificationsAfterAuth('register');
+
       return true;
     } catch (err) {
       const apiError = err as ApiError;

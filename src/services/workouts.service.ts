@@ -174,8 +174,9 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
   }
 
   /**
-   * Get active workout
-   * Returns null if no active workout (404 or 500 errors are treated as "no active workout")
+   * Get active workout.
+   * null: нет активной тренировки (200 + data null, или 404).
+   * Исключение: сбои сервера (5xx и т.д.) — логируем и пробрасываем, не маскируем под «пусто».
    */
   async getActive(): Promise<Workout | null> {
     try {
@@ -186,12 +187,11 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
         return null;
       }
       return this.mapWorkoutFromApi(response.data.data);
-    } catch (error: any) {
-      // 404 or 500 means no active workout - this is normal, not an error
-      if (error?.response?.status === 404 || error?.response?.status === 500) {
+    } catch (error: unknown) {
+      const status = (error as { response?: { status?: number } })?.response?.status;
+      if (status === 404) {
         return null;
       }
-      // Log and throw other errors
       errorHandler.log(error, 'WorkoutsService.getActive');
       throw error;
     }
