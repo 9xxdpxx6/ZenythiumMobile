@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed } from 'vue';
+import { watch } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -122,7 +122,6 @@ const {
   touched, 
   setFieldTouched,
   resetForm,
-  validateField,
   setFieldError
 } = formResult;
 
@@ -203,4 +202,3 @@ const handleClose = () => {
   width: 100%;
 }
 </style>
-

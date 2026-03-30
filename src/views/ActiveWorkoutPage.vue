@@ -194,7 +194,6 @@ const {
   groupAndFormatSets,
   formatWeight,
   addSet,
-  deleteSet,
   deleteLastSetFromGroup,
   finishWorkout,
   validateInput,

@@ -95,16 +95,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   IonContent,
   IonRefresher,
   IonRefresherContent,
   IonButton,
-  IonSpinner,
-  IonModal,
-  IonButtons,
 } from '@ionic/vue';
 import { useMetrics } from '@/composables/useMetrics';
 import MetricCard from '@/components/cards/MetricCard.vue';
@@ -140,24 +136,9 @@ const {
   deleteMetric,
   handleDateFilterChange,
   resetFilters,
-  applyFilters,
   goToPage,
   fetchData,
 } = useMetrics();
-
-// Utility function for time formatting (not in composable)
-const formatTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('ru-RU', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-// Wrapper for page change
-const changePage = (page: number) => {
-  goToPage(page);
-};
 
 const handleRefresh = async (event: CustomEvent) => {
   await fetchData();

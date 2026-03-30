@@ -203,7 +203,7 @@ const handleMouseMove = (event: MouseEvent) => {
 };
 
 // Drag and drop handlers
-const onExerciseMove = (evt: any) => {
+const onExerciseMove = () => {
   // Prevent default move behavior to ensure smooth animation
   return true;
 };

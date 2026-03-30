@@ -5,10 +5,10 @@
 import { ref, computed } from 'vue';
 import { workoutsService } from '@/services/workouts.service';
 import { useToast } from './useToast';
-import type { PlanExercise, WorkoutSet } from '@/types/api';
+import type { PlanExercise } from '@/types/api';
 
 export function useActiveWorkout(workoutId: number) {
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   
   const workout = ref<any>(null);
   const exercises = ref<PlanExercise[]>([]);
@@ -404,5 +404,4 @@ export function useActiveWorkout(workoutId: number) {
     clearError,
   };
 }
-
 

@@ -65,7 +65,7 @@ interface Props {
 
 defineProps<Props>();
 
-const emit = defineEmits<{
+defineEmits<{
   click: [metric: Metric];
   edit: [metric: Metric];
   delete: [metric: Metric];

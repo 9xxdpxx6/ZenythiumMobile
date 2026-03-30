@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { watch } from 'vue';
 import {
   IonModal,
   IonHeader,
@@ -195,4 +195,3 @@ const handleClose = () => {
   width: 100%;
 }
 </style>
-

@@ -77,7 +77,7 @@ interface Emits {
   cancel: [];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const handleModalClose = () => {
@@ -207,4 +207,3 @@ const handleModalClose = () => {
   height: 20px;
 }
 </style>
-

@@ -98,7 +98,7 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth, useForm, useToast, useYandexCaptcha } from '@/composables';
+import { useAuth, useForm, useYandexCaptcha } from '@/composables';
 import { RegisterRequest } from '@/types/api';
 import CustomInput from '@/components/ui/CustomInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -108,7 +108,6 @@ import { consumePostAuthDestination } from '@/utils/post-auth-navigation';
 
 const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
-const { showError } = useToast();
 const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 const isDevMode = computed(() => import.meta.env.DEV);
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();
@@ -128,7 +127,7 @@ const updatePasswordRef = (value: string): true => {
 // Form values without captcha token (captcha token is added on submit)
 type RegisterFormValues = Omit<RegisterRequest, 'smartcaptcha_token'>;
 
-const { values: form, handleSubmit, isSubmitting, isValid, errors, touched, setFieldTouched, setFieldError } = useForm<RegisterFormValues>(
+const { values: form, handleSubmit, isSubmitting, errors, touched, setFieldTouched, setFieldError } = useForm<RegisterFormValues>(
   {
     name: '',
     email: '',

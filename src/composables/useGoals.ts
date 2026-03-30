@@ -6,7 +6,7 @@ import { ref, computed, watch } from 'vue';
 import { goalsService } from '@/services/goals.service';
 import { exercisesService } from '@/services/exercises.service';
 import { useDataFetching, useToast, useModal } from '@/composables';
-import type { Goal, GoalStatus, CreateGoalDto, UpdateGoalDto, GoalTypeInfo } from '@/types/models/goal.types';
+import type { Goal, GoalStatus, CreateGoalDto, UpdateGoalDto } from '@/types/models/goal.types';
 import { requiresExercise, getGoalTypeOptions } from '@/constants/goal-types';
 import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 
@@ -76,7 +76,7 @@ export function useGoals() {
   });
 
   // Fetch goal types from API
-  const { data: goalTypes, execute: fetchGoalTypes } = useDataFetching(
+  const { data: goalTypes } = useDataFetching(
     async () => await goalsService.getTypes(),
     { immediate: true }
   );
@@ -313,4 +313,3 @@ export function useGoals() {
     applyFilters,
   };
 }
-

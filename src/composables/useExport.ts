@@ -3,7 +3,6 @@
  * Provides state management and error handling for file downloads
  */
 
-import { Capacitor } from '@capacitor/core';
 import { useToast } from './useToast';
 import { errorHandler } from '@/utils/error-handler';
 import { downloadFile, downloadJson } from '@/utils/export';
@@ -21,17 +20,16 @@ export function useExport() {
   ): Promise<void> => {
     try {
       const result = await exportFn();
-      let fileUri: string | null = null;
 
       if (format === 'pdf') {
         if (result instanceof Blob) {
-          fileUri = await downloadFile(result, filename);
+          await downloadFile(result, filename);
         } else {
           throw new Error('Ожидался Blob для PDF экспорта');
         }
       } else {
         if (typeof result === 'object' && result !== null) {
-          fileUri = await downloadJson(result, filename);
+          await downloadJson(result, filename);
         } else {
           throw new Error('Ожидался объект для JSON экспорта');
         }

@@ -97,9 +97,7 @@
 import { onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
-  IonSpinner,
 } from '@ionic/vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomChip from '@/components/ui/CustomChip.vue';
@@ -111,7 +109,6 @@ import LoadingState from '@/components/ui/LoadingState.vue';
 import WorkoutSummary from '@/components/workout/WorkoutSummary.vue';
 import WorkoutExerciseHistory from '@/components/workout/WorkoutExerciseHistory.vue';
 import { useViewWorkout } from '@/composables/useViewWorkout';
-import type { DetailedWorkout } from '@/types/api';
 
 const route = useRoute();
 const router = useRouter();
@@ -130,11 +127,8 @@ const {
   fetchWorkout,
   formatDateTime,
   formatDate,
-  formatDuration,
   formatWeight,
   groupAndFormatSets,
-  getSortedHistory,
-  isCurrentWorkout,
   clearToast,
   handleEdit,
   handleDelete,
@@ -155,14 +149,6 @@ const handleDeleteConfirmWithRouter = async () => {
       router.push('/tabs/workouts');
     }, 1500);
   }
-};
-
-const getSortedHistoryWithId = (history: any[]) => {
-  return getSortedHistory(history, Number(workoutId));
-};
-
-const isCurrentWorkoutWithId = (historyItem: any) => {
-  return isCurrentWorkout(historyItem, Number(workoutId));
 };
 
 onMounted(() => {

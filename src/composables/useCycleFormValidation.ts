@@ -82,11 +82,6 @@ export function useCycleFormValidation() {
       [field]: value
     };
 
-    // Для валидации дат нужны оба поля
-    if (field === 'end_date' && tempFormData.start_date) {
-      tempFormData.start_date = tempFormData.start_date;
-    }
-
     const { errors } = validateForm(tempFormData);
     return getFirstError(errors[field]);
   };

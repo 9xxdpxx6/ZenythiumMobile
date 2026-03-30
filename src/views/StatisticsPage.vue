@@ -95,11 +95,7 @@ import MuscleGroupDistributionChart from '@/components/charts/MuscleGroupDistrib
 import PersonalRecordsTable from '@/components/shared/PersonalRecordsTable.vue';
 import ProgressByExerciseChart from '@/components/charts/ProgressByExerciseChart.vue';
 import type { 
-  Statistics, 
-  StatisticsResponse,
   ApiError, 
-  TimeAnalytics, 
-  RecordsResponse
 } from '@/types/api';
 
 const loading = ref(false);

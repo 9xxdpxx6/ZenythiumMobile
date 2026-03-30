@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonButton } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
@@ -76,7 +76,7 @@ interface Props {
   workouts?: Workout[];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const router = useRouter();
 
 const statistics = ref<Statistics | null>(null);
@@ -121,8 +121,6 @@ const updateData = () => {
   loading.value = statsLoading.value || timeLoading.value || muscleLoading.value || goalsLoading.value;
 };
 
-// Watch for data changes
-import { watch } from 'vue';
 watch([statsData, timeData, muscleData, goalsData, statsLoading, timeLoading, muscleLoading, goalsLoading], updateData, { immediate: true });
 
 const weekWorkouts = computed(() => {
@@ -212,9 +210,10 @@ const formatGoalRemaining = (value: number, type: GoalType): string => {
     case 'training_frequency':
       return `${Math.round(value)}`;
     
-    case 'exercise_max_reps':
+    case 'exercise_max_reps': {
       const reps = Math.round(value);
       return `${reps} ${getRepsLabel(reps)}`;
+    }
     
     default:
       return `${Math.round(value)}`;

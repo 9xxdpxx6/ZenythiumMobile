@@ -28,7 +28,6 @@ class TrainingProgramsService extends BaseService<TrainingProgram, never, never>
    * Returns data with meta (API format) instead of pagination (base format)
    * Note: This method overrides base getPaginated with different return type to match API
    */
-  // @ts-ignore - Override with different return type to match API response format
   async getPaginated(filters?: TrainingProgramFilters): Promise<{ data: TrainingProgram[]; meta: PaginationMeta }> {
     try {
       const params = this.buildQueryParams(filters);
@@ -124,4 +123,3 @@ class TrainingProgramsService extends BaseService<TrainingProgram, never, never>
 }
 
 export const trainingProgramsService = new TrainingProgramsService();
-

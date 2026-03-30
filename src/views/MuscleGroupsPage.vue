@@ -71,7 +71,7 @@ import { muscleGroupsService } from '@/services';
 const router = useRouter();
 
 // Use composables
-const { data: muscleGroups, loading, error, refresh } = useDataFetching(
+const { data: muscleGroups, loading, error } = useDataFetching(
   () => muscleGroupsService.getAll()
 );
 

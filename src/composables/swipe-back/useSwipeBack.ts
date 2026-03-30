@@ -3,7 +3,7 @@
  * Main composable for swipe-back navigation (swipe from left edge to right)
  */
 
-import { ref, computed } from 'vue';
+import { ref } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { UseSwipeBackOptions, UseSwipeBackReturn, SwipeBackState } from './types';
 import { createSwipeBackHandlers } from './handlers';

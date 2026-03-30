@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { onIonViewWillEnter, onIonViewDidLeave } from '@ionic/vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -345,6 +345,7 @@ const saveWorkout = async () => {
   }
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const addSet = () => {
   // Показываем сообщение о том, что добавление новых подходов не поддерживается
   error.value = 'Добавление новых подходов пока не поддерживается. Можно редактировать только существующие подходы.';
@@ -429,6 +430,7 @@ const restoreDeletedSets = () => {
   loadWorkout();
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const handleBack = () => {
   // Если есть несохраненные изменения, показываем предупреждение
   if (setsToDelete.value.length > 0 || sets.value.some(set => set.id === 0)) {

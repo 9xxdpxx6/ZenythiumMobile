@@ -73,7 +73,6 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
 import { IonButton, IonIcon } from '@ionic/vue';
 import { addOutline, trashOutline } from 'ionicons/icons';
 import CustomInput from '@/components/ui/CustomInput.vue';
@@ -217,5 +216,4 @@ const handleRepsChange = (set: WorkoutSet, value: string) => {
   font-size: 14px;
 }
 </style>
-
 

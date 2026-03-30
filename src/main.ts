@@ -138,7 +138,7 @@ const parseSharedCycleUrl = (urlString: string): { shareId: string } | null => {
     
     // Проверяем, что это ссылка на общую программу
     // Паттерн: /shared-cycles/{shareId}
-    const sharedCycleMatch = url.pathname.match(/^\/shared-cycles\/([^\/]+)$/);
+    const sharedCycleMatch = url.pathname.match(/^\/shared-cycles\/([^/]+)$/);
     
     if (sharedCycleMatch) {
       const shareId = sharedCycleMatch[1];

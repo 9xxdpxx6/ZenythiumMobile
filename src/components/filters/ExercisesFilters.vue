@@ -107,7 +107,6 @@ import {
   IonButton,
 } from '@ionic/vue';
 import CustomSelect from '@/components/ui/CustomSelect.vue';
-import CustomInput from '@/components/ui/CustomInput.vue';
 import { MuscleGroupResource } from '@/types/api';
 
 interface ExerciseFilters {

@@ -70,7 +70,7 @@ const starting = ref(false);
 const selectedPlanId = ref<string>('auto');
 
 // Use composables
-const { data: plans, loading, error, execute } = useDataFetching(
+const { data: plans, loading, error } = useDataFetching(
   () => plansService.getAll(),
   { immediate: true }
 );

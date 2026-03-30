@@ -9,7 +9,7 @@
     
     <div v-else class="exercises-list">
       <div 
-        v-for="(exercise, index) in exercises" 
+        v-for="exercise in exercises" 
         :key="exercise.id"
         class="exercise-card"
       >
@@ -37,7 +37,7 @@
           
           <div v-else class="history-list">
             <div 
-              v-for="(historyItem, historyIndex) in sortedHistory(exercise.history)" 
+              v-for="historyItem in sortedHistory(exercise.history)" 
               :key="historyItem.workout_id"
               class="history-item"
               :class="{ 'current-workout': isCurrent(historyItem) }"
@@ -53,7 +53,7 @@
               
               <div class="sets-list">
                 <div 
-                  v-for="(groupedSet, setIndex) in groupAndFormatSets(historyItem.sets)"
+                  v-for="groupedSet in groupAndFormatSets(historyItem.sets)"
                   :key="`${groupedSet.weight}-${groupedSet.reps}-${groupedSet.count}`"
                   class="set-item"
                 >
@@ -301,5 +301,4 @@ const isCurrent = (historyItem: any) => {
   }
 }
 </style>
-
 

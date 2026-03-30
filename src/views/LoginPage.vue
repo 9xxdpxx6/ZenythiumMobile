@@ -94,7 +94,7 @@ import {
   IonSpinner,
   IonToast,
 } from '@ionic/vue';
-import { useAuth, useForm, useToast, useModal, useYandexCaptcha } from '@/composables';
+import { useAuth, useForm, useModal, useYandexCaptcha } from '@/composables';
 import { LoginRequest, ForgotPasswordRequest } from '@/types/api';
 import { AuthService } from '@/services';
 import CustomInput from '@/components/ui/CustomInput.vue';
@@ -105,7 +105,6 @@ import { consumePostAuthDestination } from '@/utils/post-auth-navigation';
 
 const router = useRouter();
 const { login, loading: authLoading, error, clearError } = useAuth();
-const { showError, showSuccess } = useToast();
 const isNativePlatform = computed(() => Capacitor.isNativePlatform());
 const isDevMode = computed(() => import.meta.env.DEV);
 const { captchaContainerRef, getToken, reset: resetCaptcha } = useYandexCaptcha();

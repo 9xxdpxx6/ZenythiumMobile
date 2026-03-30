@@ -57,7 +57,7 @@ interface Emits {
   cancel: [];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 const handleConfirm = () => {

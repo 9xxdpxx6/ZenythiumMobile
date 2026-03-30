@@ -66,7 +66,7 @@ interface Emits {
   cancel: [];
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 const emit = defineEmits<Emits>();
 
 // Функция для обработки закрытия модального окна
@@ -169,4 +169,3 @@ const handleModalClose = (): void => {
   height: 20px;
 }
 </style>
-

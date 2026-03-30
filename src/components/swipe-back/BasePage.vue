@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, toValue, Teleport } from 'vue';
+import { computed, toValue } from 'vue';
 import { useRoute } from 'vue-router';
 import { IonPage } from '@ionic/vue';
 import { useSwipeBack, type UseSwipeBackOptions } from '@/composables';
@@ -73,7 +73,6 @@ const {
   translateX,
   isSwiping,
   isCompleting,
-  previousPageComponent,
   previousPageTranslateX,
   shouldRenderPreviousPage,
   previousPageOpacity,
@@ -130,4 +129,3 @@ const {
   width: 80%;
 }
 </style>
-

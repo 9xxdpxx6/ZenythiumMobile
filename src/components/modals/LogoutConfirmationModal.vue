@@ -65,7 +65,7 @@ interface Emits {
   cancel: [];
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   title: 'Выход из аккаунта',
   message: 'Вы уверены, что хотите выйти из аккаунта?',
   isLoggingOut: false,

@@ -2,7 +2,7 @@
   <div class="filters-section">
     <div class="filter-row">
       <CustomInput
-        v-model="filters.search"
+        v-model="localFilters.search"
         placeholder="Поиск по заметкам..."
         type="text"
         class="search-input"
@@ -17,7 +17,7 @@
     <div class="filter-row">
       <div class="date-filter-group">
         <VueDatePicker
-          v-model="filters.dateFrom"
+          v-model="localFilters.dateFrom"
           format="dd.MM.yyyy"
           placeholder="Дата с"
           :enable-time-picker="false"
@@ -33,13 +33,13 @@
       
       <div class="date-filter-group">
         <VueDatePicker
-          v-model="filters.dateTo"
+          v-model="localFilters.dateTo"
           format="dd.MM.yyyy"
           placeholder="Дата по"
           :enable-time-picker="false"
           auto-apply
           :dark="true"
-          :min-date="filters.dateFrom || undefined"
+          :min-date="localFilters.dateFrom || undefined"
           locale="ru"
           :week-start="1"
           :month-name-format="'long'"
@@ -51,14 +51,14 @@
     
     <div class="filter-row">
       <CustomInput
-        v-model="filters.weightFrom"
+        v-model="localFilters.weightFrom"
         type="number"
         placeholder="Вес от"
         step="0.1"
         @update:model-value="handleChange"
       />
       <CustomInput
-        v-model="filters.weightTo"
+        v-model="localFilters.weightTo"
         type="number"
         placeholder="Вес до"
         step="0.1"
@@ -76,6 +76,7 @@
 </template>
 
 <script setup lang="ts">
+import { reactive, watch } from 'vue';
 import { IonButton } from '@ionic/vue';
 import CustomInput from '@/components/ui/CustomInput.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
@@ -95,13 +96,35 @@ interface Emits {
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
 
+const localFilters = reactive<MetricFilters>({
+  search: '',
+  dateFrom: null,
+  dateTo: null,
+  weightFrom: '',
+  weightTo: '',
+  sortBy: 'date',
+  sortOrder: 'desc',
+});
+
+watch(
+  () => props.filters,
+  (value) => {
+    Object.assign(localFilters, value);
+  },
+  { deep: true, immediate: true }
+);
+
+const emitFilters = () => {
+  emit('update:filters', { ...localFilters });
+};
+
 const handleChange = () => {
-  emit('update:filters', props.filters);
+  emitFilters();
 };
 
 const handleDateChange = () => {
   emit('date-change');
-  emit('update:filters', props.filters);
+  emitFilters();
 };
 </script>
 
@@ -155,4 +178,3 @@ const handleDateChange = () => {
   }
 }
 </style>
-

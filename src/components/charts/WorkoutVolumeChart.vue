@@ -35,7 +35,6 @@ import { computed, ref } from 'vue';
 import { Line } from 'vue-chartjs';
 import '@/utils/chartSetup';
 
-interface TrendPoint { [key: string]: any }
 interface Props {
   monthlyTrends?: Array<{ month: string; workout_count: number; total_volume: number }>;
   weeklyTrends?: Array<{ week: string; workout_count: number; total_volume: number }>;

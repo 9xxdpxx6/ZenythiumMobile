@@ -228,6 +228,7 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
    * Uses dedicated POST /workouts/{id}/finish — server sets finished_at and calculates duration.
    */
   async complete(id: string, _data?: CompleteWorkoutDto): Promise<Workout> {
+    void _data;
     try {
       const response = await apiClient.post<{ data: ApiWorkout; message?: string; duration_minutes?: number }>(
         API_ENDPOINTS.WORKOUT_FINISH(id)
@@ -303,4 +304,3 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
 }
 
 export const workoutsService = new WorkoutsService();
-

@@ -58,7 +58,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { clearDataCache } from '@/composables/useDataFetching';
 import { useRouter } from 'vue-router';
 import {
@@ -67,7 +67,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
-import { useDataFetching, useFilters, useToast, useShareCycle } from '@/composables';
+import { useDataFetching, useFilters, useShareCycle } from '@/composables';
 import { cyclesService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -87,7 +87,7 @@ const { filters, updateFilter } = useFilters({
 
 // Use composables
 
-const { data: cycles, loading, error, execute, refresh } = useDataFetching(
+const { data: cycles, loading, execute, refresh } = useDataFetching(
   () => cyclesService.getAll(filters),
   { 
     immediate: true,

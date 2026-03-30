@@ -43,17 +43,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonButton } from '@ionic/vue';
 import { useDataFetching } from '@/composables/useDataFetching';
 import { workoutsService } from '@/services/workouts.service';
 import LoadingState from '@/components/ui/LoadingState.vue';
-import type { Workout } from '@/types/models/workout.types';
-
 const router = useRouter();
 
-const { data: workout, loading, error: fetchError, refresh } = useDataFetching(
+const { data: workout, loading, error: fetchError } = useDataFetching(
   () => workoutsService.getActive(),
   { immediate: true }
 );
@@ -85,9 +83,6 @@ const handleResume = () => {
   }
 };
 
-defineExpose({
-  refresh,
-});
 </script>
 
 <style scoped>

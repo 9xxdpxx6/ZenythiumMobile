@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-import { Plan } from '@/types/api';
 import PlansList from '@/components/shared/PlansList.vue';
 
 interface ValidationErrors {
@@ -38,7 +37,7 @@ interface Props {
   errors: ValidationErrors;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 defineEmits<{
   'add-plan': [];
@@ -94,4 +93,3 @@ const getFirstError = (error: string | string[] | undefined): string => {
   color: var(--ion-color-danger);
 }
 </style>
-

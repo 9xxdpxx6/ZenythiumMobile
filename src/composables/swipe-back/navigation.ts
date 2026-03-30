@@ -3,7 +3,7 @@
  * Logic for loading and managing previous page component
  */
 
-import { type Ref, type Component, markRaw } from 'vue';
+import { type Component, markRaw } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import type { SwipeBackState } from './types';
 

@@ -3,7 +3,6 @@
  * Filter state management with localStorage persistence
  */
 
-import { ref, type Ref } from 'vue';
 import { logger } from '@/utils/logger';
 import { useFilters, type UseFiltersReturn } from './useFilters';
 
@@ -75,4 +74,3 @@ export function useLocalStorageFilters<T extends Record<string, any>>(
     resetFilters,
   };
 }
-

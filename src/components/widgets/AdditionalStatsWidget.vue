@@ -71,7 +71,7 @@ interface Props {
   } | null;
 }
 
-const props = defineProps<Props>();
+defineProps<Props>();
 
 const formatVolume = (volume: number | string | undefined) => {
   if (!volume) return '0 кг';

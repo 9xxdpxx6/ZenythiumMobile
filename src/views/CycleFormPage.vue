@@ -139,7 +139,6 @@
 import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonButton,
   IonSpinner,
@@ -160,7 +159,7 @@ import { cyclesService } from '@/services/cycles.service';
 import { plansService } from '@/services/plans.service';
 import { useToast, useModal, useExport, useShareCycle } from '@/composables';
 import { useCycleFormValidation, type CycleFormData, type ValidationErrors } from '@/composables/useCycleFormValidation';
-import type { Plan, CyclePlan, Cycle as APICycle } from '@/types/api';
+import type { Plan, CyclePlan } from '@/types/api';
 import type { Cycle } from '@/types/models/cycle.types';
 import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 
@@ -185,7 +184,7 @@ const hasUnsavedChanges = computed(() => {
   return formChanged || plansChanged;
 });
 
-const { validateForm, getFirstError } = useCycleFormValidation();
+const { validateForm } = useCycleFormValidation();
 
 const generateCycleName = (startDate: Date, weeks: number): string => {
   const endDate = new Date(startDate);
@@ -549,19 +548,6 @@ const openPlanModal = async () => {
 const handlePlanModalClose = () => {
   planModal.close();
   handlePlanSearch('');
-};
-
-const initializeOriginalState = () => {
-  const currentDate = new Date();
-  const defaultName = generateCycleName(currentDate, 6);
-  
-  originalFormData.value = {
-    name: defaultName,
-    weeks: '6',
-    start_date: currentDate,
-    end_date: null,
-  };
-  originalCyclePlans.value = [];
 };
 
 // Функция для полного сброса состояния формы при создании нового цикла

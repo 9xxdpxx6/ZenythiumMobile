@@ -119,7 +119,6 @@
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonButton,
   IonSpinner,
@@ -202,15 +201,6 @@ const formData = ref<PlanFormData>({
   name: '',
   is_active: true,
 });
-
-// Функция для получения первой ошибки из массива
-const getFirstError = (error: string | string[] | undefined): string => {
-  if (!error) return '';
-  if (Array.isArray(error)) {
-    return error[0] || '';
-  }
-  return error;
-};
 
 const validateForm = (): boolean => {
   errors.value = {};

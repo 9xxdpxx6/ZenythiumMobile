@@ -57,7 +57,6 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  IonPage,
   IonContent,
   IonButton,
 } from '@ionic/vue';
@@ -216,4 +215,3 @@ onMounted(() => {
   cursor: pointer;
 }
 </style>
-

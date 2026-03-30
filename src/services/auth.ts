@@ -56,7 +56,7 @@ export class AuthService {
     try {
       // CSRF cookie endpoint is on server root, not under /api/v1
       // Use axios directly with server URL (not apiBaseUrl which includes /api/v1)
-      const response = await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
+      await axios.get(`${appConfig.apiServerUrl}${API_ENDPOINTS.AUTH.CSRF_COOKIE}`, {
         withCredentials: true, // Important: must include credentials for cookies
         headers: {
           'Accept': 'application/json',
@@ -110,7 +110,7 @@ export class AuthService {
       await this.ensureCsrfCookie();
 
       const response = await apiClient.post<any>(API_ENDPOINTS.AUTH.REGISTER, userData);
-      const { token, user } = response.data;
+      const { token } = response.data;
       
       if (token) {
         this.setToken(token);

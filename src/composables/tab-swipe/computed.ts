@@ -217,7 +217,7 @@ export function createTabSwipeComputed(
     }
     
     const baseTabLeft = getTabLeft(baseIndex);
-    let progress = swipeProgress.value;
+    const progress = swipeProgress.value;
     const direction = state.swipeDirection.value || state.finalDirection.value;
     
     if (!direction || !nextTab.value) {

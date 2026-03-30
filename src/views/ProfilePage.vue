@@ -101,10 +101,9 @@ import {
   IonContent,
   IonRefresher,
   IonRefresherContent,
-  IonSpinner,
 } from '@ionic/vue';
 import { useAuth } from '@/composables/useAuth';
-import { useDataFetching, useToast, useModal } from '@/composables';
+import { useDataFetching, useModal } from '@/composables';
 import { statisticsService } from '@/services';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';

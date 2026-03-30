@@ -6,7 +6,6 @@ import { ref, watch } from 'vue';
 import { metricsService } from '@/services/metrics.service';
 import { formatLocalDate, parseCalendarDateFromApi } from '@/utils/local-date';
 import { useDataFetching, useToast, useModal } from '@/composables';
-import type { Metric } from '@/types/models/metric.types';
 
 export interface MetricFilters {
   search: string;
@@ -297,4 +296,3 @@ export function useMetrics() {
     goToPage,
   };
 }
-
