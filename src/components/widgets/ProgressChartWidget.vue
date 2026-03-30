@@ -129,7 +129,7 @@ const isRefreshingChart = ref(false);
 const isCompletingChart = ref(false);
 const selectedExercises = ref<any[]>([]);
 
-const { data: metrics, loading, execute: fetchMetrics } = useDataFetching(
+const { data: metrics, execute: fetchMetrics } = useDataFetching(
   async () => {
     const result = await metricsService.getAll();
     return result;
@@ -137,7 +137,7 @@ const { data: metrics, loading, execute: fetchMetrics } = useDataFetching(
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_metrics' }
 );
 
-const { data: exerciseStats, loading: exerciseLoading } = useDataFetching(
+const { data: exerciseStats, execute: fetchExerciseStats } = useDataFetching(
   () => statisticsService.getExerciseStatistics(),
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_exercise_stats' }
 );
@@ -295,26 +295,38 @@ const getWeightChangeClass = (weightChange: any) => {
   return 'weight-stable';
 };
 
+/** Метрики (график веса) + статистика упражнений (нижний блок) — общий refetch. */
+const refetchChartData = async (): Promise<void> => {
+  await Promise.all([fetchMetrics(), fetchExerciseStats()]);
+};
+
 const refreshWeightChart = async () => {
   isRefreshingChart.value = true;
-  // Trigger refresh via emit or direct call
-  setTimeout(() => {
+  isCompletingChart.value = false;
+  try {
+    await refetchChartData();
+  } finally {
     isRefreshingChart.value = false;
     isCompletingChart.value = true;
     setTimeout(() => {
       isCompletingChart.value = false;
     }, 300);
-  }, 600);
+  }
 };
 
 defineExpose({
   refreshWeightChart
 });
 
-// Refresh metrics when metric is added elsewhere or homepage requests refresh
-const handleMetricAdded = () => fetchMetrics();
-const handleMetricUpdated = () => fetchMetrics();
-const handleHomepageRefresh = () => fetchMetrics();
+const handleMetricAdded = () => {
+  void refetchChartData();
+};
+const handleMetricUpdated = () => {
+  void refetchChartData();
+};
+const handleHomepageRefresh = () => {
+  void refetchChartData();
+};
 
 onMounted(() => {
   window.addEventListener('metric-added', handleMetricAdded as EventListener);

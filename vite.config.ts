@@ -1,13 +1,22 @@
 /// <reference types="vitest" />
 
+import { readFileSync } from 'fs'
 import legacy from '@vitejs/plugin-legacy'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/** Единый semver с package.json / scripts/version.js / Android versionName */
+const appVersion = JSON.parse(
+  readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')
+).version as string
+
 // https://vitejs.dev/config/
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   plugins: [
     vue(),
     legacy(),

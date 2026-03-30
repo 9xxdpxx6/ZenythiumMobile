@@ -71,7 +71,7 @@ const props = defineProps<Props>();
 
 const topRecords = computed(() => {
   if (!props.personalRecords || props.personalRecords.length === 0) return [];
-  return props.personalRecords
+  return [...props.personalRecords]
     .sort((a, b) => b.max_weight - a.max_weight)
     .slice(0, 3);
 });

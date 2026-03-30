@@ -105,8 +105,8 @@ const { data: workoutsData, loading: workoutsLoading, execute: fetchWorkouts } =
 
 const workouts = computed(() => workoutsData.value as Workout[] || []);
 
-// Fetch statistics
-const { data: statisticsData, loading: statsLoading } = useDataFetching(
+// Fetch statistics (overview: total_volume, active_cycles_count, …)
+const { data: statisticsData, loading: statsLoading, execute: fetchStatistics } = useDataFetching(
   () => statisticsService.getOverview(),
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_statistics' }
 );
@@ -121,13 +121,13 @@ const totalVolume = computed(() => {
 });
 
 // Fetch personal records
-const { data: recordsData } = useDataFetching(
+const { data: recordsData, loading: recordsLoading, execute: fetchPersonalRecords } = useDataFetching(
   () => statisticsService.getPersonalRecords(),
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_personal_records' }
 );
 
 // Fetch muscle group stats
-const { data: muscleGroupStats } = useDataFetching(
+const { data: muscleGroupStats, loading: muscleGroupsLoading, execute: fetchMuscleGroupStats } = useDataFetching(
   () => statisticsService.getMuscleGroupStatistics(),
   { immediate: true, skipIfDataExists: true, cacheKey: 'homepage_muscle_groups' }
 );
@@ -141,11 +141,14 @@ const bestPersonalRecord = computed(() => {
 
 const balanceAnalysis = computed(() => muscleGroupStats.value?.balance_analysis || null);
 
-// Watch loading states
+// Watch loading states — пока все блоки главной не загрузились, показываем общий LoadingState
 import { watch } from 'vue';
-watch([workoutsLoading, statsLoading], ([workouts, stats]) => {
-  isInitialLoading.value = workouts || stats;
-});
+watch(
+  [workoutsLoading, statsLoading, recordsLoading, muscleGroupsLoading],
+  ([w, s, r, m]) => {
+    isInitialLoading.value = w || s || r || m;
+  }
+);
 
 const handleNavigate = (path: string) => {
   router.push(path);
@@ -269,7 +272,13 @@ const handleSkipBasePack = () => {
 };
 
 const refreshAllData = async () => {
-  await fetchWorkouts();
+  await Promise.all([
+    fetchWorkouts(),
+    fetchStatistics(),
+    fetchPersonalRecords(),
+    fetchMuscleGroupStats(),
+  ]);
+  // Виджеты (например ProgressChartWidget) могут подписаться на своё обновление
   window.dispatchEvent(new CustomEvent('homepage-refresh'));
 };
 

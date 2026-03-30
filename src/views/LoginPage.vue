@@ -101,6 +101,7 @@ import CustomInput from '@/components/ui/CustomInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import ForgotPasswordModal from '@/components/modals/ForgotPasswordModal.vue';
 import { validators } from '@/utils/validators';
+import { consumePostAuthDestination } from '@/utils/post-auth-navigation';
 
 const router = useRouter();
 const { login, loading: authLoading, error, clearError } = useAuth();
@@ -151,7 +152,7 @@ const onSubmit = async (values: LoginFormValues) => {
     if (!isNativePlatform.value && !isDevMode.value) {
       resetCaptcha(); // Сбрасываем капчу после успешного входа (только на вебе в продакшене)
     }
-    router.push('/tabs/home');
+    router.replace(consumePostAuthDestination());
   } else {
     // При ошибке сбрасываем капчу, чтобы пользователь прошел её снова (только на вебе в продакшене)
     if (!isNativePlatform.value && !isDevMode.value) {

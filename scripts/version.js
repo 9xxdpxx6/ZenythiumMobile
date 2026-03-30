@@ -67,4 +67,5 @@ fs.writeFileSync(buildGradlePath, buildGradleContent);
 
 console.log(`✅ Версия обновлена: ${newVersion} (versionCode: ${newVersionCode})`);
 console.log(`📱 Android: versionName="${newVersion}", versionCode=${newVersionCode}`);
-console.log(`📦 Package: version="${newVersion}"`);
+console.log(`📦 package.json: version="${newVersion}"`);
+console.log(`🌐 Web appConfig.version: то же значение подставляется из package.json при сборке (vite.config define)`);

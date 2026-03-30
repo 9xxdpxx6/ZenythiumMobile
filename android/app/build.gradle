@@ -85,9 +85,9 @@ android {
         }
     }
     
-    // Отключаем lint для ускорения сборки
-    lintOptions {
-        checkReleaseBuilds false
+    // Lint на release-сборках включён; ошибки не рвут assemble (abortOnError false) — сигнал в отчёте.
+    lint {
+        checkReleaseBuilds true
         abortOnError false
     }
     

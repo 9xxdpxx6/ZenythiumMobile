@@ -1,8 +1,8 @@
 /**
  * Application Configuration
- * 
- * Environment variables are loaded from .env file in project root
- * See .env.example for required variables
+ *
+ * Env: см. `.env.example` (VITE_API_* , VITE_YANDEX_*).
+ * Версия приложения: `package.json` → Vite `define` → `__APP_VERSION__` (см. vite.config.ts).
  */
 
 /**
@@ -67,9 +67,9 @@ export const appConfig = {
   // API timeout
   apiTimeout: 30000, // 30 seconds
 
-  // App Information
+  // App Information (version — тот же semver, что в package.json и Android versionName)
   appName: 'Zenythium Fitness',
-  version: '0.0.2',
+  version: __APP_VERSION__,
 
   // Feature Flags
   enableLogging: import.meta.env.DEV,

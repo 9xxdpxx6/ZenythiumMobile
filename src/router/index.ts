@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { AuthService } from '@/services/auth';
+import { consumePostAuthDestination } from '@/utils/post-auth-navigation';
 import TabsLayout from '../views/TabsLayout.vue'
 
 const routes: Array<RouteRecordRaw> = [
@@ -197,16 +198,8 @@ router.beforeEach((to, from, next) => {
   if (requiresAuth && !isAuthenticated) {
     next('/login');
   } else if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
-    // Check if there's a pending shareId to redirect to
-    if (typeof sessionStorage !== 'undefined') {
-      const pendingShareId = sessionStorage.getItem('pendingShareId');
-      if (pendingShareId) {
-        sessionStorage.removeItem('pendingShareId');
-        next(`/shared-cycles/${pendingShareId}`);
-        return;
-      }
-    }
-    next('/tabs/home');
+    next(consumePostAuthDestination());
+    return;
   } else {
     next();
   }

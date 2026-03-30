@@ -104,6 +104,7 @@ import CustomInput from '@/components/ui/CustomInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
 import { validators } from '@/utils/validators';
 import { normalizeValidationError } from '@/utils/validation-normalizer';
+import { consumePostAuthDestination } from '@/utils/post-auth-navigation';
 
 const router = useRouter();
 const { register, loading: authLoading, error, clearError, validationErrors } = useAuth();
@@ -180,8 +181,7 @@ const onSubmit = async (values: RegisterFormValues) => {
     }
     // Flag for HomePage to show base exercise pack offer
     localStorage.setItem('show_base_pack_offer', 'true');
-    // Use replace instead of push to avoid back button issues
-    router.replace('/tabs/home');
+    router.replace(consumePostAuthDestination());
   } else {
     if (!isNativePlatform.value && !isDevMode.value) {
       resetCaptcha(); // Сбрасываем капчу при ошибке (только на вебе в продакшене)

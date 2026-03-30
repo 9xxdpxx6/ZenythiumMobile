@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
   IonContent,
   IonToast,
@@ -206,10 +206,6 @@ const handleRefresh = async (event: CustomEvent) => {
 const clearError = () => {
   error.value = null;
 };
-
-onMounted(() => {
-  refreshAllData();
-});
 </script>
 
 <style scoped>
