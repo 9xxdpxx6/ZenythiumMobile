@@ -156,6 +156,10 @@ interface ValidationErrors {
   name?: string | string[];
 }
 
+interface PlanFormExercise extends Exercise {
+  plan_exercise_id?: number;
+}
+
 const router = useRouter();
 const route = useRoute();
 const { showSuccess, showError, showWarning } = useToast();
@@ -168,7 +172,7 @@ const submitting = ref(false);
 const errors = ref<ValidationErrors>({});
 
 // Exercise management
-const exercises = ref<Exercise[]>([]);
+const exercises = ref<PlanFormExercise[]>([]);
 const availableExercises = ref<AvailableExercise[]>([]);
 const exerciseModal = useModal();
 const loadingExercises = ref(false);
@@ -184,7 +188,8 @@ const unsavedChangesModal = useModal();
 const pendingNavigation = ref<any>(null);
 const hasUnsavedChanges = ref(false);
 const initialFormData = ref<PlanFormData>({ name: '', is_active: true });
-const initialExercises = ref<Exercise[]>([]);
+const initialExercises = ref<PlanFormExercise[]>([]);
+const serverExercisesSnapshot = ref<PlanFormExercise[]>([]);
 const isLeaving = ref(false); // Флаг для предотвращения повторных проверок
 
 // Swipe back handler for unsaved changes check
@@ -201,6 +206,99 @@ const formData = ref<PlanFormData>({
   name: '',
   is_active: true,
 });
+
+const cloneExercises = (exerciseList: PlanFormExercise[]): PlanFormExercise[] =>
+  exerciseList.map(exercise => ({ ...exercise }));
+
+const normalizeExerciseOrders = <T extends { order: number }>(exerciseList: T[]): T[] =>
+  exerciseList.map((exercise, index) => ({
+    ...exercise,
+    order: index + 1,
+  }));
+
+const buildPlanPayload = () => ({
+  name: formData.value.name.trim(),
+  is_active: formData.value.is_active,
+});
+
+const syncPlanExercises = async (
+  currentPlanId: string,
+  previousExercises: PlanFormExercise[],
+  nextExercises: PlanFormExercise[]
+) => {
+  const previousByRelationId = new Map(
+    previousExercises
+      .filter(
+        (
+          exercise
+        ): exercise is PlanFormExercise & { plan_exercise_id: number } =>
+          exercise.plan_exercise_id !== undefined
+      )
+      .map(exercise => [exercise.plan_exercise_id, exercise])
+  );
+
+  const nextRelationIds = new Set(
+    nextExercises
+      .map(exercise => exercise.plan_exercise_id)
+      .filter((planExerciseId): planExerciseId is number => planExerciseId !== undefined)
+  );
+
+  const removedExercises = previousExercises.filter(
+    exercise =>
+      exercise.plan_exercise_id !== undefined &&
+      !nextRelationIds.has(exercise.plan_exercise_id)
+  );
+
+  for (const exercise of removedExercises) {
+    await plansService.deleteExercise(
+      currentPlanId,
+      String(exercise.plan_exercise_id)
+    );
+  }
+
+  const retainedExercises = nextExercises.filter(
+    (
+      exercise
+    ): exercise is PlanFormExercise & { plan_exercise_id: number } =>
+      exercise.plan_exercise_id !== undefined
+  );
+
+  const reorderedExistingExercises = retainedExercises.filter(exercise => {
+    const previousExercise = previousByRelationId.get(exercise.plan_exercise_id);
+    return previousExercise ? previousExercise.order !== exercise.order : false;
+  });
+
+  if (reorderedExistingExercises.length > 0) {
+    const tempBaseOrder = nextExercises.length + previousExercises.length + 100;
+
+    for (const [index, exercise] of reorderedExistingExercises.entries()) {
+      await plansService.updateExerciseOrder(
+        currentPlanId,
+        String(exercise.plan_exercise_id),
+        { order: tempBaseOrder + index + 1 }
+      );
+    }
+  }
+
+  const addedExercises = nextExercises.filter(
+    exercise => exercise.plan_exercise_id === undefined
+  );
+
+  for (const exercise of addedExercises) {
+    await plansService.addExercise(currentPlanId, {
+      exercise_id: exercise.id,
+      order: exercise.order,
+    });
+  }
+
+  for (const exercise of reorderedExistingExercises) {
+    await plansService.updateExerciseOrder(
+      currentPlanId,
+      String(exercise.plan_exercise_id),
+      { order: exercise.order }
+    );
+  }
+};
 
 const validateForm = (): boolean => {
   errors.value = {};
@@ -227,23 +325,28 @@ const handleSubmit = async () => {
   errors.value = {};
 
   try {
-    const payload: any = {
-      name: formData.value.name.trim(),
-      order: null,
-      is_active: formData.value.is_active,
-      exercise_ids: exercises.value.map(exercise => exercise.id),
-    };
+    const normalizedExercises = normalizeExerciseOrders(exercises.value);
+    exercises.value = normalizedExercises;
 
     if (isEditMode.value) {
-      await plansService.update(planId.value, payload);
+      await plansService.update(planId.value, buildPlanPayload());
+      await syncPlanExercises(
+        planId.value,
+        serverExercisesSnapshot.value,
+        normalizedExercises
+      );
       showSuccess('План успешно обновлен');
     } else {
-      await plansService.create(payload);
+      await plansService.create({
+        ...buildPlanPayload(),
+        exercise_ids: normalizedExercises.map(exercise => exercise.id),
+      });
       showSuccess('План успешно создан');
     }
 
     initialFormData.value = { ...formData.value };
-    initialExercises.value = [...exercises.value];
+    initialExercises.value = cloneExercises(normalizedExercises);
+    serverExercisesSnapshot.value = cloneExercises(normalizedExercises);
 
     window.dispatchEvent(new CustomEvent('plans-updated'));
 
@@ -289,7 +392,8 @@ const checkForUnsavedChanges = (): boolean => {
       const initialExercise = initialExercises.value[index];
       return !initialExercise || 
              exercise.id !== initialExercise.id ||
-             exercise.order !== initialExercise.order;
+             exercise.order !== initialExercise.order ||
+             exercise.plan_exercise_id !== initialExercise.plan_exercise_id;
     });
   
   return formChanged || exercisesChanged;
@@ -305,6 +409,7 @@ const resetFormState = () => {
   errors.value = {};
   initialFormData.value = { name: '', is_active: true };
   initialExercises.value = [];
+  serverExercisesSnapshot.value = [];
   
   // Закрываем все модальные окна
   exerciseModal.close();
@@ -392,17 +497,17 @@ const closeExerciseModal = () => {
 const addExerciseToPlan = async (exercise: AvailableExercise) => {
   // Просто добавляем упражнение в локальный массив
   // На сервер отправится только при нажатии "Сохранить"
-  const newExercise: Exercise = {
+  const newExercise: PlanFormExercise = {
     id: exercise.id,
     plan_id: isEditMode.value ? parseInt(planId.value) : 0, // Для новых планов plan_id будет 0
     name: exercise.name,
-    order: exercises.value.length + 1,
+    order: 0,
     description: exercise.description || null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
   
-  exercises.value.push(newExercise);
+  exercises.value = normalizeExerciseOrders([...exercises.value, newExercise]);
   
   exerciseModal.close();
   
@@ -413,7 +518,9 @@ const addExerciseToPlan = async (exercise: AvailableExercise) => {
 const handleExerciseReorder = (reorderedExercises: Exercise[]) => {
   // Обновляем только локальное состояние
   // Порядок элементов массива = порядок упражнений в плане
-  exercises.value = reorderedExercises;
+  exercises.value = normalizeExerciseOrders(
+    reorderedExercises as PlanFormExercise[]
+  );
 };
 
 const showDeleteExerciseConfirmation = (index: number) => {
@@ -426,7 +533,11 @@ const confirmDeleteExercise = async () => {
   
   // Просто удаляем из локального массива
   // На сервер отправится только при нажатии "Сохранить"
-  exercises.value.splice(deleteExerciseModal.data.value.index, 1);
+  exercises.value = normalizeExerciseOrders(
+    exercises.value.filter(
+      (_, index) => index !== deleteExerciseModal.data.value?.index
+    )
+  );
   
   deleteExerciseModal.close();
   
@@ -511,21 +622,30 @@ const fetchPlanData = async () => {
     
     // Правильно обрабатываем вложенную структуру упражнений согласно API docs
     if (planData.exercises && Array.isArray(planData.exercises)) {
-      exercises.value = planData.exercises.map((planExercise: any) => ({
-        id: planExercise.exercise.id,
-        plan_id: parseInt(planId.value),
-        name: planExercise.exercise.name || '',
-        order: planExercise.order || 1,
-        description: planExercise.exercise.description || null,
-        created_at: planExercise.exercise.created_at || new Date().toISOString(),
-        updated_at: planExercise.exercise.updated_at || new Date().toISOString(),
-      }));
+      const mappedExercises = planData.exercises
+        .map((planExercise: any) => ({
+          id: planExercise.exercise.id,
+          plan_id: parseInt(planId.value),
+          plan_exercise_id: planExercise.id,
+          name: planExercise.exercise.name || '',
+          order: planExercise.order || 1,
+          description: planExercise.exercise.description || null,
+          created_at:
+            planExercise.exercise.created_at || new Date().toISOString(),
+          updated_at:
+            planExercise.exercise.updated_at || new Date().toISOString(),
+        }))
+        .sort((a: PlanFormExercise, b: PlanFormExercise) => a.order - b.order);
+
+      serverExercisesSnapshot.value = cloneExercises(mappedExercises);
+      exercises.value = normalizeExerciseOrders(mappedExercises);
     } else {
       exercises.value = [];
+      serverExercisesSnapshot.value = [];
     }
     
     // Сохраняем начальные упражнения для отслеживания изменений
-    initialExercises.value = [...exercises.value];
+    initialExercises.value = cloneExercises(exercises.value);
   } catch (err) {
     console.error('Failed to fetch plan:', err);
     const apiError = err as ApiError;
@@ -559,7 +679,7 @@ watch(() => route.params.id, (newId) => {
       hasUnsavedChanges.value = false;
       // Сохраняем начальные значения для отслеживания изменений
       initialFormData.value = { ...formData.value };
-      initialExercises.value = [...exercises.value];
+      initialExercises.value = cloneExercises(exercises.value);
     }
   }
 }, { immediate: false });
@@ -572,7 +692,7 @@ onMounted(() => {
     resetFormState();
     // Сохраняем начальные значения для отслеживания изменений
     initialFormData.value = { ...formData.value };
-    initialExercises.value = [...exercises.value];
+    initialExercises.value = cloneExercises(exercises.value);
   }
 });
 

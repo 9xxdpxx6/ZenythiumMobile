@@ -1,10 +1,9 @@
 /// <reference types="vitest" />
 
 import { readFileSync } from 'fs'
-import legacy from '@vitejs/plugin-legacy'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 /** Единый semver с package.json / scripts/version.js / Android versionName */
@@ -13,16 +12,58 @@ const appVersion = JSON.parse(
 ).version as string
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const laravelDevTarget = env.VITE_PROXY_TARGET || 'http://127.0.0.1:8000'
+
+  return {
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return
+          }
+
+          if (id.includes('chart.js') || id.includes('vue-chartjs')) {
+            return 'charts'
+          }
+
+          if (id.includes('vuedraggable')) {
+            return 'dragdrop'
+          }
+
+          if (id.includes('@vuepic/vue-datepicker')) {
+            return 'datepicker'
+          }
+
+          if (
+            id.includes('@ionic/') ||
+            id.includes('@capacitor/') ||
+            id.includes('ionicons')
+          ) {
+            return 'ionic-framework'
+          }
+
+          if (
+            id.includes('/vue/') ||
+            id.includes('vue-router') ||
+            id.includes('axios')
+          ) {
+            return 'app-vendor'
+          }
+        },
+      },
+    },
+  },
   plugins: [
     vue(),
-    legacy(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.png', 'icons/*.webp', 'splash/*.png'],
+      includeAssets: ['favicon.png', 'icons/*.webp'],
 
       manifest: {
         name: 'Zenythium Fitness',
@@ -80,8 +121,9 @@ export default defineConfig({
         // Pre-cache app shell
         globPatterns: ['**/*.{js,css,html,ico,png,webp,svg,woff,woff2}'],
 
-        // Don't pre-cache source maps
-        globIgnores: ['**/*.map'],
+        // Don't pre-cache source maps or optional iOS startup images.
+        // Splash screens remain available from /public, but are fetched on demand.
+        globIgnores: ['**/*.map', 'splash/**'],
 
         // Runtime caching for external resources
         runtimeCaching: [
@@ -143,7 +185,20 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
+    // Dev: при VITE_API_SERVER_URL=proxy клиент бьёт в тот же origin (/api/v1, /sanctum/…),
+    // Vite пересылает на Laravel — без CORS и с рабочими cookie Sanctum.
+    proxy: {
+      '/api': {
+        target: laravelDevTarget,
+        changeOrigin: true,
+      },
+      '/sanctum': {
+        target: laravelDevTarget,
+        changeOrigin: true,
+      },
+    },
   },
   // Единая модель с деплоем в корень домена и Capacitor (https://localhost/…): абсолютные пути от /.
   base: '/',
+  }
 })

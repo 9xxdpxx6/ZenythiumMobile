@@ -85,10 +85,12 @@ android {
         }
     }
     
-    // Lint на release-сборках включён; ошибки не рвут assemble (abortOnError false) — сигнал в отчёте.
+    // Quality gate: при lint severity=Error задача lint* падает; отчёты: build/reports/lint-results-release.{html,xml}.
     lint {
         checkReleaseBuilds true
-        abortOnError false
+        abortOnError true
+        htmlReport true
+        xmlReport true
     }
     
     applicationVariants.all { variant ->
@@ -103,6 +105,13 @@ android {
                 outputFileName = "zenythium-v${versionName}.apk"
             }
         }
+    }
+}
+
+// Release APK не считается успешной, пока не прошёл полный lintRelease (не только lintVital подмножество).
+afterEvaluate {
+    tasks.named('assembleRelease').configure {
+        dependsOn('lintRelease')
     }
 }
 

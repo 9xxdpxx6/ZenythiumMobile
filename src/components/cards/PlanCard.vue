@@ -27,11 +27,11 @@
 
     <div class="exercises-list" v-if="plan.exercises && plan.exercises.length > 0">
       <div 
-        v-for="exercise in getSortedExercises(plan.exercises)" 
+        v-for="(exercise, index) in getSortedExercises(plan.exercises)" 
         :key="exercise.id"
         class="exercise-item"
       >
-        {{ exercise.order }}. {{ exercise.name }}
+        {{ index + 1 }}. {{ exercise.name }}
       </div>
     </div>
     
@@ -69,7 +69,7 @@ defineEmits<{
 }>();
 
 const getSortedExercises = (exercises: Exercise[]) => {
-  return exercises.sort((a, b) => a.order - b.order);
+  return [...exercises].sort((a, b) => a.order - b.order);
 };
 
 const formatDate = (dateString: string) => {

@@ -39,6 +39,9 @@ export const API_ENDPOINTS = {
   PLANS: '/plans',
   PLAN_BY_ID: (id: string) => `/plans/${id}`,
   PLAN_DUPLICATE: (id: string) => `/plans/${id}/duplicate`,
+  PLAN_EXERCISES: (planId: string) => `/plans/${planId}/exercises`,
+  PLAN_EXERCISE_BY_ID: (planId: string, planExerciseId: string) =>
+    `/plans/${planId}/exercises/${planExerciseId}`,
 
   // Training Programs
   TRAINING_PROGRAMS: '/training-programs',
@@ -94,4 +97,3 @@ export const API_ENDPOINTS = {
     DEVICE_TOKENS: '/user/device-tokens',
   },
 } as const;
-

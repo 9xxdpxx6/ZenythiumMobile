@@ -25,15 +25,22 @@ const normalizeUrl = (url: string): string => {
 /**
  * Build base URL from environment variables
  * Format: http://host:port or https://host:port
+ *
+ * Спец. значение `proxy` (только веб-dev): пустой origin — запросы идут на текущий хост
+ * (например localhost:5173), Vite проксирует `/api` и `/sanctum` на Laravel (см. vite.config).
  */
 const getServerUrl = (): string => {
   const envUrl = import.meta.env.VITE_API_SERVER_URL;
   const defaultUrl = 'https://api.zenythium.ru';
-  
+
+  if (envUrl === 'proxy') {
+    return '';
+  }
+
   if (envUrl) {
     return normalizeUrl(envUrl);
   }
-  
+
   return defaultUrl;
 };
 
