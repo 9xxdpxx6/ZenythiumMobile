@@ -32,6 +32,20 @@
             @delete="showDeleteExerciseConfirmation"
           />
 
+          <!-- Undo deleted exercises button -->
+          <div class="undo-deleted-section">
+            <button
+              v-if="deletedExercises.length > 0"
+              type="button"
+              class="undo-deleted-button"
+              @click="restoreExercises"
+              :disabled="submitting"
+            >
+              <i class="fas fa-undo"></i>
+              Восстановить удалённые
+            </button>
+          </div>
+
           <div class="form-actions">
             <button
               type="button"
@@ -87,9 +101,9 @@
     <DeleteConfirmationModal
       :is-open="deleteExerciseModal.isOpen.value"
       title="Подтверждение удаления"
-      message="Вы уверены, что хотите удалить упражнение"
+      message="Удалить упражнение"
       :item-name="deleteExerciseModal.data.value?.name"
-      warning-text="Это действие нельзя отменить."
+      warning-text="Изменения будут применены при сохранении плана"
       @confirm="confirmDeleteExercise"
       @cancel="cancelDeleteExercise"
     />
@@ -133,6 +147,7 @@ import DeleteConfirmationModal from '@/components/modals/DeleteConfirmationModal
 import UnsavedChangesModal from '@/components/modals/UnsavedChangesModal.vue';
 import { plansService } from '@/services/plans.service';
 import { useToast, useModal } from '@/composables';
+const { showSuccess, showError, showWarning } = useToast();
 import { ApiError, Exercise } from '@/types/api';
 
 interface PlanFormData {
@@ -162,8 +177,6 @@ interface PlanFormExercise extends Exercise {
 
 const router = useRouter();
 const route = useRoute();
-const { showSuccess, showError, showWarning } = useToast();
-
 const planId = computed(() => route.params.id as string);
 const isEditMode = computed(() => planId.value && planId.value !== 'new');
 
@@ -183,13 +196,15 @@ const exerciseSearchTimeout = ref<NodeJS.Timeout | null>(null);
 const deletePlanModal = useModal();
 const deleteExerciseModal = useModal<{ index: number; name: string }>();
 
+// Soft-deleted exercises (can be restored before save)
+const deletedExercises = ref<PlanFormExercise[]>([]);
+
 // Unsaved changes confirmation
 const unsavedChangesModal = useModal();
 const pendingNavigation = ref<any>(null);
 const hasUnsavedChanges = ref(false);
 const initialFormData = ref<PlanFormData>({ name: '', is_active: true });
 const initialExercises = ref<PlanFormExercise[]>([]);
-const serverExercisesSnapshot = ref<PlanFormExercise[]>([]);
 const isLeaving = ref(false); // Флаг для предотвращения повторных проверок
 
 // Swipe back handler for unsaved changes check
@@ -221,85 +236,6 @@ const buildPlanPayload = () => ({
   is_active: formData.value.is_active,
 });
 
-const syncPlanExercises = async (
-  currentPlanId: string,
-  previousExercises: PlanFormExercise[],
-  nextExercises: PlanFormExercise[]
-) => {
-  const previousByRelationId = new Map(
-    previousExercises
-      .filter(
-        (
-          exercise
-        ): exercise is PlanFormExercise & { plan_exercise_id: number } =>
-          exercise.plan_exercise_id !== undefined
-      )
-      .map(exercise => [exercise.plan_exercise_id, exercise])
-  );
-
-  const nextRelationIds = new Set(
-    nextExercises
-      .map(exercise => exercise.plan_exercise_id)
-      .filter((planExerciseId): planExerciseId is number => planExerciseId !== undefined)
-  );
-
-  const removedExercises = previousExercises.filter(
-    exercise =>
-      exercise.plan_exercise_id !== undefined &&
-      !nextRelationIds.has(exercise.plan_exercise_id)
-  );
-
-  for (const exercise of removedExercises) {
-    await plansService.deleteExercise(
-      currentPlanId,
-      String(exercise.plan_exercise_id)
-    );
-  }
-
-  const retainedExercises = nextExercises.filter(
-    (
-      exercise
-    ): exercise is PlanFormExercise & { plan_exercise_id: number } =>
-      exercise.plan_exercise_id !== undefined
-  );
-
-  const reorderedExistingExercises = retainedExercises.filter(exercise => {
-    const previousExercise = previousByRelationId.get(exercise.plan_exercise_id);
-    return previousExercise ? previousExercise.order !== exercise.order : false;
-  });
-
-  if (reorderedExistingExercises.length > 0) {
-    const tempBaseOrder = nextExercises.length + previousExercises.length + 100;
-
-    for (const [index, exercise] of reorderedExistingExercises.entries()) {
-      await plansService.updateExerciseOrder(
-        currentPlanId,
-        String(exercise.plan_exercise_id),
-        { order: tempBaseOrder + index + 1 }
-      );
-    }
-  }
-
-  const addedExercises = nextExercises.filter(
-    exercise => exercise.plan_exercise_id === undefined
-  );
-
-  for (const exercise of addedExercises) {
-    await plansService.addExercise(currentPlanId, {
-      exercise_id: exercise.id,
-      order: exercise.order,
-    });
-  }
-
-  for (const exercise of reorderedExistingExercises) {
-    await plansService.updateExerciseOrder(
-      currentPlanId,
-      String(exercise.plan_exercise_id),
-      { order: exercise.order }
-    );
-  }
-};
-
 const validateForm = (): boolean => {
   errors.value = {};
   let isValid = true;
@@ -329,12 +265,11 @@ const handleSubmit = async () => {
     exercises.value = normalizedExercises;
 
     if (isEditMode.value) {
-      await plansService.update(planId.value, buildPlanPayload());
-      await syncPlanExercises(
-        planId.value,
-        serverExercisesSnapshot.value,
-        normalizedExercises
-      );
+      const payload = {
+        ...buildPlanPayload(),
+        exercise_ids: normalizedExercises.map(exercise => exercise.id),
+      };
+      await plansService.update(planId.value, payload);
       showSuccess('План успешно обновлен');
     } else {
       await plansService.create({
@@ -346,7 +281,6 @@ const handleSubmit = async () => {
 
     initialFormData.value = { ...formData.value };
     initialExercises.value = cloneExercises(normalizedExercises);
-    serverExercisesSnapshot.value = cloneExercises(normalizedExercises);
 
     window.dispatchEvent(new CustomEvent('plans-updated'));
 
@@ -409,8 +343,7 @@ const resetFormState = () => {
   errors.value = {};
   initialFormData.value = { name: '', is_active: true };
   initialExercises.value = [];
-  serverExercisesSnapshot.value = [];
-  
+
   // Закрываем все модальные окна
   exerciseModal.close();
   deleteExerciseModal.close();
@@ -525,28 +458,35 @@ const handleExerciseReorder = (reorderedExercises: Exercise[]) => {
 
 const showDeleteExerciseConfirmation = (index: number) => {
   const exercise = exercises.value[index];
+  if (!exercise) return;
   deleteExerciseModal.open({ index, name: exercise.name });
 };
 
-const confirmDeleteExercise = async () => {
-  if (deleteExerciseModal.data.value?.index === undefined) return;
-  
-  // Просто удаляем из локального массива
-  // На сервер отправится только при нажатии "Сохранить"
+const confirmDeleteExercise = () => {
+  const index = deleteExerciseModal.data.value?.index;
+  if (index === undefined) return;
+
+  const exercise = exercises.value[index];
   exercises.value = normalizeExerciseOrders(
-    exercises.value.filter(
-      (_, index) => index !== deleteExerciseModal.data.value?.index
-    )
+    exercises.value.filter((_, i) => i !== index)
   );
-  
+  deletedExercises.value.push(exercise);
+
   deleteExerciseModal.close();
-  
-  // Обновляем список доступных упражнений
   fetchAvailableExercises();
 };
 
 const cancelDeleteExercise = () => {
   deleteExerciseModal.close();
+};
+
+const restoreExercises = () => {
+  exercises.value = normalizeExerciseOrders([
+    ...exercises.value,
+    ...deletedExercises.value,
+  ]);
+  deletedExercises.value = [];
+  fetchAvailableExercises();
 };
 
 const handleExerciseSearch = (value: string) => {
@@ -637,11 +577,9 @@ const fetchPlanData = async () => {
         }))
         .sort((a: PlanFormExercise, b: PlanFormExercise) => a.order - b.order);
 
-      serverExercisesSnapshot.value = cloneExercises(mappedExercises);
       exercises.value = normalizeExerciseOrders(mappedExercises);
     } else {
       exercises.value = [];
-      serverExercisesSnapshot.value = [];
     }
     
     // Сохраняем начальные упражнения для отслеживания изменений
@@ -726,6 +664,40 @@ onBeforeRouteLeave((to: any, from: any, next: any) => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.undo-deleted-section {
+  padding: 0 16px 0 16px;
+}
+
+.undo-deleted-button {
+  background: transparent;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: rgba(99, 102, 241, 0.7);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 40px;
+}
+
+.undo-deleted-button:hover { background: transparent; border-color: rgba(99, 102, 241, 0.4); color: rgba(99, 102, 241, 0.7); }
+.undo-deleted-button:active { background: rgba(99, 102, 241, 0.05); }
+
+.undo-deleted-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.undo-deleted-button i {
+  font-size: 14px;
 }
 
 .form-checkbox {

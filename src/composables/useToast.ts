@@ -3,7 +3,7 @@
  * Toast notifications wrapper for Ionic
  */
 
-import { toastController } from '@ionic/vue';
+import { toastController, ToastButton } from '@ionic/vue';
 import { appConfig } from '../config/app.config';
 
 export interface ToastOptions {
@@ -14,12 +14,17 @@ export interface ToastOptions {
   icon?: string;
 }
 
+export interface UndoToastResult {
+  undone: boolean;
+}
+
 export interface UseToastReturn {
   showToast: (options: ToastOptions) => Promise<void>;
   showSuccess: (message: string, duration?: number) => Promise<void>;
   showError: (message: string, duration?: number) => Promise<void>;
   showWarning: (message: string, duration?: number) => Promise<void>;
   showInfo: (message: string, duration?: number) => Promise<void>;
+  showUndoToast: (message: string, actionLabel?: string, duration?: number) => Promise<UndoToastResult>;
 }
 
 /**
@@ -49,12 +54,12 @@ export function useToast(): UseToastReturn {
         },
       ],
     };
-    
+
     // Only add icon if explicitly provided to avoid Ionic trying to load default icons
     if (options.icon) {
       toastOptions.icon = options.icon;
     }
-    
+
     const toast = await toastController.create(toastOptions);
 
     await toast.present();
@@ -104,12 +109,55 @@ export function useToast(): UseToastReturn {
     });
   };
 
+  /**
+   * Show toast with undo action. Returns { undone: true } if user clicked "Отмена",
+   * or { undone: false } if toast closed automatically or was dismissed.
+   */
+  const showUndoToast = (
+    message: string,
+    actionLabel: string = 'Отмена',
+    duration: number = 5000
+  ): Promise<UndoToastResult> => {
+    return new Promise(async (resolve) => {
+      let resolved = false;
+
+      const buttons: ToastButton[] = [
+        {
+          text: actionLabel,
+          handler: () => {
+            if (!resolved) {
+              resolved = true;
+              resolve({ undone: true });
+            }
+          },
+        },
+      ];
+
+      const toast = await toastController.create({
+        message,
+        duration,
+        position: 'bottom',
+        color: 'primary',
+        buttons,
+      });
+
+      toast.onDidDismiss().then(() => {
+        if (!resolved) {
+          resolved = true;
+          resolve({ undone: false });
+        }
+      });
+
+      await toast.present();
+    });
+  };
+
   return {
     showToast,
     showSuccess,
     showError,
     showWarning,
     showInfo,
+    showUndoToast,
   };
 }
-
