@@ -35,11 +35,12 @@ const apiClient: AxiosInstance = axios.create({
 });
 
 // Request retry configuration
-interface RetryConfig extends AxiosRequestConfig {
+export interface RetryConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _retryCount?: number;
   _csrfRetryCount?: number; // Track CSRF retry attempts to prevent infinite loops
   _isRefreshing?: boolean; // Track if this request is waiting for token refresh
+  _maxRetries?: number; // Per-request override of appConfig.maxRetries (e.g. to fail faster on critical mutations)
 }
 
 // Token refresh state management
@@ -340,7 +341,7 @@ function shouldRetry(error: AxiosError, config?: RetryConfig): boolean {
   if (!config) return false;
 
   const retryCount = config._retryCount || 0;
-  const maxRetries = appConfig.maxRetries;
+  const maxRetries = config._maxRetries ?? appConfig.maxRetries;
 
   // Don't retry if already retried max times
   if (retryCount >= maxRetries) {

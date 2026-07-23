@@ -11,6 +11,7 @@ export * from './formatters';
 export { normalizeValidationError } from './validation-normalizer';
 export { downloadFile, downloadJson } from './export';
 export { copyToClipboard } from './clipboard';
+export { generateClientRequestId } from './request-id';
 
 // Export types
 export type { ValidationResult, ValidatorFn } from './validators';

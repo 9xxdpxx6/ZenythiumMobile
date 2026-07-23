@@ -5,7 +5,9 @@
 
 import { BaseService } from './base.service';
 import apiClient from './api';
+import type { RetryConfig } from './api';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
+import { generateClientRequestId } from '../utils/request-id';
 import type {
   Workout,
   CreateWorkoutDto,
@@ -290,10 +292,24 @@ class WorkoutsService extends BaseService<Workout, CreateWorkoutDto, UpdateWorko
 
   /**
    * Create set
+   *
+   * Attaches a client-generated idempotency key so that a retried request
+   * (see api.ts retry logic) can't create a duplicate set if the original
+   * request actually reached the server but its response was lost on a
+   * flaky connection. Also uses a shorter timeout and a single retry so a
+   * bad connection fails fast instead of hanging for up to ~2 minutes.
    */
   async createSet(data: any): Promise<any> {
+    const payload = {
+      ...data,
+      client_request_id: data.client_request_id ?? generateClientRequestId(),
+    };
+
     try {
-      const response = await apiClient.post('/workout-sets', data);
+      const response = await apiClient.post('/workout-sets', payload, {
+        timeout: 12000,
+        _maxRetries: 1,
+      } as RetryConfig);
       logger.info('WorkoutsService: Set created successfully');
       return response.data.data;
     } catch (error) {
