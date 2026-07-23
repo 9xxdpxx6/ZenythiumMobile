@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { API_ENDPOINTS } from '../constants/api-endpoints';
 import { AuthService } from './auth';
 import { getLoginRedirectHref } from '@/utils/app-url';
+import { generateClientRequestId } from '../utils/request-id';
 
 /**
  * Enhanced API Client with interceptors, retry logic, and error transformation
@@ -197,6 +198,21 @@ apiClient.interceptors.request.use(
       }
     }
 
+    // Idempotency-Key for mutating requests: same value across automatic
+    // retries of this same request (retries reuse this exact config object,
+    // so the header stays set once assigned below). Lets the API's
+    // EnsureIdempotentRequest middleware return the original result instead
+    // of re-executing the request when a retry follows a lost response on a
+    // flaky connection — see WorkoutsService.createSet for the same idea
+    // applied at the body level before this existed generically.
+    {
+      const method = config.method?.toUpperCase();
+      if (method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method) && config.headers) {
+        if (!config.headers['Idempotency-Key']) {
+          config.headers['Idempotency-Key'] = generateClientRequestId();
+        }
+      }
+    }
 
     // Log request
     logger.logRequest(config.method?.toUpperCase() || 'GET', config.url || '', config.data);
