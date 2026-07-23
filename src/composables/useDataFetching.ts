@@ -20,6 +20,21 @@ export function clearDataCache(cacheKey?: string): void {
   }
 }
 
+/**
+ * Прогреть кеш заранее (например, во время сплеш-скрина, пока страница ещё не
+ * смонтирована) — так composable с тем же cacheKey и skipIfDataExists заберёт
+ * данные из кеша сразу при монтировании, без своего собственного лоадера.
+ * Ошибки не пробрасываются: страница сама повторит запрос при монтировании.
+ */
+export async function prefetchData<T>(cacheKey: string, fetchFn: () => Promise<T>): Promise<void> {
+  try {
+    const result = await fetchFn();
+    globalCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  } catch {
+    // Best-effort — реальный запрос всё равно выполнится при монтировании страницы.
+  }
+}
+
 export interface UseDataFetchingOptions {
   immediate?: boolean;
   skipIfDataExists?: boolean; // Пропустить запрос, если данные уже есть в кеше

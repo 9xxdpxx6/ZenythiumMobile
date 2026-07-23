@@ -4,6 +4,7 @@ import router from './router';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
+import { SplashScreen } from '@capacitor/splash-screen';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -64,6 +65,12 @@ import { initializeCacheManager } from './utils/cache-manager';
 import { PushNotificationService } from './services/push-notifications.service';
 import { logger } from './utils/logger';
 
+/* Homepage data prefetch — warms the cache while the splash screen is up */
+import { AuthService } from './services/auth';
+import { prefetchData } from './composables/useDataFetching';
+import { workoutsService } from './services/workouts.service';
+import { statisticsService } from './services/statistics.service';
+
 const app = createApp(App)
   .use(IonicVue)
   .use(router)
@@ -73,6 +80,26 @@ const app = createApp(App)
 
 // Инициализация менеджера кеша
 initializeCacheManager();
+
+// Прогрев кеша главной страницы: запускаем те же запросы, что делает
+// HomePage.vue (те же cacheKey), параллельно с нативной инициализацией ниже —
+// пока висит сплеш-скрин. К моменту монтирования HomePage их useDataFetching
+// увидит готовые данные в кеше и не покажет свой собственный лоадер.
+const prefetchHomePageData = (): void => {
+  if (!AuthService.isAuthenticated()) {
+    return;
+  }
+
+  prefetchData('homepage_workouts', async () => {
+    const result = await workoutsService.getPaginated({ per_page: 100, page: 1 });
+    return result.data || [];
+  });
+  prefetchData('homepage_statistics', () => statisticsService.getOverview());
+  prefetchData('homepage_personal_records', () => statisticsService.getPersonalRecords());
+  prefetchData('homepage_muscle_groups', () => statisticsService.getMuscleGroupStatistics());
+};
+
+prefetchHomePageData();
 
 // Инициализация Status Bar (без overlay - контент не перекрывает системные панели)
 const initializeStatusBar = async () => {
@@ -282,14 +309,28 @@ const handleWebUrl = () => {
 
 // Инициализация приложения
 router.isReady().then(async () => {
-  await initializeStatusBar();
   initializeDeepLinks();
-  await initializePushNotifications();
-  
+
+  // Статус-бар и пуш-уведомления не зависят друг от друга — инициализируем
+  // параллельно вместо последовательных await, чтобы не держать сплеш-скрин
+  // дольше необходимого.
+  await Promise.all([
+    initializeStatusBar(),
+    initializePushNotifications(),
+  ]);
+
   // Обработка URL при открытии в браузере (только для веб-версии)
   if (typeof Capacitor === 'undefined' || !Capacitor.isNativePlatform()) {
     handleWebUrl();
   }
-  
+
   app.mount('#app');
+
+  // Скрываем сплеш-скрин только теперь, когда приложение реально смонтировано
+  // (launchAutoHide отключён в capacitor.config.ts) — раньше сплеш прятался
+  // по таймеру независимо от готовности приложения, и между его исчезновением
+  // и появлением контента был короткий "тёмный экран".
+  if (Capacitor.isNativePlatform()) {
+    SplashScreen.hide();
+  }
 });

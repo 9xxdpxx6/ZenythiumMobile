@@ -14,8 +14,9 @@ const config: CapacitorConfig = {
       enabled: true
     },
     SplashScreen: {
-      launchShowDuration: 2000,
-      launchAutoHide: true,
+      // Скрывается вручную из main.ts после app.mount() — см. комментарий там.
+      // launchShowDuration не используется, пока launchAutoHide: false.
+      launchAutoHide: false,
       backgroundColor: "#ffffff",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
