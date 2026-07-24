@@ -9,6 +9,12 @@ http://ionicframework.com/docs/theming/ */
 html,
 body {
   font-family: var(--ion-font-family) !important;
+  /* Android WebView "boosts" text size independently of CSS font-size on some
+     devices/versions, making text render larger/inconsistently than in a
+     desktop browser for the exact same layout. Disabling it here matches the
+     web build's rendering. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Apply Manrope to text elements, but exclude Font Awesome icons */
