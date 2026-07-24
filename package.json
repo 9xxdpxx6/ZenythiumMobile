@@ -17,7 +17,7 @@
     "generate:pwa-splash": "cross-env PAG_SIMULATE_CPU_COUNT=1 pwa-asset-generator resources/splash.png public/splash --splash-only --index index.html --path-override /splash --type png --background \"#121212\" --padding \"0%\" --opaque true",
     "sync:android": "npm run build && npx cap sync android",
     "build:android": "npm run build && npx cap sync android",
-    "build:android:release": "npm run build && npx cap sync android && cd android && gradlew.bat assembleRelease"
+    "build:android:release": "npm run build && npx cap sync android && cd android && .\\gradlew.bat assembleRelease"
   },
   "dependencies": {
     "@capacitor-community/fcm": "^8.0.1",
