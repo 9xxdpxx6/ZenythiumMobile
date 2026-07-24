@@ -167,6 +167,7 @@ import {
   alertController,
 } from '@ionic/vue';
 import { useDataFetching, useToast, usePagination, useModal } from '@/composables';
+import { clearDataCache } from '@/composables/useDataFetching';
 import { exercisesService, muscleGroupsService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import ExercisesFilters from '@/components/filters/ExercisesFilters.vue';
@@ -198,19 +199,18 @@ const filters = ref({
 // Composables
 const { showSuccess, showError } = useToast();
 
-// Fetch muscle groups
+// Fetch muscle groups — почти никогда не меняются (клиенты их больше не
+// мутируют вовсе), кешируем надолго.
 const { data: muscleGroups, execute: fetchMuscleGroups } = useDataFetching(
   async () => await muscleGroupsService.getAll(),
-  { immediate: true }
+  { immediate: true, skipIfDataExists: true, cacheKey: 'muscle_groups_list', cacheTTL: 24 * 60 * 60 * 1000 }
 );
 
-// Fetch exercises with manual control
-const exercises = ref<any[]>([]);
-const loading = ref(false);
-
-const fetchData = async () => {
-  loading.value = true;
-  try {
+// Fetch exercises — редко меняются, кешируем надолго; кеш инвалидируется
+// вручную при смене поиска/фильтров/страницы и при мутациях (см.
+// clearDataCache ниже), как и в CyclesPage/PlansPage.
+const { data: exercises, loading, execute: fetchData } = useDataFetching<ExerciseResource[]>(
+  async () => {
     const params: any = { page: currentPage.value, per_page: 100 };
     const f = filters.value;
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim();
@@ -224,13 +224,16 @@ const fetchData = async () => {
     if (response.meta) {
       setTotalItems(response.meta.total);
     }
-    exercises.value = response.data;
-  } catch (err) {
-    await showError('Ошибка загрузки упражнений');
-  } finally {
-    loading.value = false;
+    return response.data as unknown as ExerciseResource[];
+  },
+  {
+    immediate: true,
+    skipIfDataExists: true,
+    cacheKey: 'exercises_list',
+    cacheTTL: 24 * 60 * 60 * 1000,
+    onError: () => { showError('Ошибка загрузки упражнений'); },
   }
-};
+);
 
 // ── Base pack state ──
 const basePackStatus = ref<'unknown' | 'installed' | 'not_installed'>('unknown');
@@ -238,7 +241,7 @@ const basePackLoading = ref(false);
 
 const checkBasePackStatus = async () => {
   // Only bother checking if user has few exercises
-  if (exercises.value.length >= 20) {
+  if ((exercises.value?.length ?? 0) >= 20) {
     basePackStatus.value = 'unknown';
     return;
   }
@@ -256,7 +259,9 @@ const handleInstallBasePack = async () => {
     const result = await exercisesService.installBasePack();
     await showSuccess(`Установлено ${result.data.created} упражнений`);
     basePackStatus.value = 'installed';
+    clearDataCache('exercises_list');
     await fetchData();
+    window.dispatchEvent(new CustomEvent('exercises-updated'));
   } catch {
     await showError('Не удалось установить базовый набор');
   } finally {
@@ -279,7 +284,9 @@ const handleUninstallBasePack = async () => {
             const result = await exercisesService.uninstallBasePack();
             await showSuccess(`Удалено: ${result.data.deleted}, деактивировано: ${result.data.deactivated}`);
             basePackStatus.value = 'not_installed';
+            clearDataCache('exercises_list');
             await fetchData();
+            window.dispatchEvent(new CustomEvent('exercises-updated'));
           } catch {
             await showError('Не удалось удалить базовый набор');
           } finally {
@@ -393,7 +400,9 @@ const submitForm = async (payload?: { name: string; description: string; muscle_
     }
     
     closeModal();
+    clearDataCache('exercises_list');
     await fetchData();
+    window.dispatchEvent(new CustomEvent('exercises-updated'));
   } catch (err: any) {
     const apiError = err;
     if (apiError.errors) {
@@ -413,7 +422,9 @@ const deleteExercise = async () => {
     await exercisesService.delete(deleteModal.data.value.id.toString());
     await showSuccess('Упражнение успешно удалено');
     closeDeleteModal();
+    clearDataCache('exercises_list');
     await fetchData();
+    window.dispatchEvent(new CustomEvent('exercises-updated'));
   } catch (err: any) {
     await showError('Произошًا ошибка при удалении упражнения');
   } finally {
@@ -421,12 +432,17 @@ const deleteExercise = async () => {
   }
 };
 
-watch(currentPage, () => fetchData());
+watch(currentPage, () => {
+  clearDataCache('exercises_list');
+  fetchData();
+});
 
 const handleSearch = (query: string) => {
   searchQuery.value = query;
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   searchLoading.value = true;
+  // Очищаем кеш при поиске, чтобы загрузить новые данные
+  clearDataCache('exercises_list');
   searchTimeout.value = setTimeout(async () => {
     currentPage.value = 1;
     await fetchData();
@@ -439,6 +455,8 @@ const clearSearch = () => {
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
   currentPage.value = 1;
   searchLoading.value = true;
+  // Очищаем кеш при очистке поиска
+  clearDataCache('exercises_list');
   fetchData();
   setTimeout(() => { searchLoading.value = false; }, 300);
 };
@@ -446,6 +464,8 @@ const clearSearch = () => {
 const handleFiltersChanged = (newFilters: any) => {
   filters.value = { ...newFilters };
   currentPage.value = 1;
+  // Очищаем кеш при изменении фильтров
+  clearDataCache('exercises_list');
   fetchData();
 };
 
@@ -459,22 +479,41 @@ const resetFilters = () => {
     sort_order: 'desc'
   };
   currentPage.value = 1;
+  // Очищаем кеш при сбросе фильтров
+  clearDataCache('exercises_list');
   fetchData();
 };
 
 const handleRefresh = async (event: CustomEvent) => {
+  // Очищаем кеш при ручном обновлении
+  clearDataCache('exercises_list');
+  clearDataCache('muscle_groups_list');
   await fetchData();
   await fetchMuscleGroups();
   event.detail.complete();
 };
 
-onMounted(async () => {
-  await fetchData();
-  await fetchMuscleGroups();
+// Реагируем на изменения списка упражнений с других страниц (например,
+// установка базового набора на HomePage) — перезагружаем, если открыты сейчас.
+let exercisesUpdateTimer: ReturnType<typeof setTimeout> | null = null;
+const handleExercisesUpdated = () => {
+  if (exercisesUpdateTimer) clearTimeout(exercisesUpdateTimer);
+  exercisesUpdateTimer = setTimeout(() => {
+    clearDataCache('exercises_list');
+    fetchData();
+  }, 300);
+};
 
-  // Check base pack status when exercises list is short
-  await checkBasePackStatus();
-  
+// Проверяем статус базового набора при изменении списка упражнений (в т.ч.
+// повторно — после того, как холодный кеш догрузится с сервера)
+watch(exercises, () => {
+  checkBasePackStatus();
+}, { immediate: true });
+
+onMounted(() => {
+  // Initial fetch is handled by useDataFetching with immediate: true
+  window.addEventListener('exercises-updated', handleExercisesUpdated);
+
   // Проверяем query параметр для автоматического открытия модалки создания
   if (route.query.create === 'true') {
     // Убираем параметр из URL
@@ -486,6 +525,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (searchTimeout.value) clearTimeout(searchTimeout.value);
+  if (exercisesUpdateTimer) clearTimeout(exercisesUpdateTimer);
+  window.removeEventListener('exercises-updated', handleExercisesUpdated);
 });
 </script>
 

@@ -259,6 +259,7 @@ const handleInstallBasePack = async () => {
     await showSuccess(`Установлено ${created} упражнений`);
     localStorage.removeItem('show_base_pack_offer');
     basePackModal.close();
+    window.dispatchEvent(new CustomEvent('exercises-updated'));
   } catch {
     await showError('Не удалось установить базовый набор');
   } finally {

@@ -259,6 +259,7 @@ const confirmDuplicate = async () => {
     // Очищаем кеш при успешном дублировании
     clearDataCache('plans_list');
     await fetchData();
+    window.dispatchEvent(new CustomEvent('plans-updated'));
   } catch (err: unknown) {
     errorHandler.log(err, 'PlansPage.confirmDuplicate');
     const errorMessage = errorHandler.format(err);

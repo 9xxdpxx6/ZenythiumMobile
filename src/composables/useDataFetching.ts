@@ -6,17 +6,82 @@
 import { ref, onMounted, type Ref } from 'vue';
 import { errorHandler } from '../utils/error-handler';
 
-// Глобальный кеш для данных
-const globalCache = new Map<string, { data: any; timestamp: number }>();
+interface CacheEntry {
+  data: any;
+  timestamp: number;
+}
+
+// In-memory кеш для данных (быстрый доступ в рамках текущей сессии)
+const globalCache = new Map<string, CacheEntry>();
+
+// Персистентный слой поверх localStorage — переживает перезапуск приложения,
+// а не только переключение вкладок в рамках одного запуска.
+const STORAGE_PREFIX = 'datacache:';
+
+function readFromStorage(key: string): CacheEntry | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_PREFIX + key);
+    return raw ? (JSON.parse(raw) as CacheEntry) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeToStorage(key: string, entry: CacheEntry): void {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
+  } catch {
+    // localStorage может быть недоступен/переполнен — in-memory кеш всё равно работает в рамках сессии.
+  }
+}
+
+function removeFromStorage(key: string): void {
+  try {
+    localStorage.removeItem(STORAGE_PREFIX + key);
+  } catch {
+    // ignore
+  }
+}
+
+function setCache(key: string, entry: CacheEntry): void {
+  globalCache.set(key, entry);
+  writeToStorage(key, entry);
+}
 
 /**
- * Очистить кеш по ключу или все кеши
+ * Прочитать запись кеша по ключу, включая восстановление из localStorage,
+ * если её ещё нет в памяти (например, после перезапуска приложения).
+ */
+function getCache(key: string): CacheEntry | null {
+  const inMemory = globalCache.get(key);
+  if (inMemory) return inMemory;
+
+  const persisted = readFromStorage(key);
+  if (persisted) {
+    globalCache.set(key, persisted);
+    return persisted;
+  }
+
+  return null;
+}
+
+/**
+ * Очистить кеш по ключу или все кеши (и in-memory, и localStorage).
  */
 export function clearDataCache(cacheKey?: string): void {
   if (cacheKey) {
     globalCache.delete(cacheKey);
-  } else {
-    globalCache.clear();
+    removeFromStorage(cacheKey);
+    return;
+  }
+
+  globalCache.clear();
+  try {
+    Object.keys(localStorage)
+      .filter((key) => key.startsWith(STORAGE_PREFIX))
+      .forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // ignore
   }
 }
 
@@ -29,7 +94,7 @@ export function clearDataCache(cacheKey?: string): void {
 export async function prefetchData<T>(cacheKey: string, fetchFn: () => Promise<T>): Promise<void> {
   try {
     const result = await fetchFn();
-    globalCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    setCache(cacheKey, { data: result, timestamp: Date.now() });
   } catch {
     // Best-effort — реальный запрос всё равно выполнится при монтировании страницы.
   }
@@ -84,10 +149,11 @@ export function useDataFetching<T>(
   const key = getCacheKey();
 
   // Проверяем кеш при инициализации и восстанавливаем данные сразу
+  // (включая восстановление из localStorage после перезапуска приложения)
   const checkCache = (): boolean => {
     if (!skipIfDataExists) return false;
-    
-    const cached = globalCache.get(key);
+
+    const cached = getCache(key);
     if (cached) {
       const age = Date.now() - cached.timestamp;
       if (age < cacheTTL) {
@@ -96,7 +162,7 @@ export function useDataFetching<T>(
         return true; // Данные взяты из кеша
       } else {
         // Кеш устарел, удаляем
-        globalCache.delete(key);
+        clearDataCache(key);
       }
     }
     return false;
@@ -122,9 +188,9 @@ export function useDataFetching<T>(
       const result = await fetchFn();
       data.value = result;
 
-      // Сохраняем в кеш
+      // Сохраняем в кеш (память + localStorage)
       if (skipIfDataExists) {
-        globalCache.set(key, { data: result, timestamp: Date.now() });
+        setCache(key, { data: result, timestamp: Date.now() });
       }
 
       if (onSuccess) {

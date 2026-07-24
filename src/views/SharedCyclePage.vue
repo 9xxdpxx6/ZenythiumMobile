@@ -248,6 +248,11 @@ const confirmImport = async (): Promise<void> => {
     await showSuccess(
       `Программа успешно импортирована! Создано ${result.plans_count} планов и ${result.exercises_count} упражнений.`
     );
+    // Импорт создаёт новый цикл, планы и (возможно) упражнения — инвалидируем
+    // закешированные списки, чтобы Cycles/Plans/Exercises не показали старые данные.
+    window.dispatchEvent(new CustomEvent('cycles-updated'));
+    window.dispatchEvent(new CustomEvent('plans-updated'));
+    window.dispatchEvent(new CustomEvent('exercises-updated'));
     isImportModalOpen.value = false;
     // Redirect to the imported cycle
     router.push(`/cycle/${result.cycle_id}`);

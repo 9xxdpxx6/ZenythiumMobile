@@ -11,13 +11,20 @@ import { clearDataCache } from '@/composables/useDataFetching';
 export function initializeCacheManager(): void {
   // Очистка кеша циклов
   window.addEventListener('cycles-updated', () => {
+    clearDataCache('cycles_list');
     clearDataCache('homepage_statistics'); // Статистика может измениться
-    // Кеш cycles не используется, так как там нет skipIfDataExists
   });
 
   // Очистка кеша планов
   window.addEventListener('plans-updated', () => {
+    clearDataCache('plans_list');
     clearDataCache('homepage_statistics');
+  });
+
+  // Очистка кеша упражнений
+  window.addEventListener('exercises-updated', () => {
+    clearDataCache('exercises_list');
+    clearDataCache('homepage_muscle_groups'); // Статистика по группам мышц зависит от списка упражнений
   });
 
   // Очистка кеша тренировок
