@@ -26,6 +26,48 @@ export function createSwipeBackHandlers(
 ) {
   const loadPreviousPage = createLoadPreviousPage(state, router, route);
 
+  // Touchmove can fire faster than the display refreshes on some Android
+  // devices; writing state.currentX (and previousPageOpacity) straight
+  // from every raw event triggers a Vue reactivity flush + DOM style
+  // write more often than the screen can paint, causing jank that a
+  // single tap-driven navigation never hits. Throttle those writes to
+  // at most once per animation frame.
+  let rafId: number | null = null;
+  let pendingX: number | null = null;
+
+  const flushPendingX = (): void => {
+    rafId = null;
+    if (pendingX === null) return;
+
+    state.currentX.value = pendingX;
+
+    if (state.shouldRenderPreviousPage.value) {
+      const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
+      const progress = windowWidth > 0
+        ? Math.min((pendingX - state.touchStartX.value) / windowWidth, 1)
+        : 0;
+      state.previousPageOpacity.value = progress;
+    }
+  };
+
+  const scheduleFlush = (): void => {
+    if (rafId === null) {
+      rafId = requestAnimationFrame(flushPendingX);
+    }
+  };
+
+  const cancelRaf = (): void => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  };
+
+  const cancelScheduledFlush = (): void => {
+    cancelRaf();
+    pendingX = null;
+  };
+
   // Compute translateX for previous page (it stays at position 0, only fades in)
   const previousPageTranslateX = computed(() => {
     return 0;
@@ -77,6 +119,8 @@ export function createSwipeBackHandlers(
         return;
       }
     }
+
+    cancelScheduledFlush();
 
     // Cancel any ongoing completion animation
     state.isCompleting.value = false;
@@ -136,13 +180,8 @@ export function createSwipeBackHandlers(
     }
 
     if (state.isSwiping.value && !state.isVerticalSwipe.value && newX > state.touchStartX.value) {
-      state.currentX.value = newX;
-      
-      if (state.shouldRenderPreviousPage.value) {
-        const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 0;
-        const progress = Math.min((newX - state.touchStartX.value) / windowWidth, 1);
-        state.previousPageOpacity.value = progress;
-      }
+      pendingX = newX;
+      scheduleFlush();
 
       if (options.preventVerticalScroll && deltaX > 10 && event.cancelable && state.isSwiping.value) {
         event.preventDefault();
@@ -151,6 +190,7 @@ export function createSwipeBackHandlers(
   };
 
   const resetToStart = (): void => {
+    cancelScheduledFlush();
     state.isSwiping.value = false;
     state.isCompleting.value = true;
     state.startedFromEdge.value = false;
@@ -189,6 +229,14 @@ export function createSwipeBackHandlers(
   };
 
   const handleTouchEnd = async (event?: TouchEvent): Promise<void> => {
+    // Flush any pending frame-throttled position synchronously so the
+    // threshold check below sees the finger's actual final position.
+    cancelRaf();
+    if (pendingX !== null) {
+      state.currentX.value = pendingX;
+      pendingX = null;
+    }
+
     if (!options.enabled || !state.isSwiping.value || !state.startedFromEdge.value || state.isVerticalSwipe.value) {
       state.isSwiping.value = false;
       state.isVerticalSwipe.value = false;

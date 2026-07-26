@@ -18,36 +18,74 @@ export function createTabSwipeHandlers(
     tabs: readonly string[];
   }
 ) {
+  // High-frequency touchmove events (can fire faster than the display's
+  // refresh rate on some Android devices) are throttled to at most one
+  // reactive state write per animation frame. Writing state.currentX on
+  // every raw touch event was triggering a full Vue reactivity flush
+  // (translateX/nextPageTranslateX/swipeProgress/activeTabIndicatorStyle
+  // computeds + DOM style writes) more often than the screen could paint,
+  // which is what caused the jank during finger-follow swipes but not
+  // during tap navigation (a single route change/render).
+  let rafId: number | null = null;
+  let pendingX: number | null = null;
+
+  const flushPendingX = (): void => {
+    rafId = null;
+    if (pendingX !== null) {
+      state.currentX.value = pendingX;
+    }
+  };
+
+  const scheduleFlush = (): void => {
+    if (rafId === null) {
+      rafId = requestAnimationFrame(flushPendingX);
+    }
+  };
+
+  const cancelRaf = (): void => {
+    if (rafId !== null) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  };
+
+  const cancelScheduledFlush = (): void => {
+    cancelRaf();
+    pendingX = null;
+  };
+
   const handleTouchStart = (event: TouchEvent): void => {
     if (event.touches.length === 0) return;
-    
+
+    cancelScheduledFlush();
+
     // Cancel any ongoing completion animation
     state.isCompleting.value = false;
     state.finalDirection.value = null;
     state.completingNextTab.value = null;
     state.swipeStartTabIndex.value = null;
     state.completingTargetTabIndex.value = null;
-    
+
     state.isSwiping.value = false;
     state.isVerticalSwipe.value = false;
     state.swipeDirection.value = null;
     state.touchStartX.value = event.touches[0].clientX;
     state.touchStartY.value = event.touches[0].clientY;
     state.currentX.value = state.touchStartX.value;
-    
+
     // Save current tab index at swipe start
     state.swipeStartTabIndex.value = options.currentTabIndex();
   };
 
   const handleTouchMove = (event: TouchEvent): void => {
     if (event.touches.length === 0) return;
-    
+
     const newX = event.touches[0].clientX;
     const newY = event.touches[0].clientY;
-    
+
     const deltaX = Math.abs(newX - state.touchStartX.value);
     const deltaY = Math.abs(newY - state.touchStartY.value);
-    
+
     // Determine if this is a horizontal or vertical swipe
     if (!state.isSwiping.value && deltaX > 10) {
       // Start horizontal swipe if movement is more horizontal than vertical
@@ -64,10 +102,11 @@ export function createTabSwipeHandlers(
         return;
       }
     }
-    
+
     if (state.isSwiping.value && !state.isVerticalSwipe.value) {
-      state.currentX.value = newX;
-      
+      pendingX = newX;
+      scheduleFlush();
+
       // Prevent default scrolling during horizontal swipe
       if (options.preventVerticalScroll && deltaX > 10 && event.cancelable) {
         event.preventDefault();
@@ -76,6 +115,7 @@ export function createTabSwipeHandlers(
   };
 
   const resetToStart = (): void => {
+    cancelScheduledFlush();
     // Return pages to start position with animation
     state.isSwiping.value = false;
     state.isCompleting.value = true;
@@ -98,6 +138,15 @@ export function createTabSwipeHandlers(
   };
 
   const handleTouchEnd = (): void => {
+    // Flush any pending frame-throttled position synchronously so the
+    // threshold check below sees the finger's actual final position,
+    // not a stale value from a not-yet-rendered frame.
+    cancelRaf();
+    if (pendingX !== null) {
+      state.currentX.value = pendingX;
+      pendingX = null;
+    }
+
     if (!state.isSwiping.value || state.isVerticalSwipe.value) {
       // Reset state
       state.isSwiping.value = false;
@@ -110,7 +159,7 @@ export function createTabSwipeHandlers(
       state.completingTargetTabIndex.value = null;
       return;
     }
-    
+
     const deltaX = state.currentX.value - state.touchStartX.value;
     const absDeltaX = Math.abs(deltaX);
     
