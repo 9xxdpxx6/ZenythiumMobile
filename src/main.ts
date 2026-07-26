@@ -70,6 +70,7 @@ import { AuthService } from './services/auth';
 import { prefetchData } from './composables/useDataFetching';
 import { workoutsService } from './services/workouts.service';
 import { statisticsService } from './services/statistics.service';
+import { cyclesService } from './services/cycles.service';
 
 const app = createApp(App)
   .use(IonicVue)
@@ -97,9 +98,31 @@ const prefetchHomePageData = (): void => {
   prefetchData('homepage_statistics', () => statisticsService.getOverview());
   prefetchData('homepage_personal_records', () => statisticsService.getPersonalRecords());
   prefetchData('homepage_muscle_groups', () => statisticsService.getMuscleGroupStatistics());
+
+  // Warms the same cacheKeys CyclesPage.vue and ProfilePage.vue read on mount
+  // with skipIfDataExists — only endpoints whose default request args never
+  // depend on persisted/user-adjustable state (unlike PlansPage, whose
+  // filters are restored from localStorage and could legitimately differ
+  // from the default request made here).
+  prefetchData('cycles_list', () => cyclesService.getAll({ search: '' }));
+  prefetchData('profile_statistics', () => statisticsService.getOverview());
 };
 
 prefetchHomePageData();
+
+// Warms the JS chunks for all tab pages during the splash screen so
+// switching tabs via swipe never has to pay for a lazy import() (network
+// fetch + parse) on first visit — that stall showed up as a visible hitch
+// right as the swipe skeleton handed off to the real page.
+const prefetchTabChunks = (): void => {
+  import('@/views/CyclesPage.vue');
+  import('@/views/PlansPage.vue');
+  import('@/views/HomePage.vue');
+  import('@/views/WorkoutsPage.vue');
+  import('@/views/ProfilePage.vue');
+};
+
+prefetchTabChunks();
 
 // Инициализация Status Bar (без overlay - контент не перекрывает системные панели)
 const initializeStatusBar = async () => {
