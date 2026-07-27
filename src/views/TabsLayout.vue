@@ -43,9 +43,10 @@
       </ion-tab-bar>
       </ion-tabs>
       
-      <!-- Lightweight skeleton preview during swipe (no real component mount → no API calls) -->
+      <!-- Lightweight skeleton preview during swipe (no real component mount → no API calls).
+           Skipped on the completing phase for already-visited tabs — see showSkeleton. -->
       <div
-        v-if="nextTab && (isSwiping || isCompleting)"
+        v-if="showSkeleton"
         class="swipe-page next-page swipe-skeleton-page"
         :style="{ transform: `translateX(${nextPageTranslateX}px)` }"
         :class="{ 'completing': isCompleting }"
@@ -64,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -130,13 +131,37 @@ const handleSwipe = (direction: 'left' | 'right'): void => {
   }
 };
 
+// Tabs already visited this session already have a live, cached instance
+// (Ionic's view-stack, via ionRouter.changeTab above) — the skeleton exists
+// only to hide the mount+fetch cost of a tab's *first* visit, so replaying
+// it for a revisit is pure, unjustified extra latency on top of content
+// that's already instantly ready underneath.
+const visitedTabs = ref<Set<TabName>>(new Set([currentTab.value as TabName]));
+watch(currentTab, (tab) => {
+  visitedTabs.value.add(tab as TabName);
+});
+
 // Use swipe navigation composable
-const { translateX, nextPageTranslateX, isSwiping, isCompleting, nextTab, activeTabIndicatorStyle, handleTouchStart, handleTouchMove, handleTouchEnd } = 
+const { translateX, nextPageTranslateX, isSwiping, isCompleting, nextTab, activeTabIndicatorStyle, handleTouchStart, handleTouchMove, handleTouchEnd } =
   useTabSwipeNavigation({
     currentTab,
     tabs: TAB_ORDER,
     onSwipe: handleSwipe,
   });
+
+// While dragging (isSwiping), navigation hasn't happened yet, so there's
+// nothing real to show underneath — the skeleton is the only option
+// regardless of visited state. Once the swipe commits (isCompleting),
+// ionRouter.changeTab has already fired: for a previously visited tab the
+// real page is already the active, cached content, so drop the skeleton
+// immediately and let it show through instead of covering it for the full
+// completion animation.
+const showSkeleton = computed(() => {
+  if (!nextTab.value) return false;
+  if (isSwiping.value) return true;
+  if (isCompleting.value) return !visitedTabs.value.has(nextTab.value as TabName);
+  return false;
+});
 
 </script>
 
