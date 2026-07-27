@@ -102,6 +102,18 @@
   touch-action: pan-y;
 }
 
+/* gfxinfo on-device profiling during swipe showed "Slow issue draw
+   commands" on ~24% of frames — the UI thread re-rasterizing content, not
+   GPU compositing. ion-card's box-shadow (applied to every card on every
+   list page) is a likely culprit: dropping it for the ~200ms the pages are
+   actually translating is imperceptible but avoids re-rasterizing a blurred
+   shadow under every card each frame. */
+.pages-container.swiping ion-card,
+.pages-container.completing ion-card {
+  box-shadow: none !important;
+  transition: none !important;
+}
+
 /* Optimize rendering performance - принудительное аппаратное ускорение */
 .swipe-container {
   backface-visibility: hidden;

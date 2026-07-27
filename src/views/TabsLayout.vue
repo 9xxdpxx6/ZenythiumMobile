@@ -1,7 +1,8 @@
 <template>
   <ion-page>
-    <div 
+    <div
       class="pages-container"
+      :class="{ swiping: isSwiping, completing: isCompleting }"
       @touchstart="handleTouchStart"
       @touchmove="handleTouchMove"
       @touchend="handleTouchEnd"
