@@ -9,8 +9,8 @@
     >
       <!-- Current page -->
       <ion-tabs class="swipe-page current-page">
-        <ion-router-outlet 
-          :style="{ transform: `translateX(${translateX}px)` }" 
+        <ion-router-outlet
+          :style="{ transform: `translateX(${outletTranslateX}px)` }"
           :class="{ 'swiping': isSwiping, 'completing': isCompleting }"
         ></ion-router-outlet>
         <ion-tab-bar slot="bottom" class="tab-bar-with-indicator">
@@ -103,9 +103,24 @@ const currentTab = computed(() => {
   return 'home';
 });
 
-// Handle swipe navigation
+// The tab active when the current drag gesture began. handleSwipe (fired on
+// commit) must compute "next tab" from THIS, not from live currentTab —
+// once eager navigation (below) switches the route mid-drag for a cached
+// tab, currentTab no longer reflects where the gesture started.
+const gestureStartTab = ref<TabName | null>(null);
+// Whether this gesture already navigated early (mid-drag) to a cached tab.
+const eagerNavigated = ref(false);
+// Set synchronously by handleSwipe when a gesture commits, so the
+// isSwiping watcher below can tell a commit from a cancelled drag.
+let committedThisGesture = false;
+
+// Handle swipe navigation (invoked on commit, i.e. finger released past
+// the threshold)
 const handleSwipe = (direction: 'left' | 'right'): void => {
-  const currentIndex = TAB_ORDER.indexOf(currentTab.value as TabName);
+  committedThisGesture = true;
+
+  const baseTab = gestureStartTab.value ?? (currentTab.value as TabName);
+  const currentIndex = TAB_ORDER.indexOf(baseTab);
   if (currentIndex === -1) return;
 
   let nextIndex: number;
@@ -120,47 +135,119 @@ const handleSwipe = (direction: 'left' | 'right'): void => {
   // Check bounds
   if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
 
-  const nextTab = TAB_ORDER[nextIndex];
-  const path = `/tabs/${nextTab}`;
+  const nextTabName = TAB_ORDER[nextIndex];
+  const path = `/tabs/${nextTabName}`;
 
   if (ionRouter) {
     // Same path ion-tab-button uses on tap — reuses the cached tab instance.
-    ionRouter.changeTab(nextTab, path);
+    // A no-op if eager navigation (below) already got us here mid-drag.
+    ionRouter.changeTab(nextTabName, path);
   } else {
     router.replace(path);
   }
 };
 
 // Tabs already visited this session already have a live, cached instance
-// (Ionic's view-stack, via ionRouter.changeTab above) — the skeleton exists
-// only to hide the mount+fetch cost of a tab's *first* visit, so replaying
-// it for a revisit is pure, unjustified extra latency on top of content
-// that's already instantly ready underneath.
+// (Ionic's view-stack, via ionRouter.changeTab). The skeleton exists only
+// to hide the mount+fetch cost of a tab's *first* visit, so replaying it
+// for a revisit is pure, unjustified extra latency on top of content
+// that's already ready underneath.
 const visitedTabs = ref<Set<TabName>>(new Set([currentTab.value as TabName]));
 watch(currentTab, (tab) => {
   visitedTabs.value.add(tab as TabName);
 });
 
+// The composable derives nextTab/nextPageTranslateX/etc. from this tab's
+// live index. Eager navigation (below) changes the *real* route mid-drag
+// for a cached tab — without freezing what the composable sees, its "next
+// tab" calculation would immediately drift one further (e.g. cycles→plans
+// mid-drag makes it recompute plans→home) the instant the route changes,
+// since it isn't aware a gesture is in progress. Freezing it to the tab
+// the gesture started on for the whole active-drag phase keeps every
+// derived value stable regardless of what eager navigation does to the
+// route underneath it.
+const swipeCurrentTab = computed(() => gestureStartTab.value ?? currentTab.value);
+
 // Use swipe navigation composable
-const { translateX, nextPageTranslateX, isSwiping, isCompleting, nextTab, activeTabIndicatorStyle, handleTouchStart, handleTouchMove, handleTouchEnd } =
+const { translateX, nextPageTranslateX, isSwiping, isCompleting, nextTab, activeTabIndicatorStyle, handleTouchStart: startDrag, handleTouchMove, handleTouchEnd } =
   useTabSwipeNavigation({
-    currentTab,
+    currentTab: swipeCurrentTab,
     tabs: TAB_ORDER,
     onSwipe: handleSwipe,
   });
 
-// While dragging (isSwiping), navigation hasn't happened yet, so there's
-// nothing real to show underneath — the skeleton is the only option
-// regardless of visited state. Once the swipe commits (isCompleting),
-// ionRouter.changeTab has already fired: for a previously visited tab the
-// real page is already the active, cached content, so drop the skeleton
-// immediately and let it show through instead of covering it for the full
-// completion animation.
+const handleTouchStart = (event: TouchEvent): void => {
+  gestureStartTab.value = currentTab.value as TabName;
+  eagerNavigated.value = false;
+  committedThisGesture = false;
+  startDrag(event);
+};
+
+// The swipe direction (and therefore nextTab) is locked once, the moment
+// the drag is recognized as horizontal — it doesn't change again mid
+// gesture. That's the one moment to eagerly jump to an already-visited
+// tab: the direction is now known, and the tab is cheap (cached, no
+// fetch), so there's no downside to showing it immediately instead of
+// waiting for the finger to be released.
+watch(nextTab, (tab) => {
+  if (!isSwiping.value || !tab || eagerNavigated.value) return;
+  if (!visitedTabs.value.has(tab as TabName)) return; // not cached — keep the skeleton path
+
+  eagerNavigated.value = true;
+  ionRouter?.changeTab(tab, `/tabs/${tab}`);
+});
+
+// Gesture ended (finger lifted). Two cases:
+// - Committed: handleSwipe already navigated to the real destination —
+//   eagerNavigated stays true so the outlet keeps using the "incoming
+//   page" transform (settles to center) through the completing animation.
+// - Cancelled (released before the threshold): we're still sitting on the
+//   tab we eagerly jumped to mid-drag. Revert the navigation AND flip
+//   eagerNavigated back to false in the same tick, so the outlet
+//   immediately goes back to the normal "current page returning to
+//   center" transform instead of the "next page hiding off screen" one —
+//   otherwise the reverted content would fly off-screen instead of
+//   settling back in place.
+watch(isSwiping, (swiping) => {
+  if (swiping || !eagerNavigated.value) return;
+
+  if (committedThisGesture) {
+    committedThisGesture = false;
+    return;
+  }
+
+  eagerNavigated.value = false;
+  if (gestureStartTab.value && ionRouter) {
+    ionRouter.changeTab(gestureStartTab.value, `/tabs/${gestureStartTab.value}`);
+  }
+  gestureStartTab.value = null;
+});
+
+// Safety net for the committed path: once the whole gesture (including the
+// 200ms completing animation) has fully reset, clear the bookkeeping for
+// the next gesture.
+watch(nextTab, (tab) => {
+  if (tab === null) {
+    eagerNavigated.value = false;
+    gestureStartTab.value = null;
+  }
+});
+
+// Once eager navigation has swapped the outlet's content to the
+// destination tab, that content should behave like the incoming "next
+// page" (slides from the edge to center) rather than the outgoing
+// "current page" (slides from center to the edge) — same transform the
+// skeleton used to follow, just now applied to the real page underneath.
+const outletTranslateX = computed(() => (eagerNavigated.value ? nextPageTranslateX.value : translateX.value));
+
+// The skeleton is only needed while the destination tab has never been
+// visited (no cached instance to show yet) — for a visited tab, the watch
+// above already swaps in the real page the moment the direction locks, so
+// it can just follow the finger like the current page always did.
 const showSkeleton = computed(() => {
   if (!nextTab.value) return false;
-  if (isSwiping.value) return true;
-  if (isCompleting.value) return !visitedTabs.value.has(nextTab.value as TabName);
-  return false;
+  if (!isSwiping.value && !isCompleting.value) return false;
+  return !visitedTabs.value.has(nextTab.value as TabName);
 });
 
 </script>
