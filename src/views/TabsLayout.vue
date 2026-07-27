@@ -63,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   IonPage,
@@ -81,6 +81,15 @@ type TabName = typeof TAB_ORDER[number];
 
 const route = useRoute();
 const router = useRouter();
+
+// @ionic/vue-router provides this internally (not part of the public
+// useIonRouter() API) — it's what ion-tab-button itself calls on tap to
+// switch tabs. It restores a previously visited tab's page instance from
+// Ionic's own view-stack cache instead of remounting it, which is why tab
+// taps are instant while our old router.replace() for swipes always paid a
+// full remount + refetch.
+type IonicNavManager = { changeTab: (tab: string, path: string) => void };
+const ionRouter = inject<IonicNavManager | null>('navManager', null);
 
 // Get current tab from route path
 const currentTab = computed(() => {
@@ -110,8 +119,14 @@ const handleSwipe = (direction: 'left' | 'right'): void => {
   if (nextIndex < 0 || nextIndex >= TAB_ORDER.length) return;
 
   const nextTab = TAB_ORDER[nextIndex];
-  // Use replace instead of push to avoid history stack, and disable Ionic animations
-  router.replace(`/tabs/${nextTab}`);
+  const path = `/tabs/${nextTab}`;
+
+  if (ionRouter) {
+    // Same path ion-tab-button uses on tap — reuses the cached tab instance.
+    ionRouter.changeTab(nextTab, path);
+  } else {
+    router.replace(path);
+  }
 };
 
 // Use swipe navigation composable
@@ -195,7 +210,12 @@ ion-tab-button {
 }
 
 .skeleton-header-bar {
-  height: 56px;
+  /* Matches PageHeader.vue's ion-toolbar (--min-height: 46px) plus the
+     safe-area inset Ionic adds above it, so the skeleton doesn't visibly
+     jump in height once the real header mounts underneath it. */
+  height: 46px;
+  padding-top: env(safe-area-inset-top, 0px);
+  box-sizing: content-box;
   background: rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
 }
