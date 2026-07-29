@@ -25,11 +25,11 @@
 
       <div class="stat-card modern-card">
         <div class="stat-top">
-          <div class="stat-value">{{ formatTime((statistics as any)?.total_training_time || 0) }}</div>
+          <div class="stat-value">{{ formatTime((statistics as any)?.avg_training_time_30_days || 0) }}</div>
           <i class="fas fa-clock stat-icon"></i>
         </div>
         <div class="stat-content">
-          <h3>Время тренировок</h3>
+          <h3>Среднее время (30 дней)</h3>
         </div>
       </div>
 

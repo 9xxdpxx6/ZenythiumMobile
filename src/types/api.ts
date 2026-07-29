@@ -278,11 +278,13 @@ export interface PlanExercise {
 export interface Statistics {
   total_workouts: number;
   completed_workouts: number;
-  total_training_time: number;
+  avg_training_time_30_days: number;
   total_volume: number | string; // API может возвращать как число, так и строку
   current_weight: number;
   active_cycles_count: number;
-  weight_change_30_days: number | null; // API может возвращать null
+  weight_change_7_days: number | null;
+  weight_change_30_days: number | null;
+  weight_change_90_days: number | null;
   training_frequency_4_weeks: number;
 }
 

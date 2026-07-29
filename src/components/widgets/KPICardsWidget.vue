@@ -13,8 +13,8 @@
       <div class="kpi-card modern-card">
         <div class="kpi-icon">⏱️</div>
         <div class="kpi-content">
-          <h3>Общее время тренировок</h3>
-          <div class="kpi-value">{{ formatTime(statistics?.total_training_time || 0) }}</div>
+          <h3>Среднее время тренировки (30 дней)</h3>
+          <div class="kpi-value">{{ formatTime(statistics?.avg_training_time_30_days || 0) }}</div>
         </div>
       </div>
 
@@ -29,9 +29,18 @@
       <div class="kpi-card modern-card">
         <div class="kpi-icon">⚖️</div>
         <div class="kpi-content">
-          <h3>Изменение веса (30 дней)</h3>
-          <div class="kpi-value" :class="getWeightChangeClass(statistics?.weight_change_30_days ?? null)">
-            {{ formatWeightChange(statistics?.weight_change_30_days ?? null) }}
+          <h3>Изменение веса</h3>
+          <div class="weight-changes">
+            <div
+              v-for="row in weightChangeRows"
+              :key="row.label"
+              class="weight-row"
+            >
+              <span class="weight-period">{{ row.label }}</span>
+              <span class="weight-delta" :class="getWeightChangeClass(row.value)">
+                {{ formatWeightChange(row.value) }}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -76,7 +85,13 @@ const topRecords = computed(() => {
     .slice(0, 3);
 });
 
-// API возвращает total_training_time в МИНУТАХ (см. api-docs), форматируем ч/м
+const weightChangeRows = computed(() => [
+  { label: '7 дней',  value: props.statistics?.weight_change_7_days ?? null },
+  { label: '30 дней', value: props.statistics?.weight_change_30_days ?? null },
+  { label: '90 дней', value: props.statistics?.weight_change_90_days ?? null },
+]);
+
+// API возвращает avg_training_time_30_days в МИНУТАХ, форматируем ч/м
 const formatTime = (minutesTotal: number) => {
   if (!minutesTotal || isNaN(minutesTotal)) return '0м';
   const hours = Math.floor(minutesTotal / 60);
@@ -88,17 +103,14 @@ const formatTime = (minutesTotal: number) => {
 };
 
 const formatWeightChange = (change: number | null) => {
-  if (!change || isNaN(change)) return '0 кг';
-  if (change > 0) {
-    return `+${change.toFixed(1)} кг`;
-  } else if (change < 0) {
-    return `${change.toFixed(1)} кг`;
-  }
+  if (change === null || change === undefined || isNaN(change)) return '—';
+  if (change > 0) return `+${change.toFixed(1)} кг`;
+  if (change < 0) return `${change.toFixed(1)} кг`;
   return '0 кг';
 };
 
 const getWeightChangeClass = (change: number | null) => {
-  if (!change || isNaN(change)) return '';
+  if (change === null || change === undefined || isNaN(change)) return '';
   if (change > 0) return 'weight-increase';
   if (change < 0) return 'weight-decrease';
   return '';
@@ -184,6 +196,38 @@ const getMedalEmoji = (index: number) => {
   color: #ffffff;
   font-weight: 600;
   font-size: 0.9rem;
+}
+
+.weight-changes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.weight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.weight-period {
+  color: #b0b0b0;
+  font-size: 0.9rem;
+}
+
+.weight-delta {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.weight-delta.weight-increase {
+  color: #22c55e;
+}
+
+.weight-delta.weight-decrease {
+  color: #3b82f6;
 }
 
 .weight-increase {
