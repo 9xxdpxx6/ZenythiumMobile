@@ -383,16 +383,24 @@ export interface MuscleGroupStats {
   workout_count: number;
   exercise_count: number;
   avg_volume_per_workout: number;
-  last_trained: string;
-  first_trained: string;
+  last_trained: string | null;
+  first_trained: string | null;
   unique_training_days: number;
   days_since_last_training: number;
+  sessions_per_week: number;
+  frequency_ratio: number;
+  normalized_weekly_volume: number;
+  is_untrained: boolean;
 }
 
 export interface BalanceAnalysis {
-  most_trained: string;
-  least_trained: string;
+  most_trained: string | null;
+  least_trained: string | null;
   balance_score: number;
+  coverage_score: number;
+  balance_ratio: number;
+  untrained_groups: string[];
+  overtrained_groups: string[];
   recommendations: string[];
 }
 

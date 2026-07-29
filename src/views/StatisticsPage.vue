@@ -36,7 +36,7 @@
             />
 
             <MuscleGroupDistributionChart
-              :personal-records="records?.data?.personal_records"
+              :muscle-groups="muscleGroupStats?.muscle_groups"
               :balance-recommendation="balanceRecommendation"
             />
 
@@ -150,9 +150,15 @@ const { data: exerciseStatsData, execute: fetchExerciseStats } = useDataFetching
   { immediate: true }
 );
 
+// Fetch muscle group statistics (used by the distribution chart and balance widget)
+const { data: muscleGroupStats, execute: fetchMuscleGroupStats } = useDataFetching(
+  async () => statisticsService.getMuscleGroupStatistics(),
+  { immediate: true }
+);
+
 // Computed properties
 const balanceRecommendation = computed(() => {
-  return timeAnalytics.value?.balance_analysis?.recommendations?.[0] || null;
+  return muscleGroupStats.value?.balance_analysis?.recommendations?.[0] || null;
 });
 
 const exerciseProgressData = computed(() => {
@@ -183,6 +189,7 @@ const refreshAllData = async () => {
       fetchTimeAnalytics(),
       fetchRecords(),
       fetchExerciseStats(),
+      fetchMuscleGroupStats(),
     ]);
   } catch (err) {
     console.error('Error refreshing data:', err);

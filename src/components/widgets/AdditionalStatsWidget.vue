@@ -65,8 +65,8 @@ interface Props {
     achieved_date: string;
   } | null;
   balanceAnalysis?: {
-    most_trained: string;
-    least_trained: string;
+    most_trained: string | null;
+    least_trained: string | null;
     balance_score: number;
   } | null;
 }

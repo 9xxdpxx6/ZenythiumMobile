@@ -1,7 +1,7 @@
 <template>
   <div class="muscle-group-distribution-chart">
     <div class="chart-container modern-card">
-      <h3>Баланс мышечных групп</h3>
+      <h3>Распределение нагрузки по группам (30 дней)</h3>
       <div class="chart-wrapper">
         <Doughnut
           v-if="chartData"
@@ -9,10 +9,10 @@
           :options="chartOptions"
         />
         <div v-else class="no-data">
-          <p>Нет данных для отображения</p>
+          <p>Нет завершённых тренировок за последние 30 дней</p>
         </div>
       </div>
-      
+
       <div v-if="balanceRecommendation" class="balance-recommendation">
         <h4>💡 Рекомендация по балансу:</h4>
         <p>{{ balanceRecommendation }}</p>
@@ -25,55 +25,40 @@
 import { computed } from 'vue';
 import { Doughnut } from 'vue-chartjs';
 import '@/utils/chartSetup';
-
-interface PersonalRecord {
-  exercise_name: string;
-  muscle_group: string;
-  max_volume: number;
-}
+import type { MuscleGroupStats } from '@/types/api';
 
 interface Props {
-  personalRecords?: PersonalRecord[];
+  muscleGroups?: MuscleGroupStats[];
   balanceRecommendation?: string | null;
 }
 
 const props = defineProps<Props>();
 
 const chartData = computed(() => {
-  if (!props.personalRecords || props.personalRecords.length === 0) return null;
-  
-  const muscleGroups: Record<string, number> = {};
-  
-  props.personalRecords.forEach(record => {
-    const group = record.muscle_group;
-    if (!muscleGroups[group]) {
-      muscleGroups[group] = 0;
-    }
-    muscleGroups[group] += record.max_volume || 0;
-  });
-  
+  // Реальный баланс — по фактическому объёму работы за окно (30 дней) из
+  // muscle_group_stats. Группы с нулевым объёмом (is_untrained) в диаграмму
+  // не попадают — их показывать в круговой невозможно, но список untrained
+  // отдельно выводится в текстовой рекомендации.
+  const trained = (props.muscleGroups ?? []).filter(g => g.total_volume > 0);
+  if (trained.length === 0) return null;
+
   const colors = [
     '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF6384'
+    '#FF9F40', '#8B5CF6', '#C9CBCF',
   ];
-  
-  const labels = Object.keys(muscleGroups);
-  const data = Object.values(muscleGroups);
-  const total = data.reduce((sum, value) => sum + value, 0);
-  
-  const percentages = data.map(value => Math.round((value / total) * 100));
-  const labelsWithPercentages = labels.map((label, index) => 
-    `${label} (${percentages[index]}%)`
-  );
-  
+
+  const total = trained.reduce((sum, g) => sum + g.total_volume, 0);
+  const percentages = trained.map(g => Math.round((g.total_volume / total) * 100));
+  const labels = trained.map((g, i) => `${g.muscle_group_name} (${percentages[i]}%)`);
+
   return {
-    labels: labelsWithPercentages,
+    labels,
     datasets: [{
       data: percentages,
-      backgroundColor: colors.slice(0, labels.length),
+      backgroundColor: colors.slice(0, trained.length),
       borderWidth: 2,
       borderColor: '#ffffff',
-    }]
+    }],
   };
 });
 
