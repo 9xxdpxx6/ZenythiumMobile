@@ -5,22 +5,56 @@
   >
     <div class="cycle-header">
       <h3>{{ cycle.name }}</h3>
-      <div class="header-actions">
-        <button
-          class="share-button"
-          @click.stop="$emit('share', cycle)"
-          title="Поделиться циклом"
-        >
-          <i class="fas fa-share-alt"></i>
-        </button>
+      <div class="header-actions" ref="menuContainerRef">
         <div
           :class="['cycle-status', cycle.status === CycleStatus.ACTIVE ? 'status-active' : 'status-completed']"
         >
           {{ cycle.status === CycleStatus.ACTIVE ? 'Активен' : 'Завершен' }}
         </div>
+        <button
+          class="menu-button"
+          :class="{ 'is-open': isMenuOpen }"
+          @click.stop="toggleMenu"
+          title="Действия"
+        >
+          <i class="fas fa-ellipsis-v"></i>
+        </button>
+
+        <div
+          v-if="isMenuOpen"
+          class="actions-dropdown"
+          @click.stop
+        >
+          <button
+            type="button"
+            class="dropdown-item"
+            @click.stop="handleAction('share')"
+          >
+            <i class="fas fa-share-alt"></i>
+            <span>Поделиться</span>
+          </button>
+          <button
+            type="button"
+            class="dropdown-item"
+            @click.stop="handleAction('export')"
+          >
+            <i class="fas fa-file-export"></i>
+            <span>Экспорт</span>
+          </button>
+          <button
+            type="button"
+            class="dropdown-item"
+            :disabled="isDuplicating"
+            @click.stop="handleAction('duplicate')"
+          >
+            <i v-if="isDuplicating" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-copy"></i>
+            <span>Скопировать</span>
+          </button>
+        </div>
       </div>
     </div>
-    
+
     <div class="cycle-info">
       <p><strong>Планов:</strong> {{ cycle.plans_count || 0 }}</p>
       <p><strong>Тренировок:</strong> {{ cycle.workouts_count || 0 }}</p>
@@ -36,8 +70,8 @@
         <span>{{ Math.round(cycle.progress || 0) }}%</span>
       </div>
       <div class="progress-bar">
-        <div 
-          class="progress-fill" 
+        <div
+          class="progress-fill"
           :style="{ width: (cycle.progress || 0) + '%' }"
         ></div>
       </div>
@@ -50,18 +84,57 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue';
 import type { Cycle } from '@/types/models/cycle.types';
 import { CycleStatus } from '@/types/models/cycle.types';
 
 interface Props {
   cycle: Cycle;
+  isDuplicating?: boolean;
 }
 
-defineProps<Props>();
-defineEmits<{
+const props = defineProps<Props>();
+const emit = defineEmits<{
   click: [cycle: Cycle];
   share: [cycle: Cycle];
+  export: [cycle: Cycle];
+  duplicate: [cycle: Cycle];
 }>();
+
+const isMenuOpen = ref(false);
+const menuContainerRef = ref<HTMLElement | null>(null);
+
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value;
+};
+
+const closeMenu = () => {
+  isMenuOpen.value = false;
+};
+
+const handleAction = (action: 'share' | 'export' | 'duplicate') => {
+  closeMenu();
+  if (action === 'share') emit('share', props.cycle);
+  else if (action === 'export') emit('export', props.cycle);
+  else emit('duplicate', props.cycle);
+};
+
+const handleClickOutside = (event: MouseEvent) => {
+  if (
+    menuContainerRef.value &&
+    !menuContainerRef.value.contains(event.target as Node)
+  ) {
+    closeMenu();
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 
 const formatDate = (dateString: string | undefined) => {
   if (!dateString || dateString.trim() === '') {
@@ -99,29 +172,80 @@ const formatDate = (dateString: string | undefined) => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
+  position: relative;
 }
 
-.share-button {
-  padding: 6px 10px;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  color: #3b82f6;
+.menu-button {
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--ion-color-medium);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.15s ease, color 0.15s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 16px;
 }
 
-.share-button:hover {
-  background: rgba(59, 130, 246, 0.2);
-  border-color: rgba(59, 130, 246, 0.5);
+.menu-button:hover,
+.menu-button.is-open {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ion-text-color);
 }
 
-.share-button i {
+.menu-button i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.actions-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 180px;
+  background: rgba(31, 31, 31, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.dropdown-item {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--ion-text-color);
   font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.dropdown-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dropdown-item i {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  color: rgba(var(--ion-color-primary-rgb), 0.9);
 }
 
 .cycle-header h3 {

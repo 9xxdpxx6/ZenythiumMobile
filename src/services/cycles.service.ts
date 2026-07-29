@@ -260,6 +260,23 @@ class CyclesService extends BaseService<Cycle, CreateCycleDto, UpdateCycleDto> {
   }
 
   /**
+   * Duplicate cycle recursively (cycle → all plans → all plan exercises).
+   * Dates are reset; workouts are not copied.
+   */
+  async duplicate(id: string): Promise<Cycle> {
+    try {
+      const response = await apiClient.post<{ data: CycleApiResponse; message: string }>(
+        API_ENDPOINTS.CYCLE_DUPLICATE(id)
+      );
+      logger.info('CyclesService: Cycle duplicated successfully');
+      return this.mapCycleFromApi(response.data.data);
+    } catch (error) {
+      errorHandler.log(error, 'CyclesService.duplicate');
+      throw error;
+    }
+  }
+
+  /**
    * Import shared cycle
    */
   async importSharedCycle(shareId: string): Promise<ImportCycleResponse> {

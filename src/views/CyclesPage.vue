@@ -30,8 +30,11 @@
               v-for="cycle in cycles"
               :key="cycle.id"
               :cycle="cycle as Cycle"
+              :is-duplicating="duplicatingCycleId === cycle.id"
               @click="handleCycleClick"
               @share="shareCycle.handleShare"
+              @export="handleOpenExport"
+              @duplicate="handleDuplicate"
             />
           </div>
         </div>
@@ -54,6 +57,14 @@
       :cycle-id="shareCycle.cycleId.value"
       @close="shareCycle.shareModal.close()"
     />
+
+    <!-- Export Cycle Modal -->
+    <ExportModal
+      :is-open="exportModal.isOpen.value"
+      :is-exporting="isExporting"
+      @export="handleExport"
+      @cancel="exportModal.close()"
+    />
   </ion-page>
 </template>
 
@@ -67,7 +78,7 @@ import {
   IonRefresher,
   IonRefresherContent,
 } from '@ionic/vue';
-import { useDataFetching, useFilters, useShareCycle } from '@/composables';
+import { useDataFetching, useFilters, useShareCycle, useModal, useExport, useToast } from '@/composables';
 import { cyclesService } from '@/services';
 import SearchInput from '@/components/ui/SearchInput.vue';
 import PageHeader from '@/components/ui/PageHeader.vue';
@@ -76,6 +87,8 @@ import EmptyState from '@/components/ui/EmptyState.vue';
 import PageContainer from '@/components/ui/PageContainer.vue';
 import CycleCard from '@/components/cards/CycleCard.vue';
 import ShareCycleModal from '@/components/modals/ShareCycleModal.vue';
+import ExportModal from '@/components/modals/ExportModal.vue';
+import { errorHandler } from '@/utils/error-handler';
 import type { Cycle } from '@/types/models/cycle.types';
 
 const router = useRouter();
@@ -133,6 +146,55 @@ const handleCycleClick = (cycle: Cycle | null) => {
 };
 
 const shareCycle = useShareCycle();
+
+// Export
+const exportModal = useModal<Cycle>();
+const isExporting = ref(false);
+const { handleExport: handleExportDownload } = useExport();
+const { showSuccess, showError } = useToast();
+
+const handleOpenExport = (cycle: Cycle | null) => {
+  if (!cycle) return;
+  exportModal.open(cycle);
+};
+
+const handleExport = async (format: 'json' | 'pdf', type: 'detailed' | 'structure') => {
+  const cycle = exportModal.data.value;
+  if (!cycle) return;
+
+  isExporting.value = true;
+  try {
+    const filename = `cycle-${cycle.id}-${type}.${format}`;
+    await handleExportDownload(
+      () => cyclesService.exportCycle(String(cycle.id), format, type),
+      filename,
+      format,
+    );
+    exportModal.close();
+  } finally {
+    isExporting.value = false;
+  }
+};
+
+// Duplicate
+const duplicatingCycleId = ref<number | null>(null);
+
+const handleDuplicate = async (cycle: Cycle | null) => {
+  if (!cycle || duplicatingCycleId.value !== null) return;
+
+  duplicatingCycleId.value = cycle.id;
+  try {
+    const newCycle = await cyclesService.duplicate(String(cycle.id));
+    clearDataCache('cycles_list');
+    await execute();
+    showSuccess(`Цикл скопирован: «${newCycle.name}»`);
+  } catch (error) {
+    errorHandler.log(error, 'CyclesPage.handleDuplicate');
+    showError(errorHandler.format(error) || 'Не удалось скопировать цикл');
+  } finally {
+    duplicatingCycleId.value = null;
+  }
+};
 
 const createCycle = () => router.push('/cycle/new');
 

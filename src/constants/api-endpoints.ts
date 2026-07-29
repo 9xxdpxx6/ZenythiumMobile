@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   CYCLE_COMPLETE: (id: string) => `/cycles/${id}/complete`,
   CYCLE_EXPORT: (id: string) => `/cycles/${id}/export`,
   CYCLE_SHARE_LINK: (id: string) => `/cycles/${id}/share-link`,
+  CYCLE_DUPLICATE: (id: string) => `/cycles/${id}/duplicate`,
   SHARED_CYCLE_BY_ID: (shareId: string) => `/shared-cycles/${shareId}`,
   SHARED_CYCLE_IMPORT: (shareId: string) => `/shared-cycles/${shareId}/import`,
 
